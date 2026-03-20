@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { IonContent, IonPage } from '@ionic/vue'
+import { computed } from 'vue'
 import { sessionState } from '@/state/session'
 
 const userName = computed(() => sessionState.user?.name ?? 'Equipo')

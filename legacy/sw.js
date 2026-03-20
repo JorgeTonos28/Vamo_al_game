@@ -33,11 +33,16 @@ self.addEventListener('activate', event => {
 // Fetch — network first, fallback to cache
 self.addEventListener('fetch', event => {
   // Only handle GET requests
-  if(event.request.method !== 'GET') return;
+  if(event.request.method !== 'GET') {
+return;
+}
   
   // Skip Firebase and external requests
   const url = new URL(event.request.url);
-  if(url.hostname !== self.location.hostname) return;
+
+  if(url.hostname !== self.location.hostname) {
+return;
+}
 
   event.respondWith(
     fetch(event.request)
@@ -47,6 +52,7 @@ self.addEventListener('fetch', event => {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
         }
+
         return response;
       })
       .catch(() => {
@@ -58,5 +64,7 @@ self.addEventListener('fetch', event => {
 
 // Listen for skip waiting message
 self.addEventListener('message', event => {
-  if(event.data === 'skipWaiting') self.skipWaiting();
+  if(event.data === 'skipWaiting') {
+self.skipWaiting();
+}
 });

@@ -32,7 +32,12 @@ export default defineConfigWithVueTs(
             'import/resolver': {
                 typescript: {
                     alwaysTryTypes: true,
-                    project: './tsconfig.json',
+                    noWarnOnMultipleProjects: true,
+                    project: [
+                        './tsconfig.json',
+                        './mobile/tsconfig.app.json',
+                        './mobile/tsconfig.node.json',
+                    ],
                 },
                 node: true,
             },
@@ -78,10 +83,14 @@ export default defineConfigWithVueTs(
         ignores: [
             'vendor',
             'node_modules',
+            'mobile/node_modules',
+            'mobile/dist',
+            'mobile/.vite',
             'public',
             'bootstrap/ssr',
             'tailwind.config.js',
             'vite.config.ts',
+            'packages/contracts/generated/**',
             'resources/js/actions/**',
             'resources/js/components/ui/*',
             'resources/js/routes/**',

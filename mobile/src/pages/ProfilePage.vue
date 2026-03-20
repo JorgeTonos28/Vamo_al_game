@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { onIonViewWillEnter, IonButton, IonContent, IonPage } from '@ionic/vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchCurrentUser, logout } from '@/services/auth'
 import { sessionState } from '@/state/session'

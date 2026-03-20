@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import HomePage from '@/pages/HomePage.vue'
 import HealthPage from '@/pages/HealthPage.vue'
+import HomePage from '@/pages/HomePage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
 import ProfilePage from '@/pages/ProfilePage.vue'
 import TabsPage from '@/pages/TabsPage.vue'

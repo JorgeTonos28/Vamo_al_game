@@ -14,7 +14,8 @@ import { homeOutline, personCircleOutline, pulseOutline } from 'ionicons/icons'
   <IonTabs>
     <IonRouterOutlet />
 
-    <IonTabBar slot="bottom">
+    <template v-slot:bottom>
+<IonTabBar >
       <IonTabButton tab="home" href="/tabs/home">
         <IonIcon :icon="homeOutline" />
         <IonLabel>Home</IonLabel>
@@ -30,5 +31,6 @@ import { homeOutline, personCircleOutline, pulseOutline } from 'ionicons/icons'
         <IonLabel>Health</IonLabel>
       </IonTabButton>
     </IonTabBar>
+</template>
   </IonTabs>
 </template>

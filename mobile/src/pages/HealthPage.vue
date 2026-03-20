@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { onIonViewWillEnter, IonButton, IonContent, IonPage } from '@ionic/vue'
+import { ref } from 'vue'
 import { fetchHealth } from '@/services/auth'
 
 const health = ref<Awaited<ReturnType<typeof fetchHealth>> | null>(null)

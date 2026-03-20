@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import { AxiosError } from 'axios'
-import { computed, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import {
   IonButton,
   IonContent,
@@ -12,6 +9,9 @@ import {
   IonSpinner,
   IonText,
 } from '@ionic/vue'
+import type { AxiosError } from 'axios'
+import { computed, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { login } from '@/services/auth'
 import type { ErrorResponse, LoginPayload } from '@/types/api'
 
