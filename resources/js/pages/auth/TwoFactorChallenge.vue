@@ -16,18 +16,18 @@ import type { TwoFactorConfigContent } from '@/types';
 const authConfigContent = computed<TwoFactorConfigContent>(() => {
     if (showRecoveryInput.value) {
         return {
-            title: 'Recovery code',
+            title: 'Codigo de recuperacion',
             description:
-                'Please confirm access to your account by entering one of your emergency recovery codes.',
-            buttonText: 'login using an authentication code',
+                'Confirma el acceso introduciendo uno de tus codigos de recuperacion de emergencia.',
+            buttonText: 'usar codigo de autenticacion',
         };
     }
 
     return {
-        title: 'Authentication code',
+        title: 'Codigo de autenticacion',
         description:
-            'Enter the authentication code provided by your authenticator application.',
-        buttonText: 'login using a recovery code',
+            'Introduce el codigo generado por tu aplicacion de autenticacion.',
+        buttonText: 'usar codigo de recuperacion',
     };
 });
 
@@ -47,7 +47,7 @@ const code = ref<string>('');
         :title="authConfigContent.title"
         :description="authConfigContent.description"
     >
-        <Head title="Two-factor authentication" />
+        <Head title="Autenticacion de dos factores" />
 
         <div class="space-y-6">
             <template v-if="!showRecoveryInput">
@@ -82,13 +82,13 @@ const code = ref<string>('');
                         <InputError :message="errors.code" />
                     </div>
                     <Button type="submit" class="w-full" :disabled="processing"
-                        >Continue</Button
+                        >Continuar</Button
                     >
                     <div class="text-center text-sm text-muted-foreground">
-                        <span>or you can </span>
+                        <span>o puedes </span>
                         <button
                             type="button"
-                            class="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
+                            class="font-medium text-[#E5B849] underline decoration-[rgba(229,184,73,0.35)] underline-offset-4 transition-colors duration-150 ease-out hover:text-[#f3cb67] hover:decoration-current"
                             @click="() => toggleRecoveryMode(clearErrors)"
                         >
                             {{ authConfigContent.buttonText }}
@@ -107,20 +107,20 @@ const code = ref<string>('');
                     <Input
                         name="recovery_code"
                         type="text"
-                        placeholder="Enter recovery code"
+                        placeholder="Introduce un codigo de recuperacion"
                         :autofocus="showRecoveryInput"
                         required
                     />
                     <InputError :message="errors.recovery_code" />
                     <Button type="submit" class="w-full" :disabled="processing"
-                        >Continue</Button
+                        >Continuar</Button
                     >
 
                     <div class="text-center text-sm text-muted-foreground">
-                        <span>or you can </span>
+                        <span>o puedes </span>
                         <button
                             type="button"
-                            class="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
+                            class="font-medium text-[#E5B849] underline decoration-[rgba(229,184,73,0.35)] underline-offset-4 transition-colors duration-150 ease-out hover:text-[#f3cb67] hover:decoration-current"
                             @click="() => toggleRecoveryMode(clearErrors)"
                         >
                             {{ authConfigContent.buttonText }}

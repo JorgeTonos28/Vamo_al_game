@@ -9,7 +9,7 @@ El repositorio esta en una fase inicial. Hoy incluye:
 - Backend con Laravel 13 y PHP 8.3.
 - Frontend con Vue 3, Inertia.js, TypeScript y Vite.
 - Tailwind CSS 4 y componentes UI basados en `shadcn-vue`.
-- Autenticacion con Laravel Fortify.
+- Autenticacion con Laravel Fortify y acceso con Google.
 - Base de datos SQLite por defecto para desarrollo local.
 - Suite de pruebas con Pest.
 
@@ -91,14 +91,212 @@ composer run dev
 
 Ese comando levanta el servidor Laravel, el listener de colas y Vite en paralelo.
 
-## Usuario de prueba
+## Autenticacion y cuentas
 
-El `DatabaseSeeder` actual crea un usuario inicial:
+El proyecto usa:
 
-- Email: `test@example.com`
-- Password: define una mediante registro normal o ajusta el seeder si necesitas credenciales fijas para desarrollo
+- Registro tradicional con email y password
+- Verificacion obligatoria de correo antes de entrar al sistema
+- Acceso con Google mediante Socialite
 
-Nota: el starter actual crea el usuario de ejemplo sin contrasena explicita en el seeder. Si vas a depender de una cuenta demo, conviene endurecer ese flujo antes de compartir entornos.
+El `DatabaseSeeder` actual crea o reutiliza un usuario demo:
+
+- Email: `demo@vamoalgame.test`
+- Password: `password`
+
+Variables necesarias para Google OAuth:
+
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GOOGLE_REDIRECT_URI`
+
+## Correos en local
+
+En local, la configuracion recomendada del proyecto queda orientada a:
+
+- `MAIL_MAILER=failover`
+- SMTP local en `127.0.0.1:1025`
+- fallback automatico a `log` si no hay servidor SMTP disponible
+
+Con esto, si tienes un capturador local como Mailpit levantado, veras los correos en una bandeja web. Si no esta levantado, Laravel no rompe el flujo y deja el mensaje en:
+
+- `storage/logs/laravel.log`
+
+### Opcion recomendada: Mailpit
+
+Mailpit es una bandeja local para desarrollo. Si tienes Docker, puedes levantarlo asi:
+
+```bash
+docker run --rm -d --name vamo-mailpit -p 1025:1025 -p 8025:8025 axllent/mailpit
+```
+
+Luego abre:
+
+- [http://127.0.0.1:8025](http://127.0.0.1:8025)
+
+Y en tu `.env` local usa:
+
+```env
+MAIL_MAILER=failover
+MAIL_HOST=127.0.0.1
+MAIL_PORT=1025
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_FROM_ADDRESS="no-reply@vamoalgame.local"
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+Despues limpia configuracion:
+
+```bash
+php artisan config:clear
+```
+
+Si no vas a usar Mailpit todavia, puedes dejar `MAIL_MAILER=log` y revisar el enlace en `storage/logs/laravel.log`.
+
+### Checklist rapido para Mailpit
+
+1. Levanta Mailpit.
+2. Usa `MAIL_MAILER=failover` en tu `.env` local.
+3. Verifica que `MAIL_HOST=127.0.0.1` y `MAIL_PORT=1025`.
+4. Ejecuta `php artisan config:clear`.
+5. Abre [http://127.0.0.1:8025](http://127.0.0.1:8025) y prueba el flujo de registro o reenvio de verificacion.
+
+## Correos en servidor con cPanel
+
+Si vas a desplegar la app en un hosting con cPanel, lo normal es usar una cuenta SMTP creada dentro del mismo panel, por ejemplo `no-reply@tu-dominio.com`.
+
+### Paso 1: Crear la cuenta de correo en cPanel
+
+1. Entra a cPanel.
+2. Ve a `Email Accounts`.
+3. Crea la cuenta que usara la app, por ejemplo:
+   - `no-reply@tu-dominio.com`
+4. Guarda la contrasena del buzón.
+
+### Paso 2: Consultar los datos SMTP en cPanel
+
+En la cuenta creada, abre `Connect Devices` o la seccion equivalente. Ahi cPanel suele mostrar:
+
+- Servidor SMTP
+- Puerto SMTP
+- Tipo de cifrado
+- Usuario completo
+
+Valores habituales:
+
+- Host SMTP: `mail.tu-dominio.com`
+- Puerto `465` con `ssl`
+- o puerto `587` con `tls`
+- Usuario: el correo completo, por ejemplo `no-reply@tu-dominio.com`
+
+### Paso 3: Configurar las variables en el servidor
+
+En el `.env` del servidor, deja algo como esto:
+
+```env
+MAIL_MAILER=smtp
+MAIL_SCHEME=tls
+MAIL_HOST=mail.tu-dominio.com
+MAIL_PORT=587
+MAIL_USERNAME=no-reply@tu-dominio.com
+MAIL_PASSWORD=tu-password-smtp
+MAIL_FROM_ADDRESS=no-reply@tu-dominio.com
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+Si tu hosting te exige SSL implicito en lugar de TLS, usa:
+
+```env
+MAIL_SCHEME=ssl
+MAIL_PORT=465
+```
+
+### Paso 4: Aplicar configuracion en Laravel
+
+Despues de actualizar variables en el servidor:
+
+```bash
+php artisan config:clear
+php artisan config:cache
+```
+
+### Paso 5: Verificar envio real
+
+Prueba uno de estos flujos:
+
+- registro de usuario nuevo
+- reenvio de verificacion de correo
+- recuperacion de contrasena
+
+Si falla, revisa:
+
+- `storage/logs/laravel.log`
+- que el puerto SMTP este permitido por el hosting
+- que usuario y password del buzón sean correctos
+- que `MAIL_FROM_ADDRESS` coincida con una cuenta valida del dominio
+
+### Recomendaciones de entregabilidad en cPanel
+
+Para reducir que los correos caigan en spam, revisa tambien en el dominio:
+
+- SPF configurado
+- DKIM configurado
+- DMARC configurado si ya manejas correo del dominio
+
+En muchos hostings con cPanel, SPF y DKIM se activan desde `Email Deliverability`.
+
+## Configurar acceso con Google
+
+Si quieres que el login con Google funcione, hay configuracion externa obligatoria que debes hacer. El codigo ya quedo listo en el proyecto, pero Google exige credenciales OAuth validas.
+
+Para este flujo basico con `openid`, `email` y `profile`, normalmente no necesitas habilitar una API extra en Google Cloud. Lo importante es tener bien configurados la pantalla de consentimiento OAuth, el cliente OAuth y las redirect URIs exactas.
+
+Paso a paso:
+
+1. Entra a [Google Cloud Console](https://console.cloud.google.com/).
+2. Crea un proyecto nuevo o usa uno existente para `Vamo al Game`.
+3. Ve a `APIs y servicios` -> `Pantalla de consentimiento OAuth`.
+4. Configura la app:
+   - Tipo: `External` si la usaran cuentas personales de Google.
+   - Nombre de la app, correo de soporte y dominio si aplica.
+   - Agrega tu correo como usuario de prueba mientras la app no este publicada.
+5. Luego ve a `APIs y servicios` -> `Credenciales`.
+6. Crea una credencial de tipo `ID de cliente OAuth`.
+7. Elige `Aplicacion web`.
+8. En `URIs de redireccion autorizados` agrega:
+   - `http://localhost:8000/auth/google/callback` si ese es tu `APP_URL`
+   - `http://127.0.0.1:8000/auth/google/callback` si abres la app asi
+   - y en produccion, la URL real de tu app: `https://tu-dominio.com/auth/google/callback`
+9. En `Origenes autorizados de JavaScript` agrega los origenes base equivalentes:
+   - `http://localhost:8000`
+   - `http://127.0.0.1:8000`
+   - y tu dominio real en produccion si aplica
+10. Copia el `Client ID` y el `Client Secret`.
+11. Pegalos en tu `.env`:
+
+```env
+GOOGLE_CLIENT_ID=tu-client-id
+GOOGLE_CLIENT_SECRET=tu-client-secret
+GOOGLE_REDIRECT_URI="${APP_URL}/auth/google/callback"
+```
+
+12. Verifica que `APP_URL` coincida exactamente con la URL real desde la que abres la app.
+13. No mezcles `localhost` y `127.0.0.1`: el navegador, `APP_URL`, `GOOGLE_REDIRECT_URI` y Google Cloud deben usar el mismo host.
+14. Limpia cache de configuracion si cambias variables:
+
+```bash
+php artisan config:clear
+```
+
+15. Si usas produccion, registra esas mismas variables como secrets o variables de entorno del servidor.
+
+Notas importantes:
+
+- Si la URI de callback no coincide exactamente con la configurada en Google, el login fallara.
+- Si el host cambia entre `localhost` y `127.0.0.1`, puedes romper el `state` de OAuth o la sesion del navegador.
+- Si la app esta en modo testing en Google, solo podran entrar usuarios agregados como testers.
+- Las cuentas creadas con Google tambien quedan obligadas a verificar email antes de entrar al sistema.
 
 ## Scripts utiles
 
@@ -146,6 +344,18 @@ La meta de `Vamo al Game` es evolucionar hacia una app para:
 - Si falla la base de datos, confirma que `database/database.sqlite` exista y que la conexion en `.env` siga apuntando a SQLite.
 - Si los assets no cargan, reinicia `npm run dev` o ejecuta `npm run build`.
 - Si una migracion nueva falla, prueba `php artisan migrate:fresh --seed` solo en entornos locales descartables.
+- Si Google OAuth falla en Windows con errores SSL, descarga un `cacert.pem` confiable, guardalo por ejemplo en `C:\php\extras\ssl\cacert.pem` y configura en `C:\php\php.ini`:
+
+```ini
+curl.cainfo="C:\php\extras\ssl\cacert.pem"
+openssl.cafile="C:\php\extras\ssl\cacert.pem"
+```
+
+- Luego reinicia tu terminal, ejecuta `php artisan config:clear` y valida la salida con:
+
+```bash
+php -r "echo file_get_contents('https://www.googleapis.com/oauth2/v3/certs') !== false ? 'ok' : 'fail';"
+```
 
 ## Licencia
 

@@ -28,12 +28,34 @@ class RegistrationTest extends TestCase
     {
         $response = $this->post(route('register.store'), [
             'name' => 'Test User',
-            'email' => 'test@example.com',
+            'email' => 'new-user@example.com',
             'password' => 'password',
             'password_confirmation' => 'password',
         ]);
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
+        $this->assertDatabaseHas('users', [
+            'email' => 'new-user@example.com',
+            'email_verified_at' => null,
+        ]);
+    }
+
+    public function test_registration_rejects_duplicate_email_addresses()
+    {
+        \App\Models\User::factory()->create([
+            'email' => 'taken@example.com',
+        ]);
+
+        $response = $this->from(route('register'))->post(route('register.store'), [
+            'name' => 'Another User',
+            'email' => 'taken@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $response->assertRedirect(route('register'));
+        $response->assertSessionHasErrors('email');
+        $this->assertGuest();
     }
 }

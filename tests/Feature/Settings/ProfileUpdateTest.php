@@ -21,6 +21,15 @@ class ProfileUpdateTest extends TestCase
         $response->assertOk();
     }
 
+    public function test_unverified_users_are_redirected_to_email_verification_from_profile()
+    {
+        $user = User::factory()->unverified()->create();
+
+        $this->actingAs($user)
+            ->get(route('profile.edit'))
+            ->assertRedirect(route('verification.notice'));
+    }
+
     public function test_profile_information_can_be_updated()
     {
         $user = User::factory()->create();
@@ -29,7 +38,7 @@ class ProfileUpdateTest extends TestCase
             ->actingAs($user)
             ->patch(route('profile.update'), [
                 'name' => 'Test User',
-                'email' => 'test@example.com',
+                'email' => 'profile-updated@example.com',
             ]);
 
         $response
@@ -39,7 +48,7 @@ class ProfileUpdateTest extends TestCase
         $user->refresh();
 
         $this->assertSame('Test User', $user->name);
-        $this->assertSame('test@example.com', $user->email);
+        $this->assertSame('profile-updated@example.com', $user->email);
         $this->assertNull($user->email_verified_at);
     }
 

@@ -2,10 +2,12 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Notifications\VerifyEmailNotification;
 use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 use Laravel\Fortify\Features;
 use Tests\TestCase;
@@ -28,6 +30,32 @@ class EmailVerificationTest extends TestCase
         $response = $this->actingAs($user)->get(route('verification.notice'));
 
         $response->assertOk();
+    }
+
+    public function test_user_sends_the_custom_verification_notification(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->unverified()->create();
+
+        $user->sendEmailVerificationNotification();
+
+        Notification::assertSentTo($user, VerifyEmailNotification::class);
+    }
+
+    public function test_custom_verification_notification_uses_spanish_copy(): void
+    {
+        $user = User::factory()->unverified()->create([
+            'email' => 'jugador@example.com',
+        ]);
+
+        $notification = new VerifyEmailNotification;
+        $mailMessage = $notification->toMail($user);
+
+        $this->assertSame('Verifica tu correo en Vamo al Game', $mailMessage->subject);
+        $this->assertStringContainsString('Recibimos un registro en Vamo al Game con este correo: jugador@example.com', implode(' ', $mailMessage->introLines));
+        $this->assertSame('Verificar correo', $mailMessage->actionText);
+        $this->assertSame('Equipo de Vamo al Game', $mailMessage->salutation);
     }
 
     public function test_email_can_be_verified()
