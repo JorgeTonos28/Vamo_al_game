@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Controllers\Settings;
+namespace App\Http\Controllers\Web\Settings;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Settings\ProfileDeleteRequest;
-use App\Http\Requests\Settings\ProfileUpdateRequest;
+use App\Http\Requests\Web\Settings\ProfileDeleteRequest;
+use App\Http\Requests\Web\Settings\ProfileUpdateRequest;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,9 +14,6 @@ use Inertia\Response;
 
 class ProfileController extends Controller
 {
-    /**
-     * Show the user's profile settings page.
-     */
     public function edit(Request $request): Response
     {
         return Inertia::render('settings/Profile', [
@@ -25,9 +22,6 @@ class ProfileController extends Controller
         ]);
     }
 
-    /**
-     * Update the user's profile information.
-     */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
         $request->user()->fill($request->validated());
@@ -41,9 +35,6 @@ class ProfileController extends Controller
         return to_route('profile.edit');
     }
 
-    /**
-     * Delete the user's profile.
-     */
     public function destroy(ProfileDeleteRequest $request): RedirectResponse
     {
         $user = $request->user();

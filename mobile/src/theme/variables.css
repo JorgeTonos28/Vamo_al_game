@@ -1,0 +1,73 @@
+@import '../../../packages/design-tokens/theme.css';
+
+:root {
+  --ion-font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  --ion-background-color: var(--background);
+  --ion-background-color-rgb: 10, 15, 29;
+  --ion-text-color: var(--foreground);
+  --ion-color-primary: var(--primary);
+  --ion-color-primary-contrast: var(--primary-foreground);
+  --ion-color-primary-shade: #cfab43;
+  --ion-color-primary-tint: #e8c25d;
+  --ion-color-secondary: var(--secondary);
+  --ion-color-secondary-contrast: var(--secondary-foreground);
+  --ion-color-success: #4ade80;
+  --ion-color-danger: #f87171;
+  --ion-color-medium: #94a3b8;
+  --ion-toolbar-background: rgba(10, 15, 29, 0.94);
+  --ion-tab-bar-background: rgba(10, 15, 29, 0.98);
+  --ion-tab-bar-color: #94a3b8;
+  --ion-tab-bar-color-selected: #e5b849;
+  --ion-item-background: transparent;
+  --ion-border-color: rgba(255, 255, 255, 0.06);
+}
+
+ion-app,
+ion-content,
+ion-page {
+  background: transparent;
+  color: var(--foreground);
+}
+
+ion-content::part(background) {
+  background: transparent;
+}
+
+ion-tab-bar {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+ion-input,
+ion-item {
+  --color: var(--foreground);
+  --placeholder-color: var(--muted-foreground);
+  --highlight-color-focused: var(--primary);
+}
+
+ion-item {
+  --background: #0e1628;
+  --border-color: rgba(255, 255, 255, 0.06);
+  --border-radius: 12px;
+  --padding-start: 14px;
+  --inner-padding-end: 14px;
+  --min-height: 56px;
+}
+
+ion-button {
+  min-height: 48px;
+  font-weight: 700;
+}
+
+.mobile-shell {
+  width: 100%;
+  min-height: 100svh;
+  max-width: calc(var(--app-shell-max) + (var(--app-gutter) * 2));
+  margin-inline: auto;
+  padding: calc(env(safe-area-inset-top) + 16px) var(--app-gutter) calc(env(safe-area-inset-bottom) + 32px);
+}
+
+.mobile-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-section-gap);
+}

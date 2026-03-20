@@ -1,0 +1,475 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Vamo al Game API",
+    "version": "1.0.0",
+    "description": "Contrato base para la arquitectura dual web + movil."
+  },
+  "servers": [
+    {
+      "url": "http://localhost/api/v1",
+      "description": "Entorno local por defecto"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "healthCheck",
+        "summary": "Health check publico",
+        "responses": {
+          "200": {
+            "description": "API disponible",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "login",
+        "summary": "Login movil por token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sesion iniciada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTokenResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Correo no verificado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Credenciales invalidas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "summary": "Revoca el token actual",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sesion cerrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptySuccessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me": {
+      "get": {
+        "operationId": "me",
+        "summary": "Perfil del usuario autenticado",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Perfil cargado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{user}": {
+      "get": {
+        "operationId": "showUser",
+        "summary": "Recurso protegido de ejemplo",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usuario cargado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "sanctumBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Token"
+      }
+    },
+    "schemas": {
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          },
+          "device_name": {
+            "type": "string"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "email",
+          "avatar",
+          "email_verified_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "avatar": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "email_verified_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "Health": {
+        "type": "object",
+        "required": [
+          "status",
+          "app",
+          "api_version",
+          "timestamp"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "app": {
+            "type": "string"
+          },
+          "api_version": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AuthToken": {
+        "type": "object",
+        "required": [
+          "token",
+          "token_type",
+          "expires_at",
+          "user"
+        ],
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        }
+      },
+      "ErrorBag": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Health"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "UserResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/User"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "AuthTokenResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AuthToken"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "EmptySuccessResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "null"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": false
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "null"
+          },
+          "errors": {
+            "$ref": "#/components/schemas/ErrorBag"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Controllers\Settings;
+namespace App\Http\Controllers\Web\Settings;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Settings\PasswordUpdateRequest;
-use App\Http\Requests\Settings\TwoFactorAuthenticationRequest;
+use App\Http\Requests\Web\Settings\PasswordUpdateRequest;
+use App\Http\Requests\Web\Settings\TwoFactorAuthenticationRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -14,9 +14,6 @@ use Laravel\Fortify\Features;
 
 class SecurityController extends Controller implements HasMiddleware
 {
-    /**
-     * Get the middleware that should be assigned to the controller.
-     */
     public static function middleware(): array
     {
         return Features::canManageTwoFactorAuthentication()
@@ -25,9 +22,6 @@ class SecurityController extends Controller implements HasMiddleware
                 : [];
     }
 
-    /**
-     * Show the user's security settings page.
-     */
     public function edit(TwoFactorAuthenticationRequest $request): Response
     {
         $props = [
@@ -44,9 +38,6 @@ class SecurityController extends Controller implements HasMiddleware
         return Inertia::render('settings/Security', $props);
     }
 
-    /**
-     * Update the user's password.
-     */
     public function update(PasswordUpdateRequest $request): RedirectResponse
     {
         $request->user()->update([

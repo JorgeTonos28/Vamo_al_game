@@ -1,28 +1,56 @@
 # Vamo al Game
 
-Aplicacion web para la gestion de ligas deportivas. El proyecto parte de una base Laravel 13 con Inertia.js, Vue 3 y TypeScript, y servira como plataforma para administrar ligas, equipos, temporadas, partidos, tablas de posiciones y la operacion diaria alrededor de una competencia.
+Aplicacion web y movil para la gestion de ligas deportivas. El proyecto parte de una base Laravel 13 con Inertia.js, Vue 3 y TypeScript, y ya quedo preparado para crecer con una arquitectura dual: web + API + shell movil Ionic Vue.
 
 ## Estado actual
 
-El repositorio esta en una fase inicial. Hoy incluye:
+El repositorio sigue en una fase inicial, pero ahora ya incluye la base tecnica para trabajar web y movil en paralelo:
 
 - Backend con Laravel 13 y PHP 8.3.
-- Frontend con Vue 3, Inertia.js, TypeScript y Vite.
-- Tailwind CSS 4 y componentes UI basados en `shadcn-vue`.
-- Autenticacion con Laravel Fortify y acceso con Google.
+- Frontend web con Vue 3, Inertia.js, TypeScript y Vite.
+- API versionada en `routes/api.php` bajo `/api/v1`.
+- Autenticacion web con Fortify y autenticacion movil por token con Sanctum.
+- Shell movil en [`mobile/`](./mobile) con Ionic Vue + Capacitor.
+- Contrato OpenAPI en [`packages/contracts/openapi.json`](./packages/contracts/openapi.json) y tipos TypeScript generados en [`packages/contracts/generated/api.d.ts`](./packages/contracts/generated/api.d.ts).
+- Tokens visuales compartidos en [`packages/design-tokens/theme.css`](./packages/design-tokens/theme.css).
 - Base de datos SQLite por defecto para desarrollo local.
 - Suite de pruebas con Pest.
 
-Por ahora el proyecto conserva pantallas base del starter kit, como bienvenida, autenticacion, dashboard y configuracion de perfil/seguridad.
+La web actual sigue funcionando con sus pantallas base y la identidad visual mobile-first ya aplicada en bienvenida, auth, dashboard y settings.
+
+## Arquitectura dual web + movil
+
+La base de trabajo a partir de ahora queda definida asi:
+
+- La web vive en `routes/web.php` y `resources/js`.
+- La API vive en `routes/api.php` y expone endpoints bajo `/api/v1`.
+- Los controladores web viven en `app/Http/Controllers/Web`.
+- Los controladores API viven en `app/Http/Controllers/Api/V1`.
+- La validacion va por `FormRequest` en `app/Http/Requests/Web` y `app/Http/Requests/Api`.
+- La salida JSON de la API se normaliza con `API Resources` y un envelope consistente: `success`, `message`, `data`, `errors`, `meta`.
+- La logica reutilizable para auth movil se mueve a `app/Actions/Api`.
+- La app movil en `mobile/` es cliente de la API. No replica reglas de negocio.
+- El contrato compartido vive en `packages/contracts`.
+
+### Endpoints base disponibles
+
+- `GET /api/v1/health`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/logout`
+- `GET /api/v1/me`
+- `GET /api/v1/users/{user}` como recurso protegido de ejemplo con policy
 
 ## Stack principal
 
 - PHP 8.3+
 - Laravel 13
+- Sanctum
 - Inertia.js
 - Vue 3 + TypeScript
 - Vite 8
 - Tailwind CSS 4
+- Ionic Vue 8
+- Capacitor 8
 - Pest
 - SQLite por defecto en desarrollo
 
@@ -30,7 +58,7 @@ Por ahora el proyecto conserva pantallas base del starter kit, como bienvenida, 
 
 - PHP 8.3 o superior
 - Composer
-- Node.js 20+ con npm
+- Node.js 22+ con npm
 - SQLite disponible localmente
 
 ## Puesta en marcha
@@ -41,13 +69,19 @@ Por ahora el proyecto conserva pantallas base del starter kit, como bienvenida, 
 composer install
 ```
 
-2. Instala dependencias de frontend:
+2. Instala dependencias del frontend web y del tooling del monorepo:
 
 ```bash
 npm install
 ```
 
-3. Crea el archivo de entorno si aun no existe:
+3. Instala dependencias de la app movil:
+
+```bash
+npm --prefix mobile install
+```
+
+4. Crea el archivo de entorno si aun no existe:
 
 ```bash
 cp .env.example .env
@@ -59,13 +93,13 @@ En Windows PowerShell:
 Copy-Item .env.example .env
 ```
 
-4. Genera la clave de aplicacion:
+5. Genera la clave de aplicacion:
 
 ```bash
 php artisan key:generate
 ```
 
-5. Asegura la base SQLite local:
+6. Asegura la base SQLite local:
 
 ```bash
 php -r "file_exists('database/database.sqlite') || touch('database/database.sqlite');"
@@ -77,35 +111,66 @@ En Windows PowerShell:
 if (-not (Test-Path database\database.sqlite)) { New-Item database\database.sqlite -ItemType File | Out-Null }
 ```
 
-6. Ejecuta migraciones y seeders:
+7. Regenera los tipos del contrato compartido:
+
+```bash
+npm run contracts:generate
+```
+
+8. Ejecuta migraciones y seeders:
 
 ```bash
 php artisan migrate --seed
 ```
 
-7. Inicia el entorno de desarrollo:
+9. Inicia backend + web:
 
 ```bash
 composer run dev
 ```
 
-Ese comando levanta el servidor Laravel, el listener de colas y Vite en paralelo.
+10. En otra terminal, inicia la app movil:
+
+```bash
+npm run mobile:dev
+```
+
+El comando `composer run dev` levanta el servidor Laravel, el listener de colas y Vite del frontend web. La app movil corre por separado desde `mobile/`.
 
 ## Autenticacion y cuentas
 
-El proyecto usa:
+La autenticacion queda separada por canal:
 
-- Registro tradicional con email y password
-- Verificacion obligatoria de correo antes de entrar al sistema
-- Acceso con Google mediante Socialite
+- Web: sesion con Fortify en las rutas tradicionales del starter.
+- Movil/API: Bearer token con Sanctum en `/api/v1/auth/*`.
 
-El `DatabaseSeeder` actual crea o reutiliza un usuario demo:
+Reglas actuales:
+
+- Registro tradicional con email y password.
+- Verificacion obligatoria de correo antes de usar la app web o de recibir token movil.
+- Acceso web con Google mediante Socialite.
+
+El `DatabaseSeeder` crea o actualiza un usuario demo ya verificado:
 
 - Email: `demo@vamoalgame.test`
 - Password: `password`
 
-Variables necesarias para Google OAuth:
+### Flujo movil minimo
 
+1. `POST /api/v1/auth/login`
+2. guardar `data.token`
+3. enviar `Authorization: Bearer <token>`
+4. consultar `GET /api/v1/me`
+5. cerrar sesion con `POST /api/v1/auth/logout`
+
+Variables relevantes para web/movil:
+
+- `WEB_APP_URL`
+- `MOBILE_APP_URL`
+- `MOBILE_API_URL`
+- `SANCTUM_EXPIRATION`
+- `SANCTUM_TOKEN_PREFIX`
+- `CORS_ALLOWED_ORIGINS`
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
 - `GOOGLE_REDIRECT_URI`
@@ -300,23 +365,36 @@ Notas importantes:
 
 ## Scripts utiles
 
-- `composer run dev`: servidor Laravel + queue listener + Vite
-- `composer run test`: limpia config, valida formato PHP y ejecuta tests
-- `composer run ci:check`: lint, format check, types check y pruebas
-- `npm run dev`: servidor Vite
-- `npm run build`: build de frontend
+- `composer run dev`: servidor Laravel + queue listener + Vite web
+- `php artisan test`: suite de pruebas backend/web/API
+- `npm run build`: build de frontend web
+- `npm run contracts:generate`: regenera tipos TypeScript desde `packages/contracts/openapi.json`
+- `npm run mobile:dev`: levanta el shell movil Ionic en desarrollo
+- `npm run mobile:build`: build del shell movil
+- `npm run mobile:sync`: sincroniza Capacitor
+- `npm run mobile:typecheck`: validacion de tipos del shell movil
 - `npm run lint`: corrige problemas ESLint cuando es posible
 - `npm run format`: formatea `resources/` con Prettier
-- `npm run types:check`: validacion de tipos Vue/TypeScript
+- `npm run types:check`: validacion de tipos Vue/TypeScript del frontend web
 
 ## Estructura base
 
-- `app/`: logica de dominio, modelos, acciones HTTP y servicios
+- `app/Actions`: acciones reutilizables del backend
+- `app/Http/Controllers/Web`: controladores para la web Inertia
+- `app/Http/Controllers/Api/V1`: controladores para la API movil
+- `app/Http/Requests/Web`: validacion web
+- `app/Http/Requests/Api`: validacion API
+- `app/Http/Resources`: transformadores JSON para la API
+- `app/Policies`: autorizacion
 - `database/migrations`: esquema de base de datos
 - `database/seeders`: datos iniciales
-- `resources/js/pages`: paginas Inertia/Vue
-- `resources/js/components`: componentes compartidos
-- `routes/`: rutas web y configuracion relacionada
+- `resources/js/pages`: paginas Inertia/Vue de la web
+- `resources/js/components`: componentes compartidos web
+- `mobile/`: app Ionic Vue + Capacitor
+- `packages/contracts`: contrato OpenAPI y tipos generados
+- `packages/design-tokens`: tokens visuales compartidos
+- `routes/web.php`: rutas web
+- `routes/api.php`: API versionada `/api/v1`
 - `tests/Feature`: pruebas funcionales
 - `tests/Unit`: pruebas unitarias
 

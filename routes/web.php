@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\Web\Auth\GoogleAuthController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 

@@ -15,11 +15,12 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::firstOrCreate([
+        User::updateOrCreate([
             'email' => 'demo@vamoalgame.test',
         ], [
             'name' => 'Demo User',
             'password' => 'password',
+            'email_verified_at' => now(),
         ]);
     }
 }

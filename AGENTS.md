@@ -124,6 +124,11 @@ composer install --no-interaction --prefer-dist
 log "Instalando dependencias npm..."
 npm install
 
+if [ -d mobile ] && [ -f mobile/package.json ]; then
+  log "Instalando dependencias npm de mobile..."
+  npm --prefix mobile install
+fi
+
 # -----------------------------
 # 4) Entorno Laravel
 # -----------------------------
@@ -146,8 +151,18 @@ php artisan migrate --seed --force
 # -----------------------------
 # 5) Build de frontend
 # -----------------------------
+if [ -f packages/contracts/openapi.json ]; then
+  log "Regenerando tipos de contrato..."
+  npm run contracts:generate
+fi
+
 log "Compilando assets..."
 npm run build
+
+if [ -d mobile ] && [ -f mobile/package.json ]; then
+  log "Compilando shell mobile..."
+  npm run mobile:build
+fi
 
 # -----------------------------
 # 6) Playwright opcional para screenshots
@@ -173,6 +188,7 @@ Notas para screenshots en sandbox:
 
 - Si hubo cambios de esquema: migracion, seeder, factory y pruebas coherentes.
 - Si se tocaron aspectos funcionales o tecnicos: `README.md` actualizado.
+- Si el cambio impacta flujos de negocio, payloads, endpoints, auth, navegacion principal o UI compartible: se evaluo impacto en movil y se implemento o se justifico por que no aplica.
 - Se validaron seguridad, autorizacion e integridad de datos.
 - El cambio compila o corre en el entorno objetivo.
 - Se ejecutaron las validaciones relevantes del cambio.
@@ -188,15 +204,88 @@ Si modificas layout, estilos, componentes visuales o experiencia de usuario:
 - Manten consistencia con Inertia/Vue: estados de carga, errores, vacios y feedback visual deben funcionar tambien en pantallas reducidas.
 - Documenta en la entrega que validaciones responsive realizaste y, si aplica, adjunta screenshots.
 
-## 7) Reglas especificas para este repositorio
+## 7) Arquitectura dual web + movil (obligatorio)
+
+Este repositorio debe tratarse por defecto como una plataforma dual: web + movil.
+
+Regla operativa principal:
+
+- No esperes a que el usuario recuerde mencionar movil en cada sesion.
+- Si un cambio razonablemente deberia impactar movil, debes tomarlo en cuenta automaticamente.
+- Solo puedes omitir el impacto movil cuando el cambio sea claramente exclusivo de web, exclusivo de infraestructura interna o el usuario indique explicitamente que no desea tocar movil en esa entrega.
+
+Asuncion por defecto para cambios futuros:
+
+- Todo modulo de negocio nuevo debe nacer backend-first y mobile-ready.
+- Web y movil consumen la misma logica de negocio del backend.
+- El movil no replica reglas de negocio; consume la API.
+
+Esto implica:
+
+- Mantener la web en `routes/web.php` y `resources/js`.
+- Mantener la API en `routes/api.php` bajo `/api/v1`.
+- Mantener separacion entre controladores web y API:
+  - `app/Http/Controllers/Web`
+  - `app/Http/Controllers/Api/V1`
+- Mantener validaciones con `FormRequest` para web/API cuando aplique:
+  - `app/Http/Requests/Web`
+  - `app/Http/Requests/Api`
+- Mantener la logica reusable fuera de controladores/componentes:
+  - `app/Actions`
+  - `app/Services`
+  - `app/Domain` cuando el modulo lo justifique
+- Mantener `Policies` para autorizacion de recursos de negocio.
+- Mantener `API Resources` para respuestas JSON.
+- Mantener el formato JSON consistente del proyecto para exito/error/meta.
+- Mantener el contrato compartido en `packages/contracts`.
+- Mantener la app movil en `mobile/` conectada a endpoints reales.
+- Mantener tokens visuales compartidos en `packages/design-tokens` cuando el cambio afecte lenguaje visual reutilizable.
+
+Cuando un cambio SI debe considerar movil:
+
+- Nuevos endpoints o cambios en payloads JSON.
+- Nuevos modulos de negocio o cambios en reglas de negocio.
+- Cambios en autenticacion, permisos o datos del usuario autenticado.
+- Cambios en estados compartidos como perfil, ligas, equipos, partidos, standings, cobros o dashboards operativos.
+- Cambios visuales que definan patrones reutilizables entre web y movil.
+
+Cuando el agente detecte impacto movil, debe hacer como minimo:
+
+- Evaluar si el backend/API ya expone correctamente el cambio para movil.
+- Actualizar `packages/contracts/openapi.json` si cambia el contrato.
+- Regenerar tipos con `npm run contracts:generate` cuando corresponda.
+- Ajustar `mobile/` si ya existe una pantalla/flujo afectado o si el cambio amerita una representacion movil minima.
+- Documentar en la entrega que se hizo respecto a movil, o justificar brevemente por que no aplicaba.
+
+Workflow obligatorio recomendado por modulo:
+
+1. Backend reusable:
+   - migracion
+   - modelo
+   - request
+   - policy
+   - action/service
+   - resource
+   - endpoint API
+   - test
+2. Web:
+   - ruta web
+   - pagina/componente Inertia
+3. Movil:
+   - consumo desde `mobile/`
+   - ajuste de contrato/tipos si aplica
+
+## 8) Reglas especificas para este repositorio
 
 - Stack esperado: Laravel + Inertia + Vue 3 + TypeScript + Vite.
+- Stack movil esperado: Ionic Vue + Capacitor dentro de `mobile/`.
 - Manten los cambios alineados con la estructura actual del proyecto, sin introducir otra arquitectura frontend sin justificacion fuerte.
 - Si agregas una nueva pantalla, define claramente la ruta Laravel, la pagina Inertia y las validaciones backend asociadas.
+- Si agregas una nueva capacidad consumible por movil, define claramente el endpoint API, el `Resource`, el contrato y el punto de consumo en `mobile/` cuando aplique.
 - Si agregas modulos de negocio para ligas deportivas, prioriza nombres claros de dominio y cobertura de pruebas sobre soluciones rapidas acopladas al starter.
 - Evita dejar texto del starter kit cuando el modulo ya pertenezca al dominio real de `Vamo al Game`.
 
-## 8) Linea grafica y animaciones (obligatorio en UI)
+## 9) Linea grafica y animaciones (obligatorio en UI)
 
 La referencia detallada de diseno vive en `docs/linea-grafica.md`. Si tocas UI, debes seguirla.
 
