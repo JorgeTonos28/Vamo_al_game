@@ -3,7 +3,7 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
-use Illuminate\Auth\Notifications\VerifyEmail;
+use App\Notifications\VerifyEmailNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Socialite\Contracts\User as SocialiteUserContract;
@@ -44,7 +44,7 @@ class GoogleAuthenticationTest extends TestCase
         $this->assertNotNull($user);
         $this->assertAuthenticatedAs($user);
         $this->assertFalse($user->hasVerifiedEmail());
-        Notification::assertSentTo($user, VerifyEmail::class);
+        Notification::assertSentTo($user, VerifyEmailNotification::class);
         $response->assertRedirect(route('verification.notice'));
     }
 
