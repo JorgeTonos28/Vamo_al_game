@@ -4,13 +4,20 @@ import AppLogoIcon from '@/components/AppLogoIcon.vue';
 
 <template>
     <div
-        class="flex aspect-square size-8 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground"
+        class="flex size-10 items-center justify-center rounded-xl border border-white/6 bg-[#E5B849] text-[#0A0F1D]"
     >
-        <AppLogoIcon class="size-5 fill-current text-white dark:text-black" />
+        <AppLogoIcon class="size-5 fill-current" />
     </div>
-    <div class="ml-1 grid flex-1 text-left text-sm">
-        <span class="mb-0.5 truncate leading-tight font-semibold"
-            >Laravel Starter Kit</span
+    <div class="ml-1.5 grid flex-1 text-left">
+        <span
+            class="app-display truncate text-[24px] leading-none tracking-[0.08em] text-[#E5B849]"
         >
+            Vamo
+        </span>
+        <span
+            class="truncate text-[11px] font-semibold uppercase tracking-[0.22em] text-[#94A3B8]"
+        >
+            al game
+        </span>
     </div>
 </template>

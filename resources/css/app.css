@@ -1,5 +1,6 @@
-@import 'tailwindcss';
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap');
 
+@import 'tailwindcss';
 @import 'tw-animate-css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
@@ -9,7 +10,7 @@
 
 @theme inline {
     --font-sans:
-        Instrument Sans, ui-sans-serif, system-ui, sans-serif,
+        var(--font-ui), ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
 
@@ -19,38 +20,28 @@
 
     --color-background: var(--background);
     --color-foreground: var(--foreground);
-
     --color-card: var(--card);
     --color-card-foreground: var(--card-foreground);
-
     --color-popover: var(--popover);
     --color-popover-foreground: var(--popover-foreground);
-
     --color-primary: var(--primary);
     --color-primary-foreground: var(--primary-foreground);
-
     --color-secondary: var(--secondary);
     --color-secondary-foreground: var(--secondary-foreground);
-
     --color-muted: var(--muted);
     --color-muted-foreground: var(--muted-foreground);
-
     --color-accent: var(--accent);
     --color-accent-foreground: var(--accent-foreground);
-
     --color-destructive: var(--destructive);
     --color-destructive-foreground: var(--destructive-foreground);
-
     --color-border: var(--border);
     --color-input: var(--input);
     --color-ring: var(--ring);
-
     --color-chart-1: var(--chart-1);
     --color-chart-2: var(--chart-2);
     --color-chart-3: var(--chart-3);
     --color-chart-4: var(--chart-4);
     --color-chart-5: var(--chart-5);
-
     --color-sidebar: var(--sidebar-background);
     --color-sidebar-foreground: var(--sidebar-foreground);
     --color-sidebar-primary: var(--sidebar-primary);
@@ -61,112 +52,284 @@
     --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/*
-  The default border color has changed to `currentColor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
+:root {
+    --app-shell-max: 480px;
+    --app-gutter: 16px;
+    --app-section-gap: 24px;
+    --app-card-padding: 16px;
+    --app-list-gap: 12px;
+    --font-ui: 'Inter';
+    --font-display: 'Bebas Neue', 'Teko', ui-sans-serif, sans-serif;
+    --background: #0a0f1d;
+    --foreground: #f8fafc;
+    --card: #131b2f;
+    --card-foreground: #f8fafc;
+    --popover: #1a243a;
+    --popover-foreground: #f8fafc;
+    --primary: #e5b849;
+    --primary-foreground: #0a0f1d;
+    --secondary: #1e293b;
+    --secondary-foreground: #f8fafc;
+    --muted: #10182a;
+    --muted-foreground: #94a3b8;
+    --accent: #1e293b;
+    --accent-foreground: #f8fafc;
+    --destructive: #f87171;
+    --destructive-foreground: #f8fafc;
+    --border: rgba(255, 255, 255, 0.06);
+    --input: rgba(255, 255, 255, 0.06);
+    --ring: rgba(229, 184, 73, 0.32);
+    --chart-1: #e5b849;
+    --chart-2: #4ade80;
+    --chart-3: #38bdf8;
+    --chart-4: #fca5a5;
+    --chart-5: #c084fc;
+    --radius: 0.75rem;
+    --sidebar-background: #131b2f;
+    --sidebar-foreground: #f8fafc;
+    --sidebar-primary: #e5b849;
+    --sidebar-primary-foreground: #0a0f1d;
+    --sidebar-accent: #1e293b;
+    --sidebar-accent-foreground: #f8fafc;
+    --sidebar-border: rgba(255, 255, 255, 0.08);
+    --sidebar-ring: rgba(229, 184, 73, 0.32);
+}
 
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
+.dark {
+    --background: #0a0f1d;
+    --foreground: #f8fafc;
+    --card: #131b2f;
+    --card-foreground: #f8fafc;
+    --popover: #1a243a;
+    --popover-foreground: #f8fafc;
+    --primary: #e5b849;
+    --primary-foreground: #0a0f1d;
+    --secondary: #1e293b;
+    --secondary-foreground: #f8fafc;
+    --muted: #10182a;
+    --muted-foreground: #94a3b8;
+    --accent: #1e293b;
+    --accent-foreground: #f8fafc;
+    --destructive: #f87171;
+    --destructive-foreground: #f8fafc;
+    --border: rgba(255, 255, 255, 0.06);
+    --input: rgba(255, 255, 255, 0.06);
+    --ring: rgba(229, 184, 73, 0.32);
+    --chart-1: #e5b849;
+    --chart-2: #4ade80;
+    --chart-3: #38bdf8;
+    --chart-4: #fca5a5;
+    --chart-5: #c084fc;
+    --sidebar-background: #131b2f;
+    --sidebar-foreground: #f8fafc;
+    --sidebar-primary: #e5b849;
+    --sidebar-primary-foreground: #0a0f1d;
+    --sidebar-accent: #1e293b;
+    --sidebar-accent-foreground: #f8fafc;
+    --sidebar-border: rgba(255, 255, 255, 0.08);
+    --sidebar-ring: rgba(229, 184, 73, 0.32);
+}
+
 @layer base {
     *,
     ::after,
     ::before,
     ::backdrop,
     ::file-selector-button {
-        border-color: var(--color-gray-200, currentColor);
+        border-color: var(--border);
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    html {
+        background: var(--background);
+        color: var(--foreground);
+        scroll-behavior: smooth;
+    }
+
+    body {
+        min-height: 100svh;
+        font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+        background:
+            radial-gradient(
+                circle at top,
+                rgba(74, 222, 128, 0.12),
+                transparent 26%
+            ),
+            radial-gradient(
+                circle at bottom,
+                rgba(229, 184, 73, 0.14),
+                transparent 32%
+            ),
+            var(--background);
+        color: var(--foreground);
+    }
+
+    main {
+        width: 100%;
+    }
+
+    ::selection {
+        background: rgba(229, 184, 73, 0.22);
+        color: var(--foreground);
+    }
+}
+
+@layer components {
+    .app-shell-width {
+        width: 100%;
+        max-width: calc(var(--app-shell-max) + (var(--app-gutter) * 2));
+        margin-inline: auto;
+        padding-inline: var(--app-gutter);
+    }
+
+    .app-shell-frame {
+        width: 100%;
+        min-height: 100svh;
+        max-width: calc(var(--app-shell-max) + (var(--app-gutter) * 2));
+        margin-inline: auto;
+        padding-inline: var(--app-gutter);
+        padding-top: calc(env(safe-area-inset-top) + 16px);
+        padding-bottom: calc(env(safe-area-inset-bottom) + 24px);
+    }
+
+    .app-page-stack {
+        display: flex;
+        flex-direction: column;
+        gap: var(--app-section-gap);
+    }
+
+    .app-surface {
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        border-radius: 12px;
+        background: var(--card);
+        padding: var(--app-card-padding);
+    }
+
+    .app-surface-elevated {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px 24px 0 0;
+        background: var(--popover);
+        padding: var(--app-card-padding);
+    }
+
+    .app-kicker {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--foreground);
+    }
+
+    .app-body-copy {
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--muted-foreground);
+    }
+
+    .app-display {
+        font-family: var(--font-display), ui-sans-serif, sans-serif;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .app-tab-strip {
+        display: flex;
+        gap: 20px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        scroll-behavior: smooth;
+        scroll-snap-type: x mandatory;
+    }
+
+    .app-tab-strip::-webkit-scrollbar {
+        display: none;
+    }
+
+    .app-tab-link {
+        position: relative;
+        display: inline-flex;
+        min-height: 48px;
+        align-items: center;
+        white-space: nowrap;
+        scroll-snap-align: start;
+        padding-bottom: 2px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #94a3b8;
+        transition:
+            color 0.15s ease-out,
+            opacity 0.1s ease-out,
+            transform 0.1s ease-out;
+    }
+
+    .app-tab-link::after {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        height: 2px;
+        border-radius: 2px 2px 0 0;
+        background: transparent;
+        content: '';
+        transition: background-color 0.15s ease-out;
+    }
+
+    .app-tab-link:hover {
+        color: #f8fafc;
+    }
+
+    .app-tab-link:active {
+        transform: scale(0.97);
+        opacity: 0.8;
+    }
+
+    .app-tab-link.is-active {
+        color: #e5b849;
+    }
+
+    .app-tab-link.is-active::after {
+        background: #e5b849;
+    }
+
+    .app-badge-positive,
+    .app-badge-negative {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+    }
+
+    .app-badge-positive {
+        background: rgba(74, 222, 128, 0.12);
+        color: #4ade80;
+    }
+
+    .app-badge-negative {
+        background: rgba(248, 113, 113, 0.15);
+        color: #fca5a5;
+    }
+
+    .app-divider-list > * {
+        padding-block: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .app-divider-list > *:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
     }
 }
 
 @layer utilities {
-    body,
-    html {
-        --font-sans:
-            'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
-            'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
-            'Noto Color Emoji';
+    .scrollbar-none {
+        scrollbar-width: none;
     }
-}
 
-:root {
-    --background: hsl(0 0% 100%);
-    --foreground: hsl(0 0% 3.9%);
-    --card: hsl(0 0% 100%);
-    --card-foreground: hsl(0 0% 3.9%);
-    --popover: hsl(0 0% 100%);
-    --popover-foreground: hsl(0 0% 3.9%);
-    --primary: hsl(0 0% 9%);
-    --primary-foreground: hsl(0 0% 98%);
-    --secondary: hsl(0 0% 92.1%);
-    --secondary-foreground: hsl(0 0% 9%);
-    --muted: hsl(0 0% 96.1%);
-    --muted-foreground: hsl(0 0% 45.1%);
-    --accent: hsl(0 0% 96.1%);
-    --accent-foreground: hsl(0 0% 9%);
-    --destructive: hsl(0 84.2% 60.2%);
-    --destructive-foreground: hsl(0 0% 98%);
-    --border: hsl(0 0% 92.8%);
-    --input: hsl(0 0% 89.8%);
-    --ring: hsl(0 0% 3.9%);
-    --chart-1: hsl(12 76% 61%);
-    --chart-2: hsl(173 58% 39%);
-    --chart-3: hsl(197 37% 24%);
-    --chart-4: hsl(43 74% 66%);
-    --chart-5: hsl(27 87% 67%);
-    --radius: 0.5rem;
-    --sidebar-background: hsl(0 0% 98%);
-    --sidebar-foreground: hsl(240 5.3% 26.1%);
-    --sidebar-primary: hsl(0 0% 10%);
-    --sidebar-primary-foreground: hsl(0 0% 98%);
-    --sidebar-accent: hsl(0 0% 94%);
-    --sidebar-accent-foreground: hsl(0 0% 30%);
-    --sidebar-border: hsl(0 0% 91%);
-    --sidebar-ring: hsl(217.2 91.2% 59.8%);
-    --sidebar: hsl(0 0% 98%);
-}
-
-.dark {
-    --background: hsl(0 0% 3.9%);
-    --foreground: hsl(0 0% 98%);
-    --card: hsl(0 0% 3.9%);
-    --card-foreground: hsl(0 0% 98%);
-    --popover: hsl(0 0% 3.9%);
-    --popover-foreground: hsl(0 0% 98%);
-    --primary: hsl(0 0% 98%);
-    --primary-foreground: hsl(0 0% 9%);
-    --secondary: hsl(0 0% 14.9%);
-    --secondary-foreground: hsl(0 0% 98%);
-    --muted: hsl(0 0% 16.08%);
-    --muted-foreground: hsl(0 0% 63.9%);
-    --accent: hsl(0 0% 14.9%);
-    --accent-foreground: hsl(0 0% 98%);
-    --destructive: hsl(0 84% 60%);
-    --destructive-foreground: hsl(0 0% 98%);
-    --border: hsl(0 0% 14.9%);
-    --input: hsl(0 0% 14.9%);
-    --ring: hsl(0 0% 83.1%);
-    --chart-1: hsl(220 70% 50%);
-    --chart-2: hsl(160 60% 45%);
-    --chart-3: hsl(30 80% 55%);
-    --chart-4: hsl(280 65% 60%);
-    --chart-5: hsl(340 75% 55%);
-    --sidebar-background: hsl(0 0% 7%);
-    --sidebar-foreground: hsl(0 0% 95.9%);
-    --sidebar-primary: hsl(360, 100%, 100%);
-    --sidebar-primary-foreground: hsl(0 0% 100%);
-    --sidebar-accent: hsl(0 0% 15.9%);
-    --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
-    --sidebar-border: hsl(0 0% 15.9%);
-    --sidebar-ring: hsl(217.2 91.2% 59.8%);
-    --sidebar: hsl(240 5.9% 10%);
-}
-
-@layer base {
-    * {
-        @apply border-border outline-ring/50;
-    }
-    body {
-        @apply bg-background text-foreground;
+    .scrollbar-none::-webkit-scrollbar {
+        display: none;
     }
 }

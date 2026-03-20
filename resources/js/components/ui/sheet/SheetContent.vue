@@ -37,22 +37,22 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     <DialogContent
       data-slot="sheet-content"
       :class="cn(
-        'bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500',
+        'bg-popover fixed z-50 flex flex-col gap-4 border border-[rgba(255,255,255,0.08)] transition ease-[cubic-bezier(0.16,1,0.3,1)] data-[state=closed]:duration-300 data-[state=open]:duration-300',
         side === 'right'
-          && 'data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm',
+          && 'data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 rounded-l-[24px] border-l sm:max-w-sm',
         side === 'left'
-          && 'data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm',
+          && 'data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-full w-3/4 rounded-r-[24px] border-r sm:max-w-sm',
         side === 'top'
-          && 'data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 h-auto border-b',
+          && 'data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 h-auto rounded-b-[24px] border-b',
         side === 'bottom'
-          && 'data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto border-t',
+          && 'data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 mx-auto h-auto max-w-[480px] rounded-t-[24px] border-t pb-[calc(env(safe-area-inset-bottom)+16px)]',
         props.class)"
       v-bind="{ ...$attrs, ...forwarded }"
     >
       <slot />
 
       <DialogClose
-        class="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none"
+        class="absolute top-4 right-4 flex size-10 items-center justify-center rounded-full bg-[#1E293B] text-[#94A3B8] transition-all duration-100 ease-out hover:text-[#F8FAFC] active:scale-[0.97] active:opacity-80 focus:ring-2 focus:ring-[rgba(229,184,73,0.2)] focus:outline-hidden disabled:pointer-events-none"
       >
         <X class="size-4" />
         <span class="sr-only">Close</span>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import AppLogo from '@/components/AppLogo.vue';
 import { home } from '@/routes';
 
 defineProps<{
@@ -10,34 +10,28 @@ defineProps<{
 </script>
 
 <template>
-    <div
-        class="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10"
-    >
-        <div class="w-full max-w-sm">
-            <div class="flex flex-col gap-8">
-                <div class="flex flex-col items-center gap-4">
-                    <Link
-                        :href="home()"
-                        class="flex flex-col items-center gap-2 font-medium"
+    <div class="min-h-svh bg-background text-foreground">
+        <div class="app-shell-frame flex flex-col justify-center gap-6">
+            <Link :href="home()" class="self-start">
+                <AppLogo />
+            </Link>
+
+            <section class="app-surface space-y-6">
+                <div class="space-y-2">
+                    <p class="app-kicker">Acceso</p>
+                    <h1 class="text-[26px] leading-tight font-semibold text-[#F8FAFC]">
+                        {{ title }}
+                    </h1>
+                    <p
+                        v-if="description"
+                        class="text-[14px] leading-6 text-[#94A3B8]"
                     >
-                        <div
-                            class="mb-1 flex h-9 w-9 items-center justify-center rounded-md"
-                        >
-                            <AppLogoIcon
-                                class="size-9 fill-current text-[var(--foreground)] dark:text-white"
-                            />
-                        </div>
-                        <span class="sr-only">{{ title }}</span>
-                    </Link>
-                    <div class="space-y-2 text-center">
-                        <h1 class="text-xl font-medium">{{ title }}</h1>
-                        <p class="text-center text-sm text-muted-foreground">
-                            {{ description }}
-                        </p>
-                    </div>
+                        {{ description }}
+                    </p>
                 </div>
+
                 <slot />
-            </div>
+            </section>
         </div>
     </div>
 </template>
