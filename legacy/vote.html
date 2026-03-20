@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>THE G.O.A.T — ¿Vas este sábado?</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0B1120;--navy2:#111D35;--navy3:#1A2845;
+    --gold:#C9A84C;--gold2:#F0C96A;
+    --red:#E05555;--green:#3DD68C;--text:#E8EDF8;--muted:#A8BCCF;
+    --border:rgba(201,168,76,0.18);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{background:var(--navy);color:var(--text);font-family:sans-serif;min-height:100vh}
+
+  .hero{background:linear-gradient(160deg,#07111F,#0D1B35);border-bottom:2px solid rgba(201,168,76,0.3);padding:32px 20px 28px;text-align:center}
+  .hero-ball{font-size:52px;margin-bottom:12px}
+  .hero-league{font-family:monospace;font-size:10px;letter-spacing:4px;color:var(--muted);margin-bottom:6px}
+  .hero-title{font-family:'Bebas Neue',sans-serif;font-size:42px;color:var(--gold2);letter-spacing:3px;line-height:1}
+  .hero-sub{font-family:monospace;font-size:11px;color:var(--muted);letter-spacing:2px;margin-top:8px}
+  .hero-date{font-size:16px;color:#fff;font-weight:600;margin-top:10px}
+
+  .wrap{max-width:480px;margin:0 auto;padding:20px 16px}
+
+  /* VOTE SECTION */
+  .vote-card{background:var(--navy2);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:16px}
+  .vote-header{padding:16px 18px;background:rgba(201,168,76,0.06);border-bottom:1px solid var(--border)}
+  .vote-question{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:1px;margin-bottom:4px}
+  .vote-sub{font-size:13px;color:var(--muted)}
+
+  .name-section{padding:16px 18px;border-bottom:1px solid var(--border)}
+  .name-label{font-family:monospace;font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:8px}
+  .name-input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--navy3);color:var(--text);font-size:15px;font-family:sans-serif}
+  .name-input:focus{outline:none;border-color:var(--gold)}
+
+  .options-section{padding:16px 18px}
+  .opt-btn{width:100%;padding:16px 18px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer;text-align:left;font-size:14px;font-family:sans-serif;font-weight:500;transition:all .15s;margin-bottom:10px;display:flex;align-items:center;gap:12px}
+  .opt-btn:last-child{margin-bottom:0}
+  .opt-btn:active{transform:scale(.98)}
+  .opt-icon{font-size:22px;flex-shrink:0;width:32px;text-align:center}
+  .opt-text{flex:1}
+  .opt-title{font-weight:600;display:block}
+  .opt-desc{font-size:12px;color:var(--muted);display:block;margin-top:2px}
+  .opt-btn.opt1{border-color:rgba(61,214,140,0.3);background:rgba(61,214,140,0.06)}
+  .opt-btn.opt1:active,.opt-btn.opt1.selected{background:rgba(61,214,140,0.15);border-color:var(--green)}
+  .opt-btn.opt2{border-color:rgba(201,168,76,0.3);background:rgba(201,168,76,0.06)}
+  .opt-btn.opt2:active,.opt-btn.opt2.selected{background:rgba(201,168,76,0.15);border-color:var(--gold)}
+  .opt-btn.opt3{border-color:rgba(224,85,85,0.3);background:rgba(224,85,85,0.06)}
+  .opt-btn.opt3:active,.opt-btn.opt3.selected{background:rgba(224,85,85,0.15);border-color:var(--red)}
+  .opt-btn.opt4{border-color:rgba(168,188,207,0.2);background:rgba(168,188,207,0.04)}
+  .opt-btn.opt4:active,.opt-btn.opt4.selected{background:rgba(168,188,207,0.1);border-color:var(--muted)}
+
+  .submit-btn{width:100%;padding:16px;border-radius:12px;border:none;cursor:pointer;background:var(--gold);color:#0B1120;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;transition:all .15s;margin-top:4px}
+  .submit-btn:active{transform:scale(.97);opacity:.85}
+  .submit-btn:disabled{opacity:.4;cursor:not-allowed}
+
+  /* RESULTS */
+  .results-card{background:var(--navy2);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:16px}
+  .results-header{padding:14px 18px;background:rgba(61,214,140,0.06);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+  .results-title{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--green);letter-spacing:1px}
+  .results-total{font-family:monospace;font-size:12px;color:var(--muted)}
+
+  .result-group{border-bottom:1px solid var(--border)}
+  .result-group:last-child{border-bottom:none}
+  .result-group-header{padding:10px 18px;display:flex;align-items:center;gap:8px}
+  .result-group-icon{font-size:18px}
+  .result-group-label{font-size:13px;font-weight:600;flex:1}
+  .result-group-count{font-family:monospace;font-size:13px;font-weight:700}
+  .result-group-count.g{color:var(--green)}
+  .result-group-count.y{color:var(--gold)}
+  .result-group-count.r{color:var(--red)}
+  .result-group-count.m{color:var(--muted)}
+  .result-names{padding:0 18px 10px;display:flex;flex-wrap:wrap;gap:6px}
+  .result-name-tag{font-size:11px;padding:3px 9px;border-radius:20px;background:rgba(255,255,255,0.05);color:var(--muted);font-family:monospace}
+
+  /* SUCCESS STATE */
+  .success-card{background:var(--navy2);border:1px solid rgba(61,214,140,0.3);border-radius:16px;padding:32px 20px;text-align:center;margin-bottom:16px}
+  .success-icon{font-size:52px;margin-bottom:12px}
+  .success-title{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--green);letter-spacing:2px;margin-bottom:8px}
+  .success-msg{font-size:14px;color:var(--muted);line-height:1.6}
+  .success-vote{font-size:16px;color:var(--text);font-weight:600;margin:12px 0}
+
+  /* HISTORY */
+  .hist-card{background:var(--navy2);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:16px}
+  .hist-header{padding:12px 18px;background:rgba(201,168,76,0.06);border-bottom:1px solid var(--border)}
+  .hist-title{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--gold2);letter-spacing:1px}
+  .hist-week{padding:12px 18px;border-bottom:1px solid rgba(201,168,76,0.07);cursor:pointer}
+  .hist-week:last-child{border-bottom:none}
+  .hist-week-date{font-family:monospace;font-size:11px;color:var(--muted);margin-bottom:4px}
+  .hist-week-stats{display:flex;gap:12px}
+  .hist-stat{font-size:12px}
+  .hist-stat .n{font-weight:700;color:var(--gold2)}
+
+  .loading{text-align:center;padding:32px;color:var(--muted);font-family:monospace;font-size:12px}
+  .closed-card{background:var(--navy2);border:1px solid rgba(224,85,85,0.3);border-radius:16px;padding:28px 20px;text-align:center;margin-bottom:16px}
+  .closed-icon{font-size:44px;margin-bottom:12px}
+  .closed-title{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--red);letter-spacing:2px;margin-bottom:8px}
+  .closed-msg{font-size:13px;color:var(--muted);line-height:1.6}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-ball">🏀</div>
+  <div class="hero-league">LIGA DE BALONCESTO</div>
+  <div class="hero-title">THE G.O.A.T</div>
+  <div class="hero-sub">GREATEST OF ALL TIME 🐐</div>
+  <div class="hero-date" id="heroDate"></div>
+</div>
+
+<div class="wrap">
+  <div id="mainContent"><div class="loading">Cargando...</div></div>
+  <div id="historySection"></div>
+</div>
+
+<script type="module">
+// ═══════════════════════════════════════════════════════
+// FIREBASE CONFIG
+// ═══════════════════════════════════════════════════════
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+import { getDatabase, ref, set, get, push, onValue, update }
+  from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js';
+
+const firebaseConfig = {
+  databaseURL: 'https://liga-goats-default-rtdb.firebaseio.com'
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ═══════════════════════════════════════════════════════
+// DATE
+// ═══════════════════════════════════════════════════════
+const days = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const now = new Date();
+document.getElementById('heroDate').textContent =
+  `${days[now.getDay()]} ${now.getDate()} de ${months[now.getMonth()]} ${now.getFullYear()}`;
+
+// ═══════════════════════════════════════════════════════
+// VOTE OPTIONS
+// ═══════════════════════════════════════════════════════
+const OPTIONS = [
+  { id:1, icon:'✅', title:'Asistiré', desc:'Estaré en la liga este sábado', cls:'opt1', color:'var(--green)' },
+  { id:2, icon:'👥', title:'Asistiré y llevo invitado', desc:'Vendré y traeré a alguien', cls:'opt2', color:'var(--gold)' },
+  { id:3, icon:'❌', title:'No asistiré', desc:'Esta vez no puedo ir', cls:'opt3', color:'var(--red)' },
+  { id:4, icon:'👤', title:'Soy invitado y asistiré', desc:'Fui invitado y confirmo asistencia', cls:'opt4', color:'var(--muted)' },
+];
+
+// ═══════════════════════════════════════════════════════
+// ROSTER
+// ═══════════════════════════════════════════════════════
+const MEMBERS = [
+  'Juan Luis Santana','Elvis Espinal','Levsky Abud','Edward Smith',
+  'Gilbert Tejeda','Edsel Tineo','Gregory Cruz','Leonardo Pujols',
+  'Alexis Carmona','Michael Troncoso','Jose Medos','David Mejia',
+  'Raul Veras','Radziwill de Jesus','Deivi Dominguez','Manuel Emilio',
+  'Manuel Cabral','Elvis Rosado','Gilbert Mendez','Gilberg Jimenez',
+  'Ariel Brown','Gregory Conde','Johan Follon','Namil Correa',
+  'Lazaro Garcia','Wilbert Lachapel'
+];
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let currentPoll = null;
+let myVote = localStorage.getItem('goat_my_vote') ? JSON.parse(localStorage.getItem('goat_my_vote')) : null;
+let selectedMember = null;  // selected from autocomplete
+let selectedOption = null;
+
+// ═══════════════════════════════════════════════════════
+// AUTOCOMPLETE
+// ═══════════════════════════════════════════════════════
+// All known names = members + past voters from Firebase
+let knownNames = [...MEMBERS];
+
+async function loadPastVoters() {
+  try {
+    const snap = await get(ref(db, 'pollHistory'));
+    if (!snap.exists()) return;
+    const history = snap.val();
+    Object.values(history).forEach(poll => {
+      if (!poll.votes) return;
+      Object.values(poll.votes).forEach(v => {
+        if (v.name && !knownNames.includes(v.name)) knownNames.push(v.name);
+      });
+    });
+    // Also check active poll
+    const activeSnap = await get(ref(db, 'activePoll'));
+    if (activeSnap.exists()) {
+      const active = activeSnap.val();
+      if (active && active.votes) {
+        Object.values(active.votes).forEach(v => {
+          if (v.name && !knownNames.includes(v.name)) knownNames.push(v.name);
+        });
+      }
+    }
+  } catch(e) {}
+}
+
+window.filterMembers = function() {
+  const q = document.getElementById('voterSearch').value.trim().toLowerCase();
+  const sugBox = document.getElementById('memberSuggestions');
+  if (!q || q.length < 1) { sugBox.style.display='none'; return; }
+
+  const matches = knownNames.filter(m => m.toLowerCase().includes(q)).slice(0, 7);
+
+  sugBox.style.display = 'block';
+
+  let html = matches.map(m => {
+    const isMember = MEMBERS.includes(m);
+    return `<div onclick="selectMember('${m}')" style="padding:11px 14px;font-size:14px;font-weight:500;
+      background:var(--navy3);border:1px solid var(--border);border-radius:10px;
+      margin-bottom:5px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .15s"
+      onmouseover="this.style.background='rgba(201,168,76,0.1)'"
+      onmouseout="this.style.background='var(--navy3)'">
+      <span style="font-size:18px">${isMember ? '🏀' : '👤'}</span>
+      <div style="flex:1">
+        <div>${m}</div>
+        ${!isMember ? '<div style="font-size:10px;color:var(--gold);font-family:monospace">invitado</div>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // If no matches, show free-text option for brand new guests
+  if (!matches.length) {
+    html = `<div style="padding:10px 14px;font-size:13px;color:var(--muted);
+      background:var(--navy3);border-radius:10px;border:1px solid var(--border);margin-bottom:5px">
+      👤 Invitado nuevo — confirma con tu nombre completo
+    </div>
+    <div onclick="selectMember('${document.getElementById('voterSearch').value.trim()}')"
+      style="padding:11px 14px;font-size:14px;font-weight:600;background:rgba(201,168,76,0.08);
+      border:1px solid rgba(201,168,76,0.3);border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:10px"
+      onmouseover="this.style.background='rgba(201,168,76,0.15)'"
+      onmouseout="this.style.background='rgba(201,168,76,0.08)'">
+      <span style="font-size:18px">👤</span>
+      <div>
+        <div>${document.getElementById('voterSearch').value.trim()}</div>
+        <div style="font-size:10px;color:var(--gold);font-family:monospace">Confirmar como invitado nuevo</div>
+      </div>
+    </div>`;
+  }
+
+  sugBox.innerHTML = html;
+};
+
+window.selectMember = function(name) {
+  selectedMember = name;
+  document.getElementById('voterSearch').value = '';
+  document.getElementById('memberSuggestions').style.display = 'none';
+  const disp = document.getElementById('selectedMemberDisplay');
+  document.getElementById('selectedMemberName').textContent = name;
+  disp.style.display = 'flex';
+  checkSubmit();
+};
+
+window.clearMember = function() {
+  selectedMember = null;
+  document.getElementById('selectedMemberDisplay').style.display = 'none';
+  document.getElementById('voterSearch').value = '';
+  document.getElementById('voterSearch').focus();
+  checkSubmit();
+};
+
+// ═══════════════════════════════════════════════════════
+// LOAD ACTIVE POLL
+// ═══════════════════════════════════════════════════════
+const pollRef = ref(db, 'activePoll');
+loadPastVoters();
+onValue(pollRef, snap => {
+  const poll = snap.val();
+  currentPoll = poll;
+  renderMain(poll);
+  loadHistory();
+});
+
+function renderMain(poll) {
+  const content = document.getElementById('mainContent');
+
+  if (!poll || !poll.open) {
+    content.innerHTML = `
+      <div class="closed-card">
+        <div class="closed-icon">🔒</div>
+        <div class="closed-title">VOTACIÓN CERRADA</div>
+        <div class="closed-msg">No hay ninguna votación activa en este momento.<br>El administrador la abrirá antes del próximo sábado.</div>
+      </div>`;
+    return;
+  }
+
+  // Check if already voted
+  const alreadyVoted = myVote && myVote.pollId === poll.id;
+
+  if (alreadyVoted) {
+    const opt = OPTIONS.find(o => o.id === myVote.option);
+    content.innerHTML = `
+      <div class="success-card">
+        <div class="success-icon">${opt.icon}</div>
+        <div class="success-title">¡VOTO REGISTRADO!</div>
+        <div class="success-vote">${opt.title}</div>
+        <div class="success-msg">Tu respuesta fue guardada.<br>Puedes ver abajo quién más confirmó.</div>
+      </div>
+      ${renderResults(poll)}`;
+  } else {
+    content.innerHTML = `
+      <div class="vote-card">
+        <div class="vote-header">
+          <div class="vote-question">¿ASISTIRÁS A LA LIGA DE HOY?</div>
+          <div class="vote-sub">${poll.date || ''} · Confirma tu asistencia</div>
+        </div>
+        <div class="name-section">
+          <div class="name-label">BUSCA TU NOMBRE</div>
+          <input class="name-input" id="voterSearch" type="text" placeholder="Escribe tu nombre o apellido..."
+            oninput="filterMembers()" autocomplete="off">
+          <div id="memberSuggestions" style="margin-top:6px;display:none"></div>
+          <div id="selectedMemberDisplay" style="display:none;margin-top:8px;padding:10px 14px;
+            background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);
+            border-radius:10px;display:none;align-items:center;gap:10px">
+            <span style="font-size:20px">✅</span>
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:14px" id="selectedMemberName"></div>
+              <div style="font-size:11px;color:var(--muted);font-family:monospace">Miembro de la liga</div>
+            </div>
+            <button onclick="clearMember()" style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:18px">✕</button>
+          </div>
+        </div>
+        <div class="options-section">
+          ${OPTIONS.map(o => `
+            <button class="opt-btn ${o.cls}" id="opt-${o.id}" onclick="selectOption(${o.id})">
+              <span class="opt-icon">${o.icon}</span>
+              <span class="opt-text">
+                <span class="opt-title">${o.title}</span>
+                <span class="opt-desc">${o.desc}</span>
+              </span>
+            </button>`).join('')}
+          <button class="submit-btn" id="submitBtn" onclick="submitVote()" disabled>CONFIRMAR RESPUESTA</button>
+        </div>
+      </div>
+      ${renderResults(poll)}`;
+
+
+  }
+}
+
+function renderResults(poll) {
+  if (!poll || !poll.votes) return '';
+  const votes = Object.values(poll.votes);
+  const total = votes.length;
+  if (total === 0) return '';
+
+  const groups = OPTIONS.map(o => ({
+    ...o,
+    voters: votes.filter(v => v.option === o.id).map(v => v.name)
+  }));
+
+  const countColors = ['g','y','r','m'];
+
+  return `
+    <div class="results-card">
+      <div class="results-header">
+        <span class="results-title">RESPUESTAS (${total})</span>
+        <span class="results-total">${votes.filter(v=>v.option===1||v.option===2||v.option===4).length} confirmaron asistencia</span>
+      </div>
+      ${groups.map((g,i) => g.voters.length ? `
+        <div class="result-group">
+          <div class="result-group-header">
+            <span class="result-group-icon">${g.icon}</span>
+            <span class="result-group-label">${g.title}</span>
+            <span class="result-group-count ${countColors[i]}">${g.voters.length}</span>
+          </div>
+          <div class="result-names">
+            ${g.voters.map(n=>`<span class="result-name-tag">${n}</span>`).join('')}
+          </div>
+        </div>` : '').join('')}
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// VOTE ACTIONS
+// ═══════════════════════════════════════════════════════
+window.selectOption = function(id) {
+  selectedOption = id;
+  OPTIONS.forEach(o => {
+    const btn = document.getElementById(`opt-${o.id}`);
+    if (btn) btn.classList.toggle('selected', o.id === id);
+  });
+  checkSubmit();
+};
+
+function checkSubmit() {
+  const btn = document.getElementById('submitBtn');
+  if (btn) btn.disabled = !(selectedMember && selectedOption);
+}
+
+window.submitVote = async function() {
+  const name = selectedMember;
+  if (!name || !selectedOption || !currentPoll) return;
+
+  const btn = document.getElementById('submitBtn');
+  btn.textContent = 'GUARDANDO...';
+  btn.disabled = true;
+
+  try {
+    const voteRef = ref(db, `activePoll/votes/${Date.now()}`);
+    await set(voteRef, {
+      name,
+      option: selectedOption,
+      timestamp: Date.now()
+    });
+    myVote = { pollId: currentPoll.id, option: selectedOption, name };
+    localStorage.setItem('goat_my_vote', JSON.stringify(myVote));
+    if (navigator.vibrate) navigator.vibrate([40,20,40]);
+  } catch(e) {
+    btn.textContent = 'CONFIRMAR RESPUESTA';
+    btn.disabled = false;
+    alert('Error al guardar. Verifica tu conexión.');
+  }
+};
+
+// ═══════════════════════════════════════════════════════
+// HISTORY
+// ═══════════════════════════════════════════════════════
+async function loadHistory() {
+  try {
+    const histRef = ref(db, 'pollHistory');
+    const snap = await get(histRef);
+    if (!snap.exists()) return;
+    const history = snap.val();
+    const weeks = Object.entries(history)
+      .sort((a,b) => b[1].createdAt - a[1].createdAt)
+      .slice(0, 5);
+
+    if (!weeks.length) return;
+
+    document.getElementById('historySection').innerHTML = `
+      <div class="hist-card">
+        <div class="hist-header"><div class="hist-title">📅 HISTORIAL DE ASISTENCIA</div></div>
+        ${weeks.map(([id, w]) => {
+          const votes = w.votes ? Object.values(w.votes) : [];
+          const van = votes.filter(v=>v.option===1||v.option===2||v.option===4).length;
+          const noVan = votes.filter(v=>v.option===3).length;
+          const invitados = votes.filter(v=>v.option===4).length;
+          return `<div class="hist-week">
+            <div class="hist-week-date">📅 ${w.date || id}</div>
+            <div class="hist-week-stats">
+              <span class="hist-stat"><span class="n">${van}</span> confirmaron</span>
+              <span class="hist-stat"><span class="n" style="color:var(--red)">${noVan}</span> no fueron</span>
+              <span class="hist-stat"><span class="n" style="color:var(--gold)">${invitados}</span> invitados</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+  } catch(e) {}
+}
+</script>
+</body>
+</html>
