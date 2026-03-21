@@ -74,6 +74,54 @@
   .balance-player-row{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;border-bottom:1px solid rgba(201,168,76,0.06)}
   .balance-player-row:last-child{border-bottom:none}
 
+
+
+  /* ANOTADOR FIBA */
+  .fiba-card{background:var(--navy2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px}
+  .fiba-hdr{padding:8px 12px;background:rgba(201,168,76,0.08);border-bottom:1px solid var(--border);font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;color:var(--gold2)}
+  .fiba-field{padding:8px 12px;border-bottom:1px solid rgba(201,168,76,0.06)}
+  .fiba-field:last-child{border-bottom:none}
+  .fiba-label{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:4px}
+  .fiba-input{width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;padding:4px 0;outline:none}
+  .fiba-input:focus{border-bottom-color:var(--gold)}
+  .conteo-box{display:inline-flex;align-items:center;justify-content:center;height:22px;cursor:pointer;transition:background .1s;border:1px solid rgba(255,255,255,0.18);font-family:'DM Mono',monospace;font-size:10px;font-weight:700;box-sizing:border-box}
+  .conteo-box:active{opacity:.7}
+  .conteo-box.a-marked{background:rgba(61,214,140,0.25);color:#fff}
+  .conteo-box.b-marked{background:rgba(201,168,76,0.3);color:#fff}
+  .conteo-box.unmarked{background:transparent;color:var(--muted)}
+  .falta-dot{width:20px;height:20px;border-radius:50%;border:1px solid var(--border);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;font-size:10px}
+  .falta-dot.active{background:var(--red);border-color:var(--red);color:#fff}
+  .falta-dot.foul5{background:#7f0000;border-color:#7f0000}
+  .periodo-score{display:grid;grid-template-columns:1fr 40px 40px;gap:4px;align-items:center;padding:5px 0;border-bottom:1px solid rgba(201,168,76,0.05)}
+  .periodo-score:last-child{border-bottom:none}
+
+
+  /* SCOUT TOOLTIPS */
+  .scout-tip{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;border:1px solid rgba(201,168,76,0.4);color:var(--gold);font-size:10px;cursor:pointer;margin-left:4px;flex-shrink:0;font-family:'DM Mono',monospace;transition:all .15s}
+  .scout-tip:hover,.scout-tip:active{background:rgba(201,168,76,0.15);border-color:var(--gold)}
+  .tip-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:16px}
+  .tip-overlay-bg{position:absolute;inset:0;background:rgba(0,0,0,0.6)}
+  .tip-box{position:relative;background:var(--navy2);border:1px solid var(--border);border-radius:16px;padding:18px;max-width:380px;width:100%;z-index:1}
+  .tip-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;color:var(--gold2);margin-bottom:8px}
+  .tip-body{font-size:13px;color:var(--muted);line-height:1.7}
+  .tip-body strong{color:var(--text)}
+  .tip-tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-family:'DM Mono',monospace;margin-top:8px}
+
+  /* TORNEO */
+  .torneo-team-card{background:var(--navy2);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:10px}
+  .torneo-team-hdr{padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+  .torneo-team-name{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px}
+  .torneo-stat-grid{display:grid;grid-template-columns:repeat(6,1fr);text-align:center;background:var(--border);gap:1px}
+  .torneo-stat-cell{background:var(--navy2);padding:8px 4px}
+  .torneo-stat-val{font-family:'Bebas Neue',sans-serif;font-size:18px}
+  .torneo-stat-lbl{font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:1px}
+  .torneo-player-row{display:flex;align-items:center;padding:7px 14px;border-bottom:1px solid rgba(201,168,76,0.06);gap:8px;cursor:pointer}
+  .torneo-player-row:last-child{border-bottom:none}
+  .torneo-player-row:active{background:rgba(255,255,255,0.03)}
+  .stat-btn{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:transparent;cursor:pointer;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+  .stat-btn:active{transform:scale(.88)}
+  .predict-bar{height:10px;border-radius:99px;transition:width .6s}
+
   /* DEBT SYSTEM */
   .debt-row{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid rgba(201,168,76,0.07);gap:10px}
   .debt-row:last-child{border-bottom:none}
@@ -330,6 +378,8 @@
   <div class="tab" onclick="showTab('tabla')">TABLA</div>
   <div class="tab" onclick="showTab('temp')">TEMP.</div>
   <div class="tab" onclick="showTab('scout')">SCOUT</div>
+  <div class="tab" onclick="showTab('torneo')">TORNEO</div>
+  <div class="tab" onclick="showTab('anotador')">📋</div>
   <div class="tab" onclick="showTab('votos')">VOTOS</div>
   <div class="tab" onclick="showTab('post')">POST</div>
   <div class="tab" onclick="showTab('balance')">$$$</div>
@@ -338,7 +388,7 @@
 <!-- ══ LLEGADA ══ -->
 <div id="tab-llegada" class="page active">
   <div class="card">
-    <div class="card-header"><span class="card-title">MIEMBROS</span><span class="card-badge" id="badgeArrived">0/26</span></div>
+    <div class="card-header"><span class="card-title">MIEMBROS</span><span class="card-badge" id="badgeArrived">0/0</span></div>
     <div id="playerList"></div>
   </div>
   <div class="card">
@@ -409,6 +459,55 @@
   </div>
 </div>
 
+
+<!-- MODO DE REPARTICION MODAL -->
+<div class="overlay" id="mModoReparticion">
+  <div class="modal">
+    <div class="modal-hdr" style="background:linear-gradient(135deg,rgba(201,168,76,0.15),rgba(201,168,76,0.05))">
+      <div class="modal-title" style="color:var(--gold2)" id="modoReparticionTitle">⚡ ¿CÓMO SE REPARTEN?</div>
+    </div>
+    <div class="modal-body" style="padding:14px">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:12px">SELECCIONA EL MODO DE REPARTICIÓN</div>
+      <div style="display:grid;gap:10px">
+
+        <div onclick="confirmarModoReparticion('manual')"
+          style="padding:14px;border-radius:12px;border:2px solid rgba(201,168,76,0.3);background:rgba(201,168,76,0.06);cursor:pointer;transition:all .15s"
+          onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='rgba(201,168,76,0.3)'">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+            <span style="font-size:22px">👑</span>
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold2);letter-spacing:1px">Manual</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.5">Los 2 primeros en llegar son capitanes y piden jugadores uno por uno.</div>
+        </div>
+
+        <div onclick="confirmarModoReparticion('auto')"
+          style="padding:14px;border-radius:12px;border:2px solid rgba(61,214,140,0.3);background:rgba(61,214,140,0.06);cursor:pointer;transition:all .15s"
+          onmouseover="this.style.borderColor='var(--green)'" onmouseout="this.style.borderColor='rgba(61,214,140,0.3)'">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+            <span style="font-size:22px">⚖️</span>
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--green);letter-spacing:1px">Auto</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.5">El sistema balancea los equipos automáticamente usando los ratings de scouting.</div>
+        </div>
+
+        <div onclick="confirmarModoReparticion('random')"
+          style="padding:14px;border-radius:12px;border:2px solid rgba(167,139,250,0.3);background:rgba(167,139,250,0.06);cursor:pointer;transition:all .15s"
+          onmouseover="this.style.borderColor='#a78bfa'" onmouseout="this.style.borderColor='rgba(167,139,250,0.3)'">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+            <span style="font-size:22px">🔢</span>
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:#a78bfa;letter-spacing:1px">Por Llegada</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.5">Primeros 5 en llegar vs siguientes 5. Sin sorteo, por orden de llegada.</div>
+        </div>
+
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="close2('mModoReparticion')">← Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ COLA ══ -->
 <div id="tab-cola" class="page">
   <div id="champCard" style="display:none" class="card">
@@ -448,6 +547,7 @@
 
 <!-- ══ STATS ══ -->
 <div id="tab-stats" class="page">
+  <div style="margin-bottom:10px;padding:10px 12px;border-left:2px solid var(--gold);font-size:12px;color:var(--muted);line-height:1.6">📊 <strong style="color:var(--text)">Estadísticas de hoy</strong> — puntos y juegos de la jornada actual. Se reinicia al cerrar cada jornada.</div>
   <div class="card">
     <div class="card-header"><span class="card-title">PUNTOS ANOTADOS</span><span class="card-badge" id="statsBadgePts">hoy</span></div>
     <div id="ptsStatsList"><div class="empty">Sin datos aún</div></div>
@@ -462,6 +562,7 @@
 
 <!-- ══ TABLA ══ -->
 <div id="tab-tabla" class="page">
+  <div style="margin-bottom:10px;padding:10px 12px;border-left:2px solid var(--gold);font-size:12px;color:var(--muted);line-height:1.6">🏆 <strong style="color:var(--text)">Tabla del día</strong> — posiciones, victorias y anotadores de la jornada actual. Se reinicia al cerrar cada jornada.</div>
   <div id="jornadaBanner" class="jornada-banner" style="display:none">
     <div><div class="jb-val" id="jbGames">0</div><div class="jb-lbl">JUEGOS</div></div>
     <div><div class="jb-val" id="jbPts">0</div><div class="jb-lbl">PUNTOS</div></div>
@@ -485,6 +586,7 @@
 
 <!-- ══ TEMPORADA ══ -->
 <div id="tab-temp" class="page">
+  <div style="margin-bottom:10px;padding:10px 12px;border-left:2px solid var(--gold);font-size:12px;color:var(--muted);line-height:1.6">🐐 <strong style="color:var(--text)">Temporada completa</strong> — acumula todas las jornadas del año. Aquí vive el historial, los perfiles y las insignias de cada jugador.</div>
 
   <!-- Season summary banner -->
   <div class="card" id="seasonBannerCard">
@@ -711,17 +813,34 @@
     </div>
   </div>
 
-  <!-- Sábados del corte -->
+  <!-- Configurar corte -->
   <div class="card">
-    <div class="card-header"><span class="card-title">⚙️ CONFIGURAR SÁBADOS</span></div>
+    <div class="card-header"><span class="card-title">⚙️ CONFIGURAR JORNADAS</span></div>
     <div style="padding:14px">
-      <div style="font-size:13px;color:var(--muted);margin-bottom:10px">¿Cuántos sábados tiene este corte?</div>
-      <div style="display:flex;gap:8px;align-items:center">
+
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px">¿Cuántas jornadas tiene este corte?</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px">
         <button onclick="changeSabados(-1)" style="width:40px;height:40px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--text);font-size:20px;cursor:pointer">−</button>
         <div style="flex:1;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--gold2)" id="sabadosCount">4</div>
         <button onclick="changeSabados(1)" style="width:40px;height:40px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--text);font-size:20px;cursor:pointer">+</button>
       </div>
-      <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:6px">sábados en el corte</div>
+      <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:-10px;margin-bottom:16px">jornadas en el corte</div>
+
+      <div style="border-top:1px solid var(--border);padding-top:14px">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:10px">¿Qué día es tu jornada de juego?</div>
+        <div id="gameDayBtns" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+        <div id="gameDayLabel" style="font-size:11px;color:var(--muted);margin-top:8px;font-family:'DM Mono',monospace"></div>
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:14px">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:10px">¿Día de corte mensual?</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button onclick="changeCutDay(-1)" style="width:40px;height:40px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--text);font-size:20px;cursor:pointer">−</button>
+          <div style="flex:1;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--gold2)" id="cutDayCount">15</div>
+          <button onclick="changeCutDay(1)" style="width:40px;height:40px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--text);font-size:20px;cursor:pointer">+</button>
+        </div>
+        <div style="text-align:center;font-size:12px;color:var(--muted);margin-top:6px">día de cierre del corte</div>
+      </div>
     </div>
   </div>
 
@@ -798,6 +917,577 @@
     <div id="balanceResult" style="display:none;padding:14px"></div>
   </div>
 
+</div>
+
+
+<!-- ══ TORNEO ══ -->
+<div id="tab-torneo" class="page">
+
+  <!-- No active tournament -->
+  <div id="torneoEmpty">
+    <div style="text-align:center;padding:40px 20px">
+      <div style="font-size:48px;margin-bottom:12px">🏆</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--gold2);letter-spacing:2px;margin-bottom:8px">MODO TORNEO</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:24px">
+        Lleva estadísticas avanzadas — puntos, rebotes, asistencias, robos y pérdidas. El sistema predice el ganador basándose en los perfiles de scouting.
+      </div>
+      <button class="btn btn-gold" style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px" onclick="openCreateTorneo()">
+        🏆 CREAR TORNEO
+      </button>
+    </div>
+  </div>
+
+  <!-- Active tournament -->
+  <div id="torneoActive" style="display:none">
+
+    <!-- Header -->
+    <div class="card" id="torneoHeader">
+      <div class="card-header" style="background:linear-gradient(135deg,rgba(201,168,76,0.15),rgba(201,168,76,0.05))">
+        <div>
+          <div class="card-title" id="torneoNombre" style="color:var(--gold2)">TORNEO</div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)" id="torneoFechas"></div>
+        </div>
+        <span class="card-badge" id="torneoBadge" style="color:var(--green)">ACTIVO</span>
+      </div>
+      <div style="padding:10px 14px;font-size:12px;color:var(--muted)" id="torneoFormato"></div>
+    </div>
+
+    <!-- Predicción -->
+    <div class="card" id="torneoPrediccion">
+      <div class="card-header" style="background:rgba(167,139,250,0.08)">
+        <span class="card-title" style="color:#a78bfa">🔮 PREDICCIÓN DE VICTORIA</span>
+        <span class="card-badge" style="color:#a78bfa">basado en scout</span>
+      </div>
+      <div id="prediccionBody" style="padding:14px"></div>
+    </div>
+
+    <!-- Marcador torneo -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">⚔️ JUEGO ACTUAL</span>
+        <span class="card-badge" id="torneoJuegoNum">Juego #1</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 44px 1fr;align-items:center;padding:10px">
+        <div style="text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px" id="torneoNameA" class="team-label a">EQ. A</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:72px;line-height:1;color:var(--green)" id="torneoScA">0</div>
+        </div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--muted);text-align:center">VS</div>
+        <div style="text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px" id="torneoNameB" class="team-label b">EQ. B</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:72px;line-height:1;color:var(--gold2)" id="torneoScB">0</div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-outline" onclick="openTorneoFin()">🏁 FIN DE JUEGO</button>
+        <button class="btn btn-red" onclick="undoTorneoStat()">↩ Deshacer</button>
+      </div>
+    </div>
+
+    <!-- Stats jugadores Equipo A -->
+    <div class="torneo-team-card" id="torneoTeamA">
+      <div class="torneo-team-hdr">
+        <div class="torneo-team-name" id="torneoTeamNameA" style="color:var(--green)">EQUIPO A</div>
+        <div class="torneo-stat-grid" style="flex:1;margin-left:8px;border-radius:6px;overflow:hidden;font-size:9px;grid-template-columns:repeat(7,1fr)">
+          <div class="torneo-stat-cell"><div class="torneo-stat-lbl">PTS</div></div>
+          <div class="torneo-stat-cell"><div class="torneo-stat-lbl">REB</div></div>
+          <div class="torneo-stat-cell"><div class="torneo-stat-lbl">AST</div></div>
+          <div class="torneo-stat-cell"><div class="torneo-stat-lbl">ROB</div></div>
+          <div class="torneo-stat-cell"><div class="torneo-stat-lbl">PER</div></div>
+          <div class="torneo-stat-cell"><div class="torneo-stat-lbl">FAL</div></div>
+          <div class="torneo-stat-cell"><div class="torneo-stat-lbl">+/-</div></div>
+        </div>
+      </div>
+      <div id="torneoPlayersA"></div>
+    </div>
+
+    <!-- Stats jugadores Equipo B -->
+    <div class="torneo-team-card" id="torneoTeamB">
+      <div class="torneo-team-hdr">
+        <div class="torneo-team-name" id="torneoTeamNameB" style="color:var(--gold2)">EQUIPO B</div>
+        <div class="torneo-stat-grid" style="flex:1;margin-left:8px;border-radius:6px;overflow:hidden;font-size:9px;grid-template-columns:repeat(7,1fr)">
+          <div class="torneo-stat-cell"><div class="torneo-stat-lbl">PTS</div></div>
+          <div class="torneo-stat-cell"><div class="torneo-stat-lbl">REB</div></div>
+          <div class="torneo-stat-cell"><div class="torneo-stat-lbl">AST</div></div>
+          <div class="torneo-stat-cell"><div class="torneo-stat-lbl">ROB</div></div>
+          <div class="torneo-stat-cell"><div class="torneo-stat-lbl">PER</div></div>
+          <div class="torneo-stat-cell"><div class="torneo-stat-lbl">FAL</div></div>
+          <div class="torneo-stat-cell"><div class="torneo-stat-lbl">+/-</div></div>
+        </div>
+      </div>
+      <div id="torneoPlayersB"></div>
+    </div>
+
+    <!-- Historial juegos torneo -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">📅 HISTORIAL DEL TORNEO</span><span class="card-badge" id="torneoHistBadge">0 juegos</span></div>
+      <div id="torneoHistList"><div class="empty">Sin juegos aún</div></div>
+    </div>
+
+    <!-- Líderes estadísticos -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">⭐ LÍDERES ESTADÍSTICOS</span></div>
+      <div id="torneoLideres"></div>
+    </div>
+
+    <!-- Botones admin -->
+    <div style="padding:0 0 12px;display:grid;gap:8px">
+      <button class="btn btn-outline" style="color:var(--green);border-color:rgba(61,214,140,0.3)" onclick="requireAdmin(conservarTorneo)">✅ CONSERVAR Y ARCHIVAR TORNEO</button>
+      <button class="btn btn-outline" style="color:var(--gold);border-color:rgba(201,168,76,0.3)" onclick="requireAdmin(fusionarTorneo)">🔄 FUSIONAR STATS CON LA LIGA</button>
+      <button class="btn btn-red" onclick="requireAdmin(eliminarTorneo)">🗑️ ELIMINAR TORNEO</button>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- FORMATO INFO MODAL -->
+<div class="overlay" id="mFormatoInfo">
+  <div class="modal">
+    <div class="modal-hdr" style="background:linear-gradient(135deg,rgba(201,168,76,0.15),rgba(201,168,76,0.05))">
+      <div class="modal-title" id="formatoInfoTitle" style="color:var(--gold2)">FORMATO</div>
+    </div>
+    <div class="modal-body" id="formatoInfoBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-gold" onclick="confirmarFormato()">✅ USAR ESTE FORMATO</button>
+      <button class="btn btn-outline" onclick="close2('mFormatoInfo')">← Volver</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- SHOT PICKER SHEET (Anotador) -->
+<div class="shot-sheet" id="anotadorShotSheet">
+  <div class="shot-overlay-bg" onclick="closeAnotadorShot()"></div>
+  <div class="shot-panel">
+    <div class="shot-player" id="anotadorShotTitle">SELECCIONA EL TIPO</div>
+    <div class="shot-sub" id="anotadorShotSub">Casilla #</div>
+
+    <!-- Player selector -->
+    <div style="margin-bottom:12px">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:6px">¿QUIÉN ANOTÓ?</div>
+      <select id="anotadorShotPlayer" oninput="_updateShotBtnState()"
+        style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--navy3);color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif">
+        <option value="">— Sin especificar —</option>
+      </select>
+    </div>
+
+    <div class="shot-btns" id="anotadorShotBtns">
+      <button class="shot-btn one" id="shotBtn1" onclick="confirmShotPicker(1)">
+        <span class="shot-val" style="font-size:32px">○</span>
+        <span class="shot-lbl">1PT LIBRE</span>
+      </button>
+      <button class="shot-btn two" id="shotBtn2" onclick="confirmShotPicker(2)">
+        <span class="shot-val" style="font-size:32px">✕</span>
+        <span class="shot-lbl">2PT CAMPO</span>
+      </button>
+      <button class="shot-btn three" id="shotBtn3" onclick="confirmShotPicker(3)">
+        <span class="shot-val" style="font-size:32px">★</span>
+        <span class="shot-lbl">3PT TRIPLE</span>
+      </button>
+    </div>
+    <div id="shotValidationMsg" style="font-size:11px;color:var(--red);text-align:center;min-height:16px;margin-top:6px"></div>
+    <button class="shot-cancel" onclick="closeAnotadorShot()">Cancelar</button>
+  </div>
+</div>
+
+
+<!-- EDIT ROSTER MODAL -->
+<div class="overlay" id="mFibaRoster">
+  <div class="modal" style="max-height:90vh;display:flex;flex-direction:column">
+    <div class="modal-hdr" id="mFibaRosterHdr">
+      <div class="modal-title" id="mFibaRosterTitle" style="color:var(--gold2)">JUGADORES</div>
+    </div>
+    <div style="overflow-y:auto;flex:1">
+      <!-- Add new player -->
+      <div style="padding:12px 14px;background:rgba(201,168,76,0.05);border-bottom:1px solid var(--border)">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:8px">AGREGAR JUGADOR</div>
+        <div style="display:grid;grid-template-columns:44px 52px 1fr;gap:6px;margin-bottom:8px">
+          <input id="newLic" type="text" placeholder="LIC" maxlength="4"
+            style="padding:8px 4px;border-radius:6px;border:1px solid var(--border);background:var(--navy3);color:var(--text);font-size:13px;text-align:center;width:100%">
+          <input id="newJersey" type="text" placeholder="#" maxlength="2"
+            style="padding:8px 4px;border-radius:6px;border:1px solid var(--border);background:var(--navy3);color:var(--text);font-size:13px;text-align:center;width:100%">
+          <input id="newPlayerName" type="text" placeholder="Nombre completo..."
+            style="padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--navy3);color:var(--text);font-size:13px;width:100%">
+        </div>
+        <button onclick="addFibaPlayer()" class="btn btn-gold" style="width:100%;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px">+ AGREGAR</button>
+      </div>
+      <!-- Player list -->
+      <div id="fibaRosterEditList"></div>
+    </div>
+    <div class="modal-foot" style="border-top:1px solid var(--border)">
+      <button class="btn btn-outline" onclick="close2('mFibaRoster')">← Cerrar</button>
+    </div>
+  </div>
+</div>
+<!-- CREAR TORNEO MODAL -->
+<div class="overlay" id="mCrearTorneo">
+  <div class="modal">
+    <div class="modal-hdr" style="background:linear-gradient(135deg,rgba(201,168,76,0.15),rgba(201,168,76,0.05))">
+      <div class="modal-title" style="color:var(--gold2)">🏆 CREAR TORNEO</div>
+    </div>
+    <div class="modal-body">
+
+      <div style="margin-bottom:14px">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:6px">NOMBRE DEL TORNEO</div>
+        <input id="torneoNombreInput" type="text" placeholder="Ej: Torneo Verano 2025..."
+          style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);background:var(--navy3);color:var(--text);font-size:16px;font-family:'DM Sans',sans-serif">
+      </div>
+
+      <!-- Equipos -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--green);letter-spacing:2px;margin-bottom:6px">NOMBRE EQ. A</div>
+          <input id="torneoEquipoA" type="text" placeholder="Los Tigres..."
+            style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(61,214,140,0.3);background:var(--navy3);color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif">
+        </div>
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--gold);letter-spacing:2px;margin-bottom:6px">NOMBRE EQ. B</div>
+          <input id="torneoEquipoB" type="text" placeholder="Los Leones..."
+            style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(201,168,76,0.3);background:var(--navy3);color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif">
+        </div>
+      </div>
+
+      <!-- Formato — rendered by JS -->
+      <div style="margin-bottom:14px">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:8px">FORMATO DEL TORNEO</div>
+        <div id="formatoPills"></div>
+        <div id="formatoDesc" style="display:none;margin-top:10px;padding:12px 14px;border-radius:10px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);font-size:12px;color:var(--text);line-height:1.7"></div>
+      </div>
+
+      <!-- Duración -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:6px">FECHA INICIO</div>
+          <input id="torneoFechaInicio" type="date"
+            style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--navy3);color:var(--text);font-size:14px">
+        </div>
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:6px">FECHA FIN (opcional)</div>
+          <input id="torneoFechaFin" type="date"
+            style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--navy3);color:var(--text);font-size:14px">
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-gold" onclick="confirmarCrearTorneo()">🏆 CREAR TORNEO</button>
+      <button class="btn btn-outline" onclick="close2('mCrearTorneo')">← Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- STAT ACTION SHEET (torneo) -->
+<div class="shot-sheet" id="torneoStatSheet">
+  <div class="shot-overlay-bg" onclick="closeTorneoStat()"></div>
+  <div class="shot-panel">
+    <div class="shot-player" id="torneoStatPlayer"></div>
+    <div class="shot-sub" id="torneoStatSub">SELECCIONA LA ACCIÓN</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+      <button class="shot-btn one" onclick="registerTorneoStat('pts1')">
+        <span class="shot-val">1</span><span class="shot-lbl">LIBRE</span>
+      </button>
+      <button class="shot-btn two" onclick="registerTorneoStat('pts2')">
+        <span class="shot-val">2</span><span class="shot-lbl">CAMPO</span>
+      </button>
+      <button class="shot-btn three" onclick="registerTorneoStat('pts3')">
+        <span class="shot-val">3</span><span class="shot-lbl">TRIPLE</span>
+      </button>
+      <button onclick="registerTorneoStat('reb')" style="padding:14px 10px;border-radius:12px;border:1px solid rgba(168,188,207,0.3);background:rgba(168,188,207,0.08);cursor:pointer">
+        <span style="display:block;font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--muted)">💪</span>
+        <span style="display:block;font-size:10px;font-family:'DM Mono',monospace;color:var(--muted)">REBOTE</span>
+      </button>
+      <button onclick="registerTorneoStat('ast')" style="padding:14px 10px;border-radius:12px;border:1px solid rgba(61,214,140,0.3);background:rgba(61,214,140,0.08);cursor:pointer">
+        <span style="display:block;font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--green)">🤝</span>
+        <span style="display:block;font-size:10px;font-family:'DM Mono',monospace;color:var(--green)">ASIST.</span>
+      </button>
+      <button onclick="registerTorneoStat('rob')" style="padding:14px 10px;border-radius:12px;border:1px solid rgba(201,168,76,0.3);background:rgba(201,168,76,0.08);cursor:pointer">
+        <span style="display:block;font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold)">🔒</span>
+        <span style="display:block;font-size:10px;font-family:'DM Mono',monospace;color:var(--gold)">ROBO</span>
+      </button>
+      <button onclick="registerTorneoStat('per')" style="padding:14px 10px;border-radius:12px;border:1px solid rgba(224,85,85,0.3);background:rgba(224,85,85,0.08);cursor:pointer">
+        <span style="display:block;font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--red)">❌</span>
+        <span style="display:block;font-size:10px;font-family:'DM Mono',monospace;color:var(--red)">PÉRDIDA</span>
+      </button>
+      <button onclick="registerTorneoStat('falta')" style="padding:14px 10px;border-radius:12px;border:1px solid rgba(224,85,85,0.2);background:rgba(224,85,85,0.05);cursor:pointer">
+        <span style="display:block;font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--red)">🚫</span>
+        <span style="display:block;font-size:10px;font-family:'DM Mono',monospace;color:var(--red)">FALTA</span>
+      </button>
+    </div>
+    <button class="shot-cancel" onclick="closeTorneoStat()">Cancelar</button>
+  </div>
+</div>
+
+<!-- FIN JUEGO TORNEO MODAL -->
+<div class="overlay" id="mTorneoFin">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-title">🏁 FIN DE JUEGO — TORNEO</div></div>
+    <div class="modal-body">
+      <p id="torneoFinScore"></p>
+      <p style="color:var(--muted);font-size:12px">Se guardarán todas las estadísticas de este juego en el historial del torneo.</p>
+    </div>
+    <div class="modal-foot" id="torneoFinFoot"></div>
+  </div>
+</div>
+
+
+
+<!-- SCOUT TOOLTIP MODAL -->
+<div id="mScoutTip" style="display:none;position:fixed;inset:0;z-index:9999">
+  <div class="tip-overlay-bg" onclick="closeScoutTip()"></div>
+  <div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding:16px;pointer-events:none">
+    <div class="tip-box" style="pointer-events:auto">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span id="tipIcon" style="font-size:24px"></span>
+        <div class="tip-title" id="tipTitle"></div>
+      </div>
+      <div class="tip-body" id="tipBody"></div>
+      <div id="tipTag"></div>
+      <button onclick="closeScoutTip()" class="btn btn-outline" style="width:100%;margin-top:14px;font-size:13px">Entendido ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ANOTADOR ══ -->
+<div id="tab-anotador" class="page" style="padding:8px">
+
+  <div style="text-align:center;margin-bottom:10px">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--gold2);letter-spacing:3px">📋 HOJA DE ANOTACIÓN</div>
+    <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px">ESTILO FIBA OFICIAL</div>
+  </div>
+
+  <div id="anotadorContent">
+
+  <!-- INFO JUEGO -->
+  <div style="background:var(--navy2);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <div><div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:1px">COMPETENCIA</div><input class="fiba-input" id="fiba_competencia" placeholder="Liga / Torneo..."></div>
+      <div><div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:1px">TORNEO</div><input class="fiba-input" id="fiba_torneo" placeholder="Nombre..."></div>
+      <div><div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:1px">LUGAR</div><input class="fiba-input" id="fiba_lugar" placeholder="Cancha..."></div>
+      <div><div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:1px">JUEGO N°</div><input class="fiba-input" id="fiba_juegonum" placeholder="01"></div>
+      <div><div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:1px">FECHA</div><input class="fiba-input" type="date" id="fiba_fecha"></div>
+      <div><div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:1px">HORA</div><input class="fiba-input" type="time" id="fiba_hora"></div>
+      <div><div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:1px">1er JUEZ</div><input class="fiba-input" id="fiba_arb1" placeholder="Nombre..."></div>
+      <div><div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:1px">2do JUEZ</div><input class="fiba-input" id="fiba_arb2" placeholder="Nombre..."></div>
+    </div>
+  </div>
+
+  <!-- EQUIPO A -->
+  <div style="background:var(--navy2);border:2px solid rgba(61,214,140,0.4);border-radius:10px;margin-bottom:8px;overflow:hidden">
+    <div style="background:rgba(61,214,140,0.1);padding:8px 12px;border-bottom:1px solid rgba(61,214,140,0.2);display:flex;align-items:center;gap:10px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--green);letter-spacing:2px">EQUIPO A</div>
+      <input class="fiba-input" id="fiba_equipoA" placeholder="Nombre del equipo..." oninput="syncNombres()" style="flex:1;font-size:15px;font-weight:700;color:var(--green)">
+    </div>
+
+    <!-- Detenciones y Faltas Equipo A -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid rgba(61,214,140,0.15)">
+      <div style="padding:8px 10px;border-right:1px solid rgba(61,214,140,0.15)">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">DETENCIONES (TIEMPOS MUERTOS)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+          <div>
+            <div style="font-size:9px;color:var(--muted)">1er-2do cuarto</div>
+            <div style="display:flex;gap:3px;margin-top:3px" id="tmA_12"></div>
+          </div>
+          <div>
+            <div style="font-size:9px;color:var(--muted)">3er-4to cuarto</div>
+            <div style="display:flex;gap:3px;margin-top:3px" id="tmA_34"></div>
+          </div>
+          <div style="grid-column:span 2">
+            <div style="font-size:9px;color:var(--muted)">Suplementario</div>
+            <div style="display:flex;gap:3px;margin-top:3px" id="tmA_s"></div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:8px 10px">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">FALTAS DE EQUIPO POR CUARTO</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">
+          <div><div style="font-size:8px;color:var(--muted)">1°</div><div id="feA_1" style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px"></div></div>
+          <div><div style="font-size:8px;color:var(--muted)">2°</div><div id="feA_2" style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px"></div></div>
+          <div><div style="font-size:8px;color:var(--muted)">3°</div><div id="feA_3" style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px"></div></div>
+          <div><div style="font-size:8px;color:var(--muted)">4°</div><div id="feA_4" style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px"></div></div>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button onclick="addFaltaEquipo('A')" style="flex:1;padding:4px;border-radius:6px;border:1px solid rgba(61,214,140,0.3);background:transparent;color:var(--green);cursor:pointer;font-size:11px">+ Falta</button>
+          <button onclick="undoFaltaEquipo('A')" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(224,85,85,0.3);background:transparent;color:var(--red);cursor:pointer;font-size:11px">↩</button>
+          <select id="feA_cuarto" style="flex:1;padding:4px;border-radius:6px;border:1px solid var(--border);background:var(--navy3);color:var(--text);font-size:11px">
+            <option value="1">1° cuarto</option><option value="2">2° cuarto</option><option value="3">3° cuarto</option><option value="4">4° cuarto</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Roster A -->
+    <div style="border-bottom:1px solid rgba(61,214,140,0.15)">
+      <div style="display:grid;grid-template-columns:28px 28px 1fr 20px 20px 20px 20px 20px;gap:3px;align-items:center;padding:3px 6px;border-bottom:1px solid rgba(255,255,255,0.08)">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-align:center">LIC</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-align:center">#</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted)">JUGADOR</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-align:center">1</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-align:center">2</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-align:center">3</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-align:center">4</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-align:center">5</div>
+      </div>
+      <div id="fibaRosterA"></div>
+    </div>
+    <div style="padding:6px 10px;display:flex;gap:8px">
+      <div style="flex:1"><div style="font-size:8px;color:var(--muted)">ENTRENADOR</div><input class="fiba-input" id="fiba_coachA" placeholder="Nombre..."></div>
+      <div style="flex:1"><div style="font-size:8px;color:var(--muted)">ASISTENTE</div><input class="fiba-input" id="fiba_asistA" placeholder="Nombre..."></div>
+    </div>
+  </div>
+
+  <!-- EQUIPO B -->
+  <div style="background:var(--navy2);border:2px solid rgba(201,168,76,0.4);border-radius:10px;margin-bottom:8px;overflow:hidden">
+    <div style="background:rgba(201,168,76,0.08);padding:8px 12px;border-bottom:1px solid rgba(201,168,76,0.2);display:flex;align-items:center;gap:10px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--gold2);letter-spacing:2px">EQUIPO B</div>
+      <input class="fiba-input" id="fiba_equipoB" placeholder="Nombre del equipo..." oninput="syncNombres()" style="flex:1;font-size:15px;font-weight:700;color:var(--gold2)">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid rgba(201,168,76,0.15)">
+      <div style="padding:8px 10px;border-right:1px solid rgba(201,168,76,0.15)">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">DETENCIONES (TIEMPOS MUERTOS)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+          <div><div style="font-size:9px;color:var(--muted)">1er-2do cuarto</div><div style="display:flex;gap:3px;margin-top:3px" id="tmB_12"></div></div>
+          <div><div style="font-size:9px;color:var(--muted)">3er-4to cuarto</div><div style="display:flex;gap:3px;margin-top:3px" id="tmB_34"></div></div>
+          <div style="grid-column:span 2"><div style="font-size:9px;color:var(--muted)">Suplementario</div><div style="display:flex;gap:3px;margin-top:3px" id="tmB_s"></div></div>
+        </div>
+      </div>
+      <div style="padding:8px 10px">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">FALTAS DE EQUIPO POR CUARTO</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">
+          <div><div style="font-size:8px;color:var(--muted)">1°</div><div id="feB_1" style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px"></div></div>
+          <div><div style="font-size:8px;color:var(--muted)">2°</div><div id="feB_2" style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px"></div></div>
+          <div><div style="font-size:8px;color:var(--muted)">3°</div><div id="feB_3" style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px"></div></div>
+          <div><div style="font-size:8px;color:var(--muted)">4°</div><div id="feB_4" style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px"></div></div>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button onclick="addFaltaEquipo('B')" style="flex:1;padding:4px;border-radius:6px;border:1px solid rgba(201,168,76,0.3);background:transparent;color:var(--gold);cursor:pointer;font-size:11px">+ Falta</button>
+          <button onclick="undoFaltaEquipo('B')" style="padding:4px 8px;border-radius:6px;border:1px solid rgba(224,85,85,0.3);background:transparent;color:var(--red);cursor:pointer;font-size:11px">↩</button>
+          <select id="feB_cuarto" style="flex:1;padding:4px;border-radius:6px;border:1px solid var(--border);background:var(--navy3);color:var(--text);font-size:11px">
+            <option value="1">1° cuarto</option><option value="2">2° cuarto</option><option value="3">3° cuarto</option><option value="4">4° cuarto</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div style="border-bottom:1px solid rgba(201,168,76,0.15)">
+      <div style="display:grid;grid-template-columns:28px 28px 1fr 20px 20px 20px 20px 20px;gap:3px;align-items:center;padding:3px 6px;border-bottom:1px solid rgba(255,255,255,0.08)">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-align:center">LIC</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-align:center">#</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted)">JUGADOR</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-align:center">1</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-align:center">2</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-align:center">3</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-align:center">4</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);text-align:center">5</div>
+      </div>
+      <div id="fibaRosterB"></div>
+    </div>
+    <div style="padding:6px 10px;display:flex;gap:8px">
+      <div style="flex:1"><div style="font-size:8px;color:var(--muted)">ENTRENADOR</div><input class="fiba-input" id="fiba_coachB" placeholder="Nombre..."></div>
+      <div style="flex:1"><div style="font-size:8px;color:var(--muted)">ASISTENTE</div><input class="fiba-input" id="fiba_asistB" placeholder="Nombre..."></div>
+    </div>
+  </div>
+
+  <!-- CONTEO CORRIDO FIBA style — 4 groups of A|B columns -->
+  <div style="background:var(--navy2);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden">
+    <div style="padding:8px 12px;background:rgba(201,168,76,0.06);border-bottom:1px solid var(--border);font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--gold2);letter-spacing:2px">📊 CONTEO CORRIDO</div>
+    <div style="padding:8px">
+      <!-- Totals -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:8px;background:rgba(255,255,255,0.03);border-radius:8px">
+        <div style="text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--green);line-height:1" id="totalA">0</div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--green)" id="fibaNameA">EQ. A</div>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">TOTAL</div>
+        <div style="text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--gold2);line-height:1" id="totalB">0</div>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--gold2)" id="fibaNameB">EQ. B</div>
+        </div>
+      </div>
+      <!-- Grid -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px" id="conteoGrid"></div>
+      <!-- Quarter close buttons -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px">
+        <button onclick="cerrarCuarto(1)" id="btnQ1" style="padding:8px 4px;border-radius:8px;border:2px solid #3B82F6;background:rgba(59,130,246,0.1);color:#3B82F6;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;font-weight:700">🔒 1° Q</button>
+        <button onclick="cerrarCuarto(2)" id="btnQ2" style="padding:8px 4px;border-radius:8px;border:2px solid var(--green);background:rgba(61,214,140,0.1);color:var(--green);cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;font-weight:700">🔒 2° Q</button>
+        <button onclick="cerrarCuarto(3)" id="btnQ3" style="padding:8px 4px;border-radius:8px;border:2px solid var(--gold);background:rgba(201,168,76,0.1);color:var(--gold);cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;font-weight:700">🔒 3° Q</button>
+        <button onclick="cerrarCuarto(4)" id="btnQ4" style="padding:8px 4px;border-radius:8px;border:2px solid var(--red);background:rgba(224,85,85,0.1);color:var(--red);cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;font-weight:700">🔒 4° Q</button>
+      </div>
+      <button onclick="undoConteo()" class="btn btn-outline" style="width:100%;margin-top:6px;font-size:12px">↩ Deshacer último punto</button>
+    </div>
+  </div>
+
+  <!-- ANOTACION POR CUARTOS -->
+  <div style="background:var(--navy2);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden">
+    <div style="padding:8px 12px;background:rgba(201,168,76,0.06);border-bottom:1px solid var(--border);font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--gold2);letter-spacing:2px">📋 ANOTACIÓN POR CUARTOS</div>
+    <div style="padding:8px">
+      <div style="display:grid;grid-template-columns:80px repeat(5,1fr);gap:4px;text-align:center;margin-bottom:6px">
+        <div></div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">1° Q</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">2° Q</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">3° Q</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">4° Q</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">SUPL.</div>
+      </div>
+      <div style="display:grid;grid-template-columns:80px repeat(5,1fr);gap:4px;text-align:center;margin-bottom:4px">
+        <div style="font-size:11px;color:var(--green);text-align:left">EQ. A</div>
+        <input id="parcialA1" type="number" min="0" placeholder="0" style="text-align:center;padding:6px 2px;border-radius:6px;border:1px solid rgba(61,214,140,0.3);background:var(--navy3);color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:18px">
+        <input id="parcialA2" type="number" min="0" placeholder="0" style="text-align:center;padding:6px 2px;border-radius:6px;border:1px solid rgba(61,214,140,0.3);background:var(--navy3);color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:18px">
+        <input id="parcialA3" type="number" min="0" placeholder="0" style="text-align:center;padding:6px 2px;border-radius:6px;border:1px solid rgba(61,214,140,0.3);background:var(--navy3);color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:18px">
+        <input id="parcialA4" type="number" min="0" placeholder="0" style="text-align:center;padding:6px 2px;border-radius:6px;border:1px solid rgba(61,214,140,0.3);background:var(--navy3);color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:18px">
+        <input id="parcialAExtra" type="number" min="0" placeholder="0" style="text-align:center;padding:6px 2px;border-radius:6px;border:1px solid rgba(61,214,140,0.3);background:var(--navy3);color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:18px">
+      </div>
+      <div style="display:grid;grid-template-columns:80px repeat(5,1fr);gap:4px;text-align:center">
+        <div style="font-size:11px;color:var(--gold2);text-align:left">EQ. B</div>
+        <input id="parcialB1" type="number" min="0" placeholder="0" style="text-align:center;padding:6px 2px;border-radius:6px;border:1px solid rgba(201,168,76,0.3);background:var(--navy3);color:var(--gold2);font-family:'Bebas Neue',sans-serif;font-size:18px">
+        <input id="parcialB2" type="number" min="0" placeholder="0" style="text-align:center;padding:6px 2px;border-radius:6px;border:1px solid rgba(201,168,76,0.3);background:var(--navy3);color:var(--gold2);font-family:'Bebas Neue',sans-serif;font-size:18px">
+        <input id="parcialB3" type="number" min="0" placeholder="0" style="text-align:center;padding:6px 2px;border-radius:6px;border:1px solid rgba(201,168,76,0.3);background:var(--navy3);color:var(--gold2);font-family:'Bebas Neue',sans-serif;font-size:18px">
+        <input id="parcialB4" type="number" min="0" placeholder="0" style="text-align:center;padding:6px 2px;border-radius:6px;border:1px solid rgba(201,168,76,0.3);background:var(--navy3);color:var(--gold2);font-family:'Bebas Neue',sans-serif;font-size:18px">
+        <input id="parcialBExtra" type="number" min="0" placeholder="0" style="text-align:center;padding:6px 2px;border-radius:6px;border:1px solid rgba(201,168,76,0.3);background:var(--navy3);color:var(--gold2);font-family:'Bebas Neue',sans-serif;font-size:18px">
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTADO FINAL -->
+  <div style="background:var(--navy2);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden">
+    <div style="padding:8px 12px;background:rgba(201,168,76,0.06);border-bottom:1px solid var(--border);font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--gold2);letter-spacing:2px">🏆 RESULTADO FINAL</div>
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:16px;gap:10px">
+      <div style="text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:48px;color:var(--green);line-height:1" id="fibaFinalA">0</div>
+        <div style="font-size:11px;color:var(--green);font-family:'DM Mono',monospace">EQ. A</div>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--muted)">VS</div>
+      <div style="text-align:center">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:48px;color:var(--gold2);line-height:1" id="fibaFinalB">0</div>
+        <div style="font-size:11px;color:var(--gold2);font-family:'DM Mono',monospace">EQ. B</div>
+      </div>
+    </div>
+    <div style="padding:0 16px 14px;text-align:center">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px;margin-bottom:4px">EQUIPO VENCEDOR</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--gold2)" id="fibaGanador">—</div>
+      <div style="margin-top:10px"><div style="font-size:9px;color:var(--muted)">FIRMA CAPITÁN (CASO PROTESTA)</div><div style="border-bottom:1px solid var(--border);margin-top:16px"></div></div>
+    </div>
+  </div>
+
+  <!-- OFICIALES -->
+  <div style="background:var(--navy2);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;padding:10px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div><div style="font-size:8px;color:var(--muted)">ANOTADOR</div><input class="fiba-input" id="fiba_anotador" placeholder="Nombre..."></div>
+      <div><div style="font-size:8px;color:var(--muted)">CRONÓMETRO</div><input class="fiba-input" id="fiba_cronometrista" placeholder="Nombre..."></div>
+      <div><div style="font-size:8px;color:var(--muted)">1er JUEZ (firma)</div><div style="border-bottom:1px solid var(--border);margin-top:16px"></div></div>
+      <div><div style="font-size:8px;color:var(--muted)">2do JUEZ (firma)</div><div style="border-bottom:1px solid var(--border);margin-top:16px"></div></div>
+      <div><div style="font-size:8px;color:var(--muted)">24 SEGUNDOS</div><input class="fiba-input" id="fiba_op24" placeholder="Nombre..."></div>
+    </div>
+  </div>
+
+  <!-- EXPORT -->
+  <div style="padding:0 0 12px;display:grid;gap:8px">
+    <button class="post-export-btn" onclick="exportarPlanilla()">📸 EXPORTAR PLANILLA COMO IMAGEN</button>
+    <button class="btn btn-outline" onclick="reiniciarPlanilla()">↩ Nueva planilla</button>
+  </div>
+
+  </div><!-- end anotadorContent -->
 </div>
 
 <!-- ══ VOTOS ══ -->
@@ -889,7 +1579,7 @@
     </div>
     <div class="modal-foot">
       <button class="btn btn-gold" onclick="confirmPagos()">CONFIRMAR Y CONTINUAR ✓</button>
-      <button class="btn btn-outline" onclick="close2('mPago')">Cancelar</button>
+      <button class="btn btn-outline" onclick="close2('mPago')">← Volver</button>
     </div>
   </div>
 </div>
@@ -903,7 +1593,10 @@
       <p id="draftNote" style="color:var(--gold);font-size:11px">⚠️ Juego #1: solo miembros. Invitados entran a partir del juego #2.</p>
       <div id="draftContent"></div>
     </div>
-    <div class="modal-foot"><button class="btn btn-gold" onclick="confirmDraft()">CONFIRMAR EQUIPOS ✓</button></div>
+    <div class="modal-foot">
+      <button class="btn btn-gold" onclick="confirmDraft()">CONFIRMAR EQUIPOS ✓</button>
+      <button class="btn btn-outline" onclick="close2('mDraft')">← Cancelar</button>
+    </div>
   </div>
 </div>
 
@@ -924,7 +1617,9 @@
   <div class="modal">
     <div class="modal-hdr"><div class="modal-title" id="rotTitle">ROTACIÓN</div></div>
     <div class="modal-body" id="rotBody"></div>
-    <div class="modal-foot"><button class="btn btn-gold" id="rotOkBtn">ENTENDIDO ✓</button></div>
+    <div class="modal-foot">
+      <button class="btn btn-gold" id="rotOkBtn">ENTENDIDO ✓</button>
+    </div>
   </div>
 </div>
 
@@ -939,7 +1634,7 @@
     </div>
     <div class="modal-foot">
       <button class="btn btn-gold" onclick="confirmInv()">AGREGAR</button>
-      <button class="btn btn-outline" onclick="close2('mInv')">Cancelar</button>
+      <button class="btn btn-outline" onclick="close2('mInv')">← Cancelar</button>
     </div>
   </div>
 </div>
@@ -951,7 +1646,7 @@
     <div class="modal-body"><p id="removeMsg"></p></div>
     <div class="modal-foot">
       <button class="btn btn-red" onclick="confirmRemove()">SÍ, SE FUE</button>
-      <button class="btn btn-outline" onclick="close2('mRemove')">Cancelar</button>
+      <button class="btn btn-outline" onclick="close2('mRemove')">← Cancelar</button>
     </div>
   </div>
 </div>
@@ -1030,7 +1725,7 @@
     </div>
     <div class="modal-foot">
       <button class="btn btn-red" onclick="confirmManualDebt()">💳 REGISTRAR DEUDA</button>
-      <button class="btn btn-outline" onclick="close2('mManualDebt')">Cancelar</button>
+      <button class="btn btn-outline" onclick="close2('mManualDebt')">← Cancelar</button>
     </div>
   </div>
 </div>
@@ -1054,7 +1749,7 @@
     </div>
     <div class="modal-foot">
       <button class="btn btn-green" onclick="confirmManualDebtPaid()">✅ MARCAR COMO PAGADO</button>
-      <button class="btn btn-outline" onclick="close2('mManualDebtPaid')">Cancelar</button>
+      <button class="btn btn-outline" onclick="close2('mManualDebtPaid')">← Cancelar</button>
     </div>
   </div>
 </div>
@@ -1074,7 +1769,7 @@
     </div>
     <div class="modal-foot">
       <button class="btn btn-red" onclick="confirmRemoveMemberLeague()">🚪 SÍ, DAR DE BAJA</button>
-      <button class="btn btn-outline" onclick="close2('mRemoveMemberLeague')">Cancelar</button>
+      <button class="btn btn-outline" onclick="close2('mRemoveMemberLeague')">← Cancelar</button>
     </div>
   </div>
 </div>
@@ -1186,7 +1881,7 @@
     </div>
     <div class="modal-foot">
       <button class="btn btn-gold" onclick="compartirRecibo()">📤 COMPARTIR RECIBO</button>
-      <button class="btn btn-outline" onclick="close2('mRecibo')">Cerrar</button>
+      <button class="btn btn-outline" onclick="close2('mRecibo')">← Cerrar</button>
     </div>
   </div>
 </div>
@@ -1240,6 +1935,7 @@
     <div class="modal-foot">
       <button class="btn btn-green" onclick="setQuickPay(true)">✅ SÍ, ESTÁ AL DÍA</button>
       <button class="btn btn-red" onclick="setQuickPay(false)">❌ NO HA PAGADO</button>
+      <button class="btn btn-outline" onclick="close2('mQuickPay')">← Cancelar</button>
     </div>
   </div>
 </div>
@@ -1284,7 +1980,7 @@
     </div>
     <div class="modal-foot">
       <button class="btn btn-gold" onclick="confirmAddReferral()">✅ REGISTRAR</button>
-      <button class="btn btn-outline" onclick="close2('mAddReferral')">Cancelar</button>
+      <button class="btn btn-outline" onclick="close2('mAddReferral')">← Cancelar</button>
     </div>
   </div>
 </div>
@@ -1307,7 +2003,28 @@
     </div>
     <div class="modal-foot">
       <button class="btn btn-gold" onclick="confirmAddMember()">AGREGAR A LA LIGA ✓</button>
-      <button class="btn btn-outline" onclick="close2('mAddMember')">Cancelar</button>
+      <button class="btn btn-outline" onclick="close2('mAddMember')">← Cancelar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- EDIT MEMBER NAME MODAL -->
+<div class="overlay" id="mEditMember">
+  <div class="modal">
+    <div class="modal-hdr"><div class="modal-title">✏️ EDITAR NOMBRE</div></div>
+    <div class="modal-body">
+      <p>Nombre actual: <strong id="editMemberOldName" style="color:var(--gold2)"></strong></p>
+      <div style="margin-top:10px">
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:6px">NUEVO NOMBRE</div>
+        <input id="editMemberInput" type="text" placeholder="Nombre completo..."
+          style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--border);
+          background:var(--navy3);color:var(--text);font-size:16px;font-family:'DM Sans',sans-serif">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-gold" onclick="confirmEditMember()">✅ GUARDAR CAMBIO</button>
+      <button class="btn btn-outline" onclick="close2('mEditMember')">← Cancelar</button>
     </div>
   </div>
 </div>
@@ -1322,7 +2039,7 @@
     </div>
     <div class="modal-foot">
       <button class="btn btn-gold" onclick="openAddMember()">+ AGREGAR NUEVO MIEMBRO</button>
-      <button class="btn btn-outline" onclick="close2('mRoster')">Cerrar</button>
+      <button class="btn btn-outline" onclick="close2('mRoster')">← Cerrar</button>
     </div>
   </div>
 </div>
@@ -1337,7 +2054,7 @@
       <p id="undoMsg"></p>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px" id="undoBtns"></div>
     </div>
-    <div class="modal-foot"><button class="btn btn-outline" onclick="close2('mUndo')">Cancelar</button></div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="close2('mUndo')">← Cancelar</button></div>
   </div>
 </div>
 
@@ -1426,18 +2143,119 @@ function openRosterMgmt(){
   document.getElementById('mRoster').classList.add('show');
 }
 
+const _JERSEY_DEFAULTS = {
+  'Juan Luis Santana':'1','Elvis Espinal':'23','Gregory Cruz':'7',
+  'Raul Veras':'15','Deivi Dominguez':'32','Alexis Carmona':'10',
+  'Leonardo Pujols':'24','Michael Troncoso':'3','Edward Smith':'11',
+  'Gilbert Tejeda':'21','Edsel Tineo':'5','Jose Medos':'8'
+};
+function getJerseyNumber(name){
+  const jerseys = JSON.parse(localStorage.getItem('goat_jerseys')||'{}');
+  return jerseys[name] || _JERSEY_DEFAULTS[name] || '';
+}
+
+function setJerseyNumber(name, num){
+  const jerseys = JSON.parse(localStorage.getItem('goat_jerseys')||'{}');
+  if(num) jerseys[name] = num;
+  else delete jerseys[name];
+  localStorage.setItem('goat_jerseys', JSON.stringify(jerseys));
+  if(window._saveToFirebase) window._saveToFirebase('jerseyNumbers', jerseys);
+  renderRosterMgmt();
+  renderPlayers();
+}
+
 function renderRosterMgmt(){
   const all=getAllRoster();
-  document.getElementById('rosterMgmtList').innerHTML=all.map((m,i)=>`
-    <div class="mgmt-row">
+  document.getElementById('rosterMgmtList').innerHTML=all.map((m,i)=>{
+    const jersey=getJerseyNumber(m.name);
+    return `<div class="mgmt-row">
       <span class="mgmt-num">${i+1}</span>
-      <span class="mgmt-name ${m.isInactive?'inactive':m.isNew?'new':''}">${m.name}</span>
+      <div style="flex:1">
+        <div class="mgmt-name ${m.isInactive?'inactive':m.isNew?'new':''}">${m.name}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
+          <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">#</span>
+          <input type="number" min="0" max="99" value="${jersey}" placeholder="--"
+            onchange="setJerseyNumber('${m.name}',this.value)"
+            style="width:48px;padding:3px 6px;border-radius:6px;border:1px solid var(--border);
+            background:var(--navy3);color:var(--gold2);font-family:'Bebas Neue',sans-serif;
+            font-size:16px;text-align:center;-moz-appearance:textfield">
+        </div>
+      </div>
       <span class="mgmt-badge ${m.isInactive?'inactive':m.isNew?'new':'active'}">${m.isInactive?'baja':m.isNew?'nuevo':'activo'}</span>
+      <button class="mgmt-btn" onclick="openEditMember('${m.name}')" title="Editar nombre"
+        style="color:var(--gold);border-color:rgba(201,168,76,0.3)">✏️</button>
       ${m.isInactive
         ?`<button class="mgmt-btn restore" onclick="restoreMember('${m.name}')" title="Reactivar">↩</button>`
         :`<button class="mgmt-btn remove" onclick="confirmRemoveMember('${m.name}')" title="Dar de baja">✕</button>`
       }
-    </div>`).join('');
+    </div>`;
+  }).join('');
+}
+
+
+let _editMemberOldName = null;
+
+function openEditMember(name){
+  _editMemberOldName = name;
+  document.getElementById('editMemberOldName').textContent = name;
+  document.getElementById('editMemberInput').value = name;
+  document.getElementById('mEditMember').classList.add('show');
+  setTimeout(()=>document.getElementById('editMemberInput').focus(), 150);
+}
+
+function confirmEditMember(){
+  const newName = document.getElementById('editMemberInput').value.trim();
+  const oldName = _editMemberOldName;
+  if(!newName){ alert('Escribe el nuevo nombre.'); return; }
+  if(newName === oldName){ close2('mEditMember'); return; }
+
+  const all = [...ROSTER, ...(S.customMembers||[])];
+  if(all.some(n=>n.toLowerCase()===newName.toLowerCase() && n!==oldName)){
+    alert('Ya existe un miembro con ese nombre.');
+    return;
+  }
+
+  // Update customMembers if it was a custom member
+  if(S.customMembers && S.customMembers.includes(oldName)){
+    const idx = S.customMembers.indexOf(oldName);
+    S.customMembers[idx] = newName;
+  }
+
+  // Update inactiveMembers
+  if(S.inactiveMembers && S.inactiveMembers.includes(oldName)){
+    const idx = S.inactiveMembers.indexOf(oldName);
+    S.inactiveMembers[idx] = newName;
+  }
+
+  // Update arrivals
+  S.arrivals.forEach(p=>{ if(p.name===oldName) p.name=newName; });
+
+  // Update queue and teams
+  S.queue.forEach(p=>{ if(p.name===oldName) p.name=newName; });
+  S.teamA.forEach(p=>{ if(p.name===oldName) p.name=newName; });
+  S.teamB.forEach(p=>{ if(p.name===oldName) p.name=newName; });
+
+  // Update jersey numbers
+  const jerseys = JSON.parse(localStorage.getItem('goat_jerseys')||'{}');
+  if(jerseys[oldName]){ jerseys[newName]=jerseys[oldName]; delete jerseys[oldName]; }
+  localStorage.setItem('goat_jerseys', JSON.stringify(jerseys));
+
+  // Update season stats
+  const season = loadSeason();
+  if(season.playerStats && season.playerStats[oldName]){
+    season.playerStats[newName] = season.playerStats[oldName];
+    delete season.playerStats[oldName];
+  }
+  if(season.referrals && season.referrals[oldName]){
+    season.referrals[newName] = season.referrals[oldName];
+    delete season.referrals[oldName];
+  }
+  saveSeason(season);
+  saveState();
+  close2('mEditMember');
+  renderRosterMgmt();
+  renderPlayers();
+  alert(`✅ Nombre actualizado: ${oldName} → ${newName}`);
 }
 
 function confirmRemoveMember(name){
@@ -1574,7 +2392,7 @@ function flashSave(){
 // TABS
 // ═══════════════════════════════════════════════════════
 function showTab(t){
-  ['llegada','juego','cola','stats','tabla','temp','scout','votos','post','balance'].forEach((n,i)=>{
+  ['llegada','juego','cola','stats','tabla','temp','scout','torneo','anotador','votos','post','balance'].forEach((n,i)=>{
     document.querySelectorAll('.tab')[i].classList.toggle('active',n===t);
     document.getElementById(`tab-${n}`).classList.toggle('active',n===t);
   });
@@ -1583,9 +2401,11 @@ function showTab(t){
   if(t==='tabla')renderTabla();
   if(t==='temp')renderTemporada();
   if(t==='scout')renderScout();
+  if(t==='torneo')renderTorneo();
+  if(t==='anotador')renderAnotador();
   if(t==='votos')initVotos();
   if(t==='post')generatePost();
-  if(t==='balance')renderBalance();
+  if(t==='balance'){ renderBalance(); setTimeout(renderGameDayBtns,100); }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1829,25 +2649,40 @@ function confirmPagos(){
 
 function startJornada(){
   S.started=true;
-  // Separate members by payment standing using cut period logic
-  const paidMembers   = S.arrivals.filter(p=>!p.isInv && isMemberInGoodStanding(p.name));
-  const nonPriority   = S.arrivals.filter(p=>
-    (p.isInv && p.paid) || (!p.isInv && !isMemberInGoodStanding(p.name))
-  );
+  const cut = getCutPeriod();
 
-  // First 10 must come from paid members
-  const first10 = paidMembers.slice(0,10).map(p=>({...p}));
-  // If not enough paid members, fill with unpaid in order
-  if(first10.length < 10){
-    const needed = 10 - first10.length;
-    first10.push(...nonPriority.slice(0, needed).map(p=>({...p})));
+  // Within the cut period ALL members have same priority regardless of payment
+  // Only AFTER the deadline do unpaid members lose priority
+  const members = S.arrivals.filter(p=>!p.isInv);
+  const paidInvs = S.arrivals.filter(p=>p.isInv && p.paid);
+
+  let priorityMembers, lowerPriority;
+
+  if(cut.isPastDeadline){
+    // After deadline: paid members first, then unpaid members treated like invitados
+    priorityMembers = members.filter(p=>getMemberPaymentStatus(p.name));
+    lowerPriority   = [
+      ...members.filter(p=>!getMemberPaymentStatus(p.name)),
+      ...paidInvs
+    ];
+  } else {
+    // Within cut: ALL members have equal priority, invitados after
+    priorityMembers = members;
+    lowerPriority   = paidInvs;
   }
 
-  // Queue: remaining paid members, then non-priority (unpaid + invitados) by arrival
+  // First 10: members in arrival order (all equal within cut)
+  const first10 = priorityMembers.slice(0,10).map(p=>({...p}));
+  if(first10.length < 10){
+    const needed = 10 - first10.length;
+    first10.push(...lowerPriority.slice(0, needed).map(p=>({...p})));
+  }
+
+  // Queue: rest of members then invitados
   const inFirst10Names = first10.map(p=>p.name);
   S.queue = [
-    ...paidMembers.filter(p=>!inFirst10Names.includes(p.name)).map(p=>({...p})),
-    ...nonPriority.filter(p=>!inFirst10Names.includes(p.name)).map(p=>({...p})),
+    ...priorityMembers.filter(p=>!inFirst10Names.includes(p.name)).map(p=>({...p})),
+    ...lowerPriority.filter(p=>!inFirst10Names.includes(p.name)).map(p=>({...p})),
   ];
 
   S.currentGamePts={};
@@ -1859,6 +2694,8 @@ function startJornada(){
 // DRAFT
 // ═══════════════════════════════════════════════════════
 let _draftMode = 'manual'; // 'manual' | 'auto' | 'random'
+let _pendingDraftPlayers = null;
+let _pendingDraftIsFirst = false;
 
 function setDraftMode(mode){
   _draftMode = mode;
@@ -1918,24 +2755,45 @@ function applyRandomDraft(){
     const iB = arrivalOrder.indexOf(b.name);
     return (iA===-1?999:iA) - (iB===-1?999:iB);
   });
-  // Alternate: 1→A, 2→B, 3→A, 4→B... (snake draft by arrival)
+  // First 5 → Team A, next 5 → Team B
   players.forEach((p,i)=>{
     const idx = S.draftGroup.findIndex(x=>x.name===p.name);
-    S.draftGroup[idx].team = i % 2 === 0 ? 'A' : 'B';
+    S.draftGroup[idx].team = i < 5 ? 'A' : 'B';
   });
   renderDraft();
 }
 
 function openDraft(players,isFirst=false){
-  _draftMode = 'manual';
-  S.draftGroup=players.map(p=>({...p,team:null}));
-  document.getElementById('draftTitle').textContent=isFirst?'DRAFT — JUEGO #1':`DRAFT — JUEGO #${S.gameNum}`;
-  document.getElementById('draftDesc').innerHTML=isFirst
-    ?'Los <strong>2 primeros en llegar son capitanes</strong> y piden.'
-    :'Los <strong>2 primeros de los 10 nuevos</strong> son capitanes y piden.';
-  document.getElementById('draftNote').style.display=isFirst?'block':'none';
-  // Reset mode buttons
-  setTimeout(()=>setDraftMode('manual'),50);
+  // Store players and show mode selector first
+  _pendingDraftPlayers = players;
+  _pendingDraftIsFirst = isFirst;
+  const title = document.getElementById('modoReparticionTitle');
+  if(title) title.textContent = isFirst ? '⚡ JUEGO #1 — ¿CÓMO SE REPARTEN?' : `⚡ JUEGO #${S.gameNum} — ¿CÓMO SE REPARTEN?`;
+  document.getElementById('mModoReparticion').classList.add('show');
+}
+
+function confirmarModoReparticion(mode){
+  close2('mModoReparticion');
+  _draftMode = mode;
+  const players = _pendingDraftPlayers;
+  const isFirst = _pendingDraftIsFirst;
+  if(!players) return;
+
+  S.draftGroup = players.map(p=>({...p,team:null}));
+  document.getElementById('draftTitle').textContent = isFirst ? 'DRAFT — JUEGO #1' : `DRAFT — JUEGO #${S.gameNum}`;
+  document.getElementById('draftNote').style.display = isFirst ? 'block' : 'none';
+
+  if(mode === 'auto'){
+    document.getElementById('draftDesc').innerHTML = '⚖️ <strong>Modo Auto</strong> — El sistema está balanceando los equipos por rating de scouting.';
+    setTimeout(()=>setDraftMode('auto'), 50);
+  } else if(mode === 'random'){
+    document.getElementById('draftDesc').innerHTML = '🔢 <strong>Por Llegada</strong> — Primeros 5 vs siguientes 5 en orden de llegada.';
+    setTimeout(()=>setDraftMode('random'), 50);
+  } else {
+    document.getElementById('draftDesc').innerHTML = '👑 <strong>Modo Manual</strong> — Los 2 primeros en llegar son capitanes y piden.';
+    setTimeout(()=>setDraftMode('manual'), 50);
+  }
+
   renderDraft();
   document.getElementById('mDraft').classList.add('show');
 }
@@ -2172,6 +3030,24 @@ function finishGame(winner){
   Object.entries(S.currentGamePts).forEach(([name,pts])=>{
     S.playerPts[name]=(S.playerPts[name]||0)+pts;
   });
+
+  // Track points ALLOWED per player (for defense stat)
+  // Each player on the losing side "allowed" the winning score
+  // Each player on the winning side "allowed" the losing score
+  const ptsAllowedWin = winner==='A' ? S.scB : S.scA; // pts allowed by winners
+  const ptsAllowedLose = winner==='A' ? S.scA : S.scB; // pts allowed by losers
+  winTeam.forEach(p=>{
+    if(!S.playerPtsAllowed) S.playerPtsAllowed = {};
+    if(!S.playerGamesDefended) S.playerGamesDefended = {};
+    S.playerPtsAllowed[p.name] = (S.playerPtsAllowed[p.name]||0) + ptsAllowedWin;
+    S.playerGamesDefended[p.name] = (S.playerGamesDefended[p.name]||0) + 1;
+  });
+  loseTeam.forEach(p=>{
+    if(!S.playerPtsAllowed) S.playerPtsAllowed = {};
+    if(!S.playerGamesDefended) S.playerGamesDefended = {};
+    S.playerPtsAllowed[p.name] = (S.playerPtsAllowed[p.name]||0) + ptsAllowedLose;
+    S.playerGamesDefended[p.name] = (S.playerGamesDefended[p.name]||0) + 1;
+  });
   Object.entries(S.currentGameShots).forEach(([name,shots])=>{
     if(!S.playerShots[name])S.playerShots[name]={1:0,2:0,3:0};
     [1,2,3].forEach(t=>S.playerShots[name][t]=(S.playerShots[name][t]||0)+(shots[t]||0));
@@ -2189,18 +3065,17 @@ function finishGame(winner){
   S.currentGamePts={};
   renderHistory();
 
-  // DOUBLE ROT MODE
+  // DOUBLE ROT MODE — campeón regresa a enfrentar al ganador de los 10 nuevos
   if(S.doubleRotMode){
     S.doubleRotMode=false;
     const champ=[...S.waitingChamp];
     const champTeam=S.waitingChampTeam;
     S.waitingChamp=null;S.waitingChampTeam=null;
-    S.streak={team:null,count:0};
+    // DO NOT reset streak — the winner of the 10 now starts fresh facing the champ
+    S.streak={team:winner, count:1}; // winner of the 10 starts with 1 win
     S.queue.push(...loseTeam.filter(p=>!p.isInv));
-    showRot(`⚔️ GANADOR VS EL CAMPEÓN`,
-      `<p>✅ El ganador de los 10 nuevos se queda.</p>
-       <p>🏆 <strong>Eq. ${champTeam}</strong> regresa a enfrentarlos.</p>
-       <p>💤 El perdedor va a la cola.</p>`,
+    showRot('GANADOR VS EL CAMPEON',
+      '<p>El ganador de los 10 nuevos se queda.</p><p>Eq. '+champTeam+' regresa a enfrentarlos.</p><p>El perdedor va a la cola.</p><p style="color:var(--gold2)">La racha sigue — si el ganador vuelve a ganar 2 seguidos descansará también.</p>',
       ()=>{
         if(winner==='A')S.teamB=champ;else S.teamA=champ;
         S.scA=0;S.scB=0;S.currentGamePts={};S.currentGameShots={};
@@ -2372,8 +3247,16 @@ function recordGames(players){
 }
 
 function renderStats(){
+  // Build games from history directly
+  const gamesFromHistory={};
+  S.history.forEach(g=>{
+    [...(g.tA||[]),...(g.tB||[])].forEach(p=>{
+      gamesFromHistory[p.name]=(gamesFromHistory[p.name]||0)+1;
+    });
+  });
+
   const all=S.arrivals.filter(p=>p);
-  if(!all.length){
+  if(!all.length && !Object.keys(gamesFromHistory).length){
     document.getElementById('ptsStatsList').innerHTML='<div class="empty">Sin datos aún</div>';
     document.getElementById('gamesStatsList').innerHTML='<div class="empty">Sin datos aún</div>';
     return;
@@ -2381,7 +3264,8 @@ function renderStats(){
   document.getElementById('statsBadgePts').textContent=`${S.gameNum-1} juegos`;
   document.getElementById('statsBadgeGames').textContent=`${S.gameNum-1} juegos`;
 
-  const byPts=[...all].map(p=>({...p,pts:S.playerPts[p.name]||0,games:S.playerGames[p.name]||0}))
+  const byPts=[...all].map(p=>({...p,pts:S.playerPts[p.name]||0,games:gamesFromHistory[p.name]||S.playerGames[p.name]||0}))
+    .filter(p=>p.pts>0||p.games>0)
     .sort((a,b)=>b.pts-a.pts);
   const maxPts=byPts[0]?.pts||1;
   document.getElementById('ptsStatsList').innerHTML=byPts.map((p,i)=>{
@@ -2399,7 +3283,8 @@ function renderStats(){
       </div>
     </div>`;}).join('');
 
-  const byGames=[...all].map(p=>({...p,pts:S.playerPts[p.name]||0,games:S.playerGames[p.name]||0}))
+  const byGames=[...all].map(p=>({...p,pts:S.playerPts[p.name]||0,games:gamesFromHistory[p.name]||S.playerGames[p.name]||0}))
+    .filter(p=>p.games>0)
     .sort((a,b)=>b.games-a.games);
   const maxG=byGames[0]?.games||1;
   document.getElementById('gamesStatsList').innerHTML=byGames.map((p,i)=>`
@@ -2441,13 +3326,26 @@ function renderTabla(){
     lTeam.forEach(p=>losses[p.name]=(losses[p.name]||0)+1);
   });
 
+  // Build games played from history (more reliable than playerGames)
+  const gamesPlayed={};
+  S.history.forEach(g=>{
+    [...(g.tA||[]),...(g.tB||[])].forEach(p=>{
+      gamesPlayed[p.name]=(gamesPlayed[p.name]||0)+1;
+    });
+  });
+
+  // Also include current game players
+  [...S.teamA,...S.teamB].forEach(p=>{
+    gamesPlayed[p.name]=(gamesPlayed[p.name]||0);
+  });
+
   const all=S.arrivals.map(p=>({
     ...p,
     pts:S.playerPts[p.name]||0,
-    games:S.playerGames[p.name]||0,
+    games:gamesPlayed[p.name]||S.playerGames[p.name]||0,
     wins:wins[p.name]||0,
     losses:losses[p.name]||0,
-  })).filter(p=>p.games>0);
+  })).filter(p=>p.games>0||(wins[p.name]||0)>0||(S.playerPts[p.name]||0)>0);
 
   if(!all.length){
     document.getElementById('tablaList').innerHTML='<div class="empty">Sin datos aún</div>';
@@ -3153,29 +4051,32 @@ function confirmarFinJornada(){
 function getCutPeriod(){
   const now = new Date();
   const day = now.getDate();
-  const month = now.getMonth(); // 0-based
+  const month = now.getMonth();
   const year = now.getFullYear();
   const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
+  // Get configurable cut day (default 15)
+  const balData = getBalanceData();
+  const CUT_DAY = balData.cutDay || 15;
+
   let cutStart, cutEnd, cutLabel;
 
-  if(day <= 15){
-    // We are in the first half — cut started on 15 of previous month
+  if(day <= CUT_DAY){
     const prevMonth = month === 0 ? 11 : month - 1;
     const prevYear  = month === 0 ? year - 1 : year;
-    cutStart = new Date(prevYear, prevMonth, 15);
-    cutEnd   = new Date(year, month, 15);
-    cutLabel = `15 ${months[prevMonth]} — 15 ${months[month]} ${year}`;
+    cutStart = new Date(prevYear, prevMonth, CUT_DAY);
+    cutEnd   = new Date(year, month, CUT_DAY);
+    cutLabel = `${CUT_DAY} ${months[prevMonth]} — ${CUT_DAY} ${months[month]} ${year}`;
   } else {
-    // We are past the 15 — cut started on 15 of this month
-    cutStart = new Date(year, month, 15);
-    cutEnd   = new Date(year, month + 1, 15);
-    cutLabel = `15 ${months[month]} — 15 ${months[month+1]||months[0]} ${month===11?year+1:year}`;
+    cutStart = new Date(year, month, CUT_DAY);
+    cutEnd   = new Date(year, month + 1, CUT_DAY);
+    cutLabel = `${CUT_DAY} ${months[month]} — ${CUT_DAY} ${months[month+1]||months[0]} ${month===11?year+1:year}`;
   }
 
-  const isPastDeadline = day > 15; // after the 15, payment window closed
-  return { cutStart, cutEnd, cutLabel, isPastDeadline, day, month, year };
+  const today = new Date(year, month, day);
+  const isPastDeadline = today >= cutEnd;
+  return { cutStart, cutEnd, cutLabel, isPastDeadline, day, month, year, cutDay: CUT_DAY };
 }
 
 function getMemberPaymentStatus(name){
@@ -3263,6 +4164,9 @@ function commitJornadaToSeason(){
     season.playerStats[name].jornadasAsistidas = (season.playerStats[name].jornadasAsistidas||0)+1;
     const sh=S.playerShots[name]||{};
     [1,2,3].forEach(t=>season.playerStats[name].shots[t]+=(sh[t]||0));
+    // Defense: points allowed
+    season.playerStats[name].ptsAllowed  = (season.playerStats[name].ptsAllowed||0)  + (S.playerPtsAllowed?.[name]||0);
+    season.playerStats[name].gamesDefended = (season.playerStats[name].gamesDefended||0) + (S.playerGamesDefended?.[name]||0);
   });
 
   saveSeason(season);
@@ -3389,6 +4293,7 @@ function showPlayerProfile(name){
       </div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;letter-spacing:1px">${name}</div>
       <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:2px">${p.isInv?'INVITADO':'MIEMBRO DE LA LIGA'}</div>
+      ${(()=>{const j=getJerseyNumber(name);return j?`<div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);letter-spacing:2px;margin-top:4px">#${j}</div>`:''})()}
       ${playerBadge?`<div style="margin-top:8px;display:inline-flex;align-items:center;gap:6px;padding:4px 14px;
         border-radius:20px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1)">
         <span style="font-size:18px">${playerBadge.icon}</span>
@@ -3610,7 +4515,16 @@ function toggleMemberPayment(name){
   document.getElementById('payActionName').textContent=name;
   document.getElementById('payActionStatus').textContent=hasPaid
     ?`✅ Pagó RD$600 · ${dateStr}`
-    :(cut.isPastDeadline?'⚠️ Plazo vencido — entra como invitado':'Pendiente de pago este corte');
+    :(()=>{
+      let prevDebt=0;
+      for(let i=1;i<=12;i++){
+        const ps=new Date(cut.cutStart);ps.setMonth(ps.getMonth()-i);
+        const pk=name+'_'+ps.getTime();
+        if(season.payments&&season.payments[pk+'_debt']===true&&season.payments[pk]!==true) prevDebt+=600;
+      }
+      if(prevDebt>0) return '🚨 EN MORA — debe RD$'+prevDebt.toLocaleString()+' de cortes anteriores';
+      return cut.isPastDeadline?'⚠️ Plazo vencido — entra como invitado':'Pendiente de pago — aún en plazo';
+    })();
   const saldo = season.payments[`${key}_saldo`] || 0;
   // Check referral credit
   const refCredit = (season.referralCredits && season.referralCredits[name]) || 0;
@@ -3676,9 +4590,9 @@ function toggleMemberPayment(name){
 
   document.getElementById('payActionFoot').innerHTML=hasPaid
     ?`<button class="btn btn-red" onclick="applyPaymentAction(false)">↩ QUITAR PAGO — FUE UN ERROR</button>
-      <button class="btn btn-outline" onclick="close2('mPayAction')">Cancelar</button>`
+      <button class="btn btn-outline" onclick="close2('mPayAction')">← Cancelar</button>`
     :`<button class="btn btn-gold" onclick="applyPaymentAction(true)">✅ CONFIRMAR PAGO</button>
-      <button class="btn btn-outline" onclick="close2('mPayAction')">Cancelar</button>`;
+      <button class="btn btn-outline" onclick="close2('mPayAction')">← Cancelar</button>`;
 
   document.getElementById('mPayAction').classList.add('show');
 }
@@ -3740,6 +4654,41 @@ function applyPaymentAction(paid){
   _payActionName=null;
 }
 
+
+
+function renderGameDayBtns(){
+  const container = document.getElementById('gameDayBtns');
+  if(!container) return;
+  const data = getBalanceData();
+  const active = data.gameDay || 'Sábado';
+  const days = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+  container.innerHTML = '';
+  days.forEach(d => {
+    const btn = document.createElement('button');
+    btn.textContent = d;
+    btn.onclick = () => setGameDay(d);
+    btn.style.cssText = `padding:8px 12px;border-radius:8px;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;border:${d===active?'2px solid var(--gold)':'1px solid var(--border)'};background:${d===active?'rgba(201,168,76,0.15)':'transparent'};color:${d===active?'var(--gold2)':'var(--muted)'}`;
+    container.appendChild(btn);
+  });
+  const lbl = document.getElementById('gameDayLabel');
+  if(lbl) lbl.textContent = 'Jornada cada ' + active;
+}
+
+function setGameDay(day){
+  const data = getBalanceData();
+  data.gameDay = day;
+  renderGameDayBtns();
+  saveBalanceData(data);
+  renderBalance();
+}
+
+function changeCutDay(delta){
+  const data = getBalanceData();
+  data.cutDay = Math.max(1, Math.min(28, (data.cutDay||15) + delta));
+  saveBalanceData(data);
+  renderBalance();
+}
+
 function changeSabados(delta){
   const data = getBalanceData();
   data.sabados = Math.max(1, Math.min(6, (data.sabados||4) + delta));
@@ -3758,15 +4707,19 @@ function renderBalance(){
   document.getElementById('balanceCorteBadge').textContent = cut.isPastDeadline ? 'plazo vencido' : 'corte activo';
   document.getElementById('balanceCorteLabel').textContent = cut.cutLabel;
   document.getElementById('sabadosCount').textContent = sabados;
+  document.getElementById('cutDayCount').textContent = data.cutDay || 15;
+  const gameDay = data.gameDay || 'Sábado';
+  const gameDayLbl = document.getElementById('gameDayLabel');
+  if(gameDayLbl) gameDayLbl.textContent = `Jornada cada ${gameDay}`;
 
   // ── GASTOS ──────────────────────────────────────────
   const gastoArbitros = GASTOS_FIJOS.arbitros * sabados;
   const gastoAgua     = GASTOS_FIJOS.agua * sabados;
   const totalGastos   = GASTOS_FIJOS.cancha + gastoArbitros + gastoAgua;
 
-  document.getElementById('arbitrosDetalle').textContent = `RD$1,300 × ${sabados} sábados`;
+  document.getElementById('arbitrosDetalle').textContent = `RD$1,300 × ${sabados} jornadas`;
   document.getElementById('arbitrosTotal').textContent   = `RD$${gastoArbitros.toLocaleString()}`;
-  document.getElementById('aguaDetalle').textContent     = `RD$350 × ${sabados} sábados`;
+  document.getElementById('aguaDetalle').textContent     = `RD$350 × ${sabados} jornadas`;
   document.getElementById('aguaTotal').textContent       = `RD$${gastoAgua.toLocaleString()}`;
   document.getElementById('gastosTotalFinal').textContent= `RD$${totalGastos.toLocaleString()}`;
 
@@ -3860,8 +4813,24 @@ function renderBalance(){
               ${paySaldo>0?`<span style="color:var(--gold2)"> · +RD$${paySaldo} a favor</span>`:''}
              </div>
              ${(()=>{const rc=(season.referralCredits&&season.referralCredits[name])||0;return rc>0?`<div style="font-size:9px;color:var(--gold);font-family:'DM Mono',monospace">🏆 Credito referidos: RD$${rc}</div>`:'';})()}`
-          : `<div style="font-size:10px;color:${cut.isPastDeadline?'var(--red)':'var(--muted)'};font-family:'DM Mono',monospace">
-              ${cut.isPastDeadline?'⚠️ PENDIENTE — entra como invitado':'Pendiente de pago'}
+          : `<div style="font-family:'DM Mono',monospace">
+              ${(()=>{
+                // Check if has debt from previous cuts
+                let prevDebt=0;
+                for(let i=1;i<=12;i++){
+                  const ps=new Date(cut.cutStart);
+                  ps.setMonth(ps.getMonth()-i);
+                  const pk=name+'_'+ps.getTime();
+                  if(payments[pk+'_debt']===true && payments[pk]!==true) prevDebt+=600;
+                }
+                if(prevDebt>0){
+                  return '<span style="font-size:10px;color:var(--red);font-weight:700">🚨 EN MORA — RD$'+prevDebt.toLocaleString()+' pendiente de cortes anteriores</span>';
+                } else if(cut.isPastDeadline){
+                  return '<span style="font-size:10px;color:var(--red)">⚠️ Plazo vencido — entra como invitado</span>';
+                } else {
+                  return '<span style="font-size:10px;color:var(--muted)">Pendiente de pago · puede jugar</span>';
+                }
+              })()}
              </div>`
         }
       </div>
@@ -4269,7 +5238,7 @@ function compartirBalanceWA(){
 
 📋 *GASTOS*
 • Cancha: RD$10,000
-• Árbitros (${sabados} sáb.): RD$${gastoArbitros.toLocaleString()}
+• Árbitros (${sabados} jornadas): RD$${gastoArbitros.toLocaleString()}
 • Agua/hielo: RD$${gastoAgua.toLocaleString()}
 • *Total gastos: RD$${totalGastos.toLocaleString()}*
 
@@ -4536,6 +5505,123 @@ function confirmRemoveMemberLeague(){
 }
 
 
+
+// ═══════════════════════════════════════════════════════
+// DYNAMIC SCOUT RATING — Combines manual + stats
+// ═══════════════════════════════════════════════════════
+function getStatRating(name){
+  const season = loadSeason();
+  const stats = season.playerStats || {};
+  const p = stats[name];
+  if(!p || p.games < 3) return null;
+
+  const allPlayers = Object.values(stats).filter(x=>x.games>=3);
+  if(!allPlayers.length) return null;
+
+  const normalize = (val, max) => max > 0 ? Math.min(5, Math.round((val/max)*5*10)/10) : 0;
+
+  const sh = p.shots || {1:0, 2:0, 3:0};
+  const total1 = sh[1]||0, total2 = sh[2]||0, total3 = sh[3]||0;
+  const totalShots = total1 + total2 + total3;
+
+  // ── 25% — 🤝 % VICTORIAS ─────────────────────────────
+  const winRate = p.games>0 ? p.wins/p.games : 0;
+  const statVictorias = Math.round(winRate * 5 * 10) / 10;
+
+  // ── 20% — 🎯 PUNTOS POR JUEGO ────────────────────────
+  const maxPPG = Math.max(...allPlayers.map(x=>x.games>0?x.pts/x.games:0));
+  const ppg = p.games>0 ? p.pts/p.games : 0;
+  const statAnotacion = normalize(ppg, maxPPG);
+
+  // ── 20% — 🛡️ DEFENSA — puntos permitidos por juego ──
+  // Menos puntos permitidos = mejor defensa
+  // Normalize inversely: player allowing fewer pts gets higher score
+  let statDefensa = 0;
+  if(p.gamesDefended > 0){
+    const paPerGame = p.ptsAllowed / p.gamesDefended;
+    const allPA = allPlayers
+      .filter(x=>x.gamesDefended>0)
+      .map(x=>x.ptsAllowed/x.gamesDefended);
+    if(allPA.length){
+      const maxPA = Math.max(...allPA);
+      const minPA = Math.min(...allPA);
+      const range = maxPA - minPA;
+      // Invert: lower pts allowed = higher rating
+      statDefensa = range > 0
+        ? Math.round(((maxPA - paPerGame) / range) * 5 * 10) / 10
+        : 2.5;
+    }
+  }
+
+  // ── 20% — 🔥 % TRIPLES ───────────────────────────────
+  // Triples anotados vs total de tiros
+  const tripleRate = totalShots > 0 ? total3 / totalShots : 0;
+  const maxTripleRate = Math.max(...allPlayers.map(x=>{
+    const s=x.shots||{}; const tot=(s[1]||0)+(s[2]||0)+(s[3]||0);
+    return tot>0?(s[3]||0)/tot:0;
+  }));
+  const statTriples = normalize(tripleRate, maxTripleRate);
+
+  // ── 15% — 🧠 DIVERSIDAD DE TIROS ─────────────────────
+  // Shannon entropy: qué tan balanceado es entre 1PT, 2PT y 3PT
+  let diversidad = 0;
+  if(totalShots > 0){
+    const p1=total1/totalShots, p2=total2/totalShots, p3=total3/totalShots;
+    const entropy=[p1,p2,p3].reduce((sum,v)=>v>0?sum-v*Math.log(v):sum,0);
+    diversidad = Math.round((entropy/Math.log(3))*5*10)/10;
+  }
+
+  // ── OVERALL — weighted sum ────────────────────────────
+  const overall = Math.round((
+    statVictorias * 0.25 +
+    statAnotacion * 0.20 +
+    statDefensa   * 0.20 +
+    statTriples   * 0.20 +
+    diversidad    * 0.15
+  ) * 10) / 10;
+
+  return {
+    victorias: statVictorias,
+    anotacion: statAnotacion,
+    defensa:   statDefensa,
+    triples:   statTriples,
+    diversidad,
+    overall,
+    detail: {
+      ppg:       ppg.toFixed(1),
+      winPct:    Math.round(winRate*100),
+      paPerGame: p.gamesDefended>0 ? (p.ptsAllowed/p.gamesDefended).toFixed(1) : '—',
+      tripleRate:Math.round(tripleRate*100),
+      diversity: Math.round(diversidad/5*100),
+    }
+  };
+}
+
+function getCombinedRating(name, scoutData){
+  const manual = scoutData || {};
+  const manualRating = getPlayerRating(manual); // uses current stars (which auto-adjust over time)
+  const statRating = getStatRating(name);
+
+  // If no stats yet — 100% manual perception
+  if(!statRating) return { rating: manualRating, hasStats: false, statRating: null };
+
+  // If no manual profile — 100% stats
+  if(manualRating === 0) return { rating: statRating.overall, hasStats: true, statRating };
+
+  // Hybrid: as games accumulate, stats weight increases
+  // < 5 games: 80% manual / 20% stats
+  // 5-15 games: 60% manual / 40% stats
+  // 15+ games: 40% manual / 60% stats
+  const season = loadSeason();
+  const p = (season.playerStats||{})[name];
+  const games = p ? p.games : 0;
+  let statWeight = games < 5 ? 0.2 : games < 15 ? 0.4 : 0.6;
+  const manualWeight = 1 - statWeight;
+
+  const combined = Math.round((manualRating * manualWeight + statRating.overall * statWeight) * 10) / 10;
+  return { rating: combined, hasStats: true, statRating, manualRating };
+}
+
 // ═══════════════════════════════════════════════════════
 // SCOUTING SYSTEM
 // ═══════════════════════════════════════════════════════
@@ -4543,12 +5629,154 @@ const POSITIONS = ['Base','Escolta','Alero','Power Forward','Centro'];
 const ROLES = ['Anotador','Defensivo','Equilibrado'];
 const CONSISTENCY = ['Constante','Inconsistente'];
 const ATTRS = [
-  {key:'velocidad', label:'VELOCIDAD',    icon:'⚡'},
-  {key:'basket',    label:'CONOCIMIENTO', icon:'🧠'},
-  {key:'equipo',    label:'JUEGO EN EQUIPO', icon:'🤝'},
-  {key:'anotacion', label:'ANOTACIÓN',    icon:'🎯'},
-  {key:'dribbling', label:'DRIBBLING',    icon:'🏀'},
+  {key:'velocidad', label:'VELOCIDAD',    icon:'⚡', manual:true},
+  {key:'dribbling', label:'DRIBBLING',    icon:'🏀', manual:true},
+  {key:'anotacion', label:'ANOTACIÓN',    icon:'🎯', manual:false, statKey:'anotacion'},
+  {key:'equipo',    label:'JUEGO EN EQUIPO', icon:'🤝', manual:false, statKey:'victorias'},
+  {key:'basket',    label:'CONOCIMIENTO', icon:'🧠', manual:false, statKey:'diversidad'},
+  {key:'defensa',   label:'DEFENSA',      icon:'🛡️', manual:false, statKey:'defensa'},
+  {key:'triples',   label:'TRIPLES',      icon:'🔥', manual:false, statKey:'triples'},
 ];
+
+
+// ── SCOUT TOOLTIPS ────────────────────────────────────────────────────────────
+const SCOUT_TIPS = {
+  velocidad: {
+    icon: '⚡',
+    title: 'Velocidad',
+    body: '<strong>100% manual</strong> — Solo tú puedes cambiar este valor basándote en lo que ves en cancha. Mide qué tan rápido se mueve el jugador con y sin el balón, tanto en ataque como en repliegue defensivo.',
+    tag: {label:'MANUAL', color:'rgba(167,139,250,0.2)', textColor:'#a78bfa'}
+  },
+  dribbling: {
+    icon: '🏀',
+    title: 'Dribbling',
+    body: '<strong>100% manual</strong> — Solo tú puedes cambiar este valor. Mide el control del balón: manejo bajo presión, cambios de dirección y habilidad para penetrar sin perder el balón.',
+    tag: {label:'MANUAL', color:'rgba(167,139,250,0.2)', textColor:'#a78bfa'}
+  },
+  anotacion: {
+    icon: '🎯',
+    title: 'Anotación',
+    body: 'Empieza con <strong>tu percepción</strong>. Cada jornada el sistema compara sus <strong>puntos por juego</strong> contra el promedio de la liga. Si anota consistentemente por encima del promedio la estrella sube. Si anota por debajo baja hasta 1 estrella máximo por jornada.',
+    tag: {label:'AUTO — SE AJUSTA CON JORNADAS', color:'rgba(201,168,76,0.15)', textColor:'var(--gold2)'}
+  },
+  equipo: {
+    icon: '🤝',
+    title: 'Juego en Equipo',
+    body: 'Empieza con <strong>tu percepción</strong>. Se ajusta según el <strong>% de victorias</strong> del jugador. Si gana más del 55% de sus juegos y anota al menos el 70% del promedio de la liga, se considera constante y su estrella sube.',
+    tag: {label:'AUTO — SE AJUSTA CON JORNADAS', color:'rgba(201,168,76,0.15)', textColor:'var(--gold2)'}
+  },
+  basket: {
+    icon: '🧠',
+    title: 'Conocimiento',
+    body: 'Empieza con <strong>tu percepción</strong>. El sistema mide la <strong>diversidad de tiros</strong> usando entropía de Shannon — qué tan balanceado es entre tiros libres (1PT), tiros de campo (2PT) y triples (3PT). Un jugador que solo hace un tipo obtiene puntuación baja.',
+    tag: {label:'AUTO — SE AJUSTA CON JORNADAS', color:'rgba(201,168,76,0.15)', textColor:'var(--gold2)'}
+  },
+  defensa: {
+    icon: '🛡️',
+    title: 'Defensa',
+    body: 'Empieza con <strong>tu percepción</strong>. El sistema calcula los <strong>puntos permitidos por juego</strong> cuando este jugador está en cancha. Si su equipo recibe menos puntos que el promedio de la liga su estrella sube. Los juegos son hasta 16 o 21 puntos, así que el contexto importa.',
+    tag: {label:'AUTO — SE AJUSTA CON JORNADAS', color:'rgba(201,168,76,0.15)', textColor:'var(--gold2)'}
+  },
+  triples: {
+    icon: '🔥',
+    title: 'Triples',
+    body: 'Empieza con <strong>tu percepción</strong>. Se ajusta según el <strong>porcentaje de triples</strong> del jugador — cuántos de sus tiros son de 3 puntos comparado con el jugador que más triples anota en la liga. Un especialista de triple obtiene la máxima puntuación.',
+    tag: {label:'AUTO — SE AJUSTA CON JORNADAS', color:'rgba(201,168,76,0.15)', textColor:'var(--gold2)'}
+  },
+  rol: {
+    icon: '🏷️',
+    title: 'Rol',
+    body: 'Empieza con <strong>tu percepción</strong>. El sistema lo ajusta automáticamente al final de cada jornada: si anota 30% más que el promedio → <strong>Anotador</strong>. Si permite 20% menos puntos que el promedio → <strong>Defensivo</strong>. Si hace ambos → <strong>Equilibrado</strong>.',
+    tag: {label:'AUTO — SE AJUSTA CON JORNADAS', color:'rgba(201,168,76,0.15)', textColor:'var(--gold2)'}
+  },
+  consistencia: {
+    icon: '📊',
+    title: 'Consistencia Ofensiva',
+    body: 'Empieza con <strong>tu percepción</strong>. El sistema revisa si gana más del 55% de sus juegos Y anota al menos el 70% del promedio de la liga. Si cumple ambas condiciones → <strong>Constante</strong>. Si falla en alguna → <strong>Inconsistente</strong>.',
+    tag: {label:'AUTO — SE AJUSTA CON JORNADAS', color:'rgba(201,168,76,0.15)', textColor:'var(--gold2)'}
+  },
+  rating: {
+    icon: '⭐',
+    title: 'Rating General',
+    body: 'El rating evoluciona con la experiencia del jugador:<br><br><strong>Menos de 5 juegos:</strong> 80% tu percepción / 20% estadísticas<br><strong>5-15 juegos:</strong> 60% percepción / 40% estadísticas<br><strong>Más de 15 juegos:</strong> 40% percepción / 60% estadísticas<br><br>Así el sistema respeta tu conocimiento al inicio pero los números van tomando control con el tiempo.',
+    tag: {label:'HÍBRIDO — EVOLUCIONA CON JORNADAS', color:'rgba(61,214,140,0.15)', textColor:'var(--green)'}
+  }
+};
+
+function showScoutTip(key){
+  const tip = SCOUT_TIPS[key];
+  if(!tip) return;
+  document.getElementById('tipIcon').textContent = tip.icon;
+  document.getElementById('tipTitle').textContent = tip.title;
+  document.getElementById('tipBody').innerHTML = tip.body;
+  const tagEl = document.getElementById('tipTag');
+  if(tip.tag){
+    tagEl.innerHTML = `<span class="tip-tag" style="background:${tip.tag.color};color:${tip.tag.textColor}">${tip.tag.label}</span>`;
+  } else {
+    tagEl.innerHTML = '';
+  }
+  document.getElementById('mScoutTip').style.display = 'block';
+}
+
+function closeScoutTip(){
+  document.getElementById('mScoutTip').style.display = 'none';
+}
+
+// ── AUTO-ADJUST SCOUT FROM STATS ─────────────────────────────────────────────
+function autoAdjustScout(){
+  const scout = getScoutData();
+  const season = loadSeason();
+  const stats = season.playerStats || {};
+
+  Object.keys(stats).forEach(name=>{
+    const p = stats[name];
+    if(!p || p.games < 3) return; // need at least 3 games to adjust
+    const sr = getStatRating(name);
+    if(!sr) return;
+    if(!scout[name]) scout[name] = {};
+
+    // ── Adjust star ratings based on stats ───────────────────────────────────
+    // Only adjust attrs that have statKey — manual attrs (velocidad, dribbling) never touched
+    ATTRS.filter(a=>!a.manual && sr[a.statKey] != null).forEach(a=>{
+      const statVal = sr[a.statKey]; // 0-5 scale
+      const currentStar = scout[name][a.key] || 0;
+      // Slowly converge: move max 1 star toward the stat value
+      const rounded = Math.round(statVal);
+      if(rounded > currentStar) scout[name][a.key] = Math.min(5, currentStar + 1);
+      else if(rounded < currentStar) scout[name][a.key] = Math.max(0, currentStar - 1);
+    });
+
+    // ── Auto-adjust ROL ───────────────────────────────────────────────────────
+    const ppg = p.games > 0 ? p.pts/p.games : 0;
+    const winRate = p.games > 0 ? p.wins/p.games : 0;
+    const paPerGame = p.gamesDefended > 0 ? p.ptsAllowed/p.gamesDefended : 99;
+    const gameLimit = 18; // ~avg between 16 and 21
+
+    // Scorer: scores above league avg
+    const allPPG = Object.values(stats).filter(x=>x.games>=3).map(x=>x.pts/x.games);
+    const avgPPG = allPPG.length ? allPPG.reduce((a,b)=>a+b,0)/allPPG.length : 5;
+
+    // Defensive: allows fewer pts than avg
+    const allPA = Object.values(stats).filter(x=>x.gamesDefended>=3).map(x=>x.ptsAllowed/x.gamesDefended);
+    const avgPA = allPA.length ? allPA.reduce((a,b)=>a+b,0)/allPA.length : gameLimit;
+
+    const isScorer = ppg > avgPPG * 1.3;
+    const isDefender = paPerGame < avgPA * 0.8;
+
+    if(isScorer && !isDefender) scout[name].rol = 'Anotador';
+    else if(isDefender && !isScorer) scout[name].rol = 'Defensivo';
+    else if(isScorer && isDefender) scout[name].rol = 'Equilibrado';
+    // If neither, don't change — keep admin's perception
+
+    // ── Auto-adjust CONSISTENCIA ──────────────────────────────────────────────
+    // Check variance in scoring across games (low variance = Constante)
+    // Approximate: if winRate > 60% AND ppg > avgPPG*0.7 = Constante
+    const isConstant = winRate >= 0.55 && ppg >= avgPPG * 0.7;
+    scout[name].consistencia = isConstant ? 'Constante' : 'Inconsistente';
+  });
+
+  saveScoutData(scout);
+}
 
 function getScoutData(){
   try{ return JSON.parse(localStorage.getItem('goat_scout')||'{}'); }catch(e){return {};}
@@ -4575,8 +5803,12 @@ function renderScout(){
   // Build ranking
   if(profiled>=3){
     const ranked = members
-      .filter(n=>scout[n]&&getPlayerRating(scout[n])>0)
-      .map(n=>({name:n, ...scout[n], rating:getPlayerRating(scout[n])}))
+      .filter(n=>scout[n]&&getPlayerRating(scout[n])>0 || getStatRating(n))
+      .map(n=>{
+        const sc=scout[n]||{};
+        const cmb=getCombinedRating(n,sc);
+        return {name:n, ...sc, rating:cmb.rating, hasStats:cmb.hasStats};
+      })
       .sort((a,b)=>b.rating-a.rating);
 
     const medals=['🥇','🥈','🥉'];
@@ -4609,20 +5841,61 @@ function renderScout(){
   document.getElementById('scoutList').innerHTML = filtered.map(name=>{
     const p = scout[name]||{};
     const rating = getPlayerRating(p);
+    const combined = getCombinedRating(name, p);
+    const statR = combined.statRating;
     const initials = name.split(' ').map(w=>w[0]).slice(0,2).join('');
     return `<div class="scout-card" style="margin:10px">
       <div class="scout-header">
-        <div class="scout-avatar" style="border-color:${rating>0?'var(--green)':'var(--border)'}">${initials}</div>
+        <div style="position:relative">
+          <div class="scout-avatar" style="border-color:${combined.rating>0?'var(--green)':'var(--border)'}">${initials}</div>
+          ${getJerseyNumber(name)?`<div style="position:absolute;bottom:-4px;right:-4px;background:var(--navy2);border:1px solid var(--gold);border-radius:4px;padding:0 3px;font-family:'Bebas Neue',sans-serif;font-size:11px;color:var(--gold)">#${getJerseyNumber(name)}</div>`:''}
+        </div>
         <div style="flex:1">
           <div class="scout-name">${name}</div>
-          ${rating>0?`<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--green)">perfil guardado ✓</div>`:`<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">sin perfil</div>`}
+          ${combined.hasStats
+            ?`<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--gold2)">manual+stats ⚡</div>`
+            :rating>0?`<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--green)">perfil guardado ✓</div>`
+            :`<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">sin perfil</div>`}
         </div>
         <div style="text-align:right">
-          <div class="scout-rating">${rating>0?rating.toFixed(1):'—'}</div>
+          <div class="scout-rating" style="color:${combined.hasStats?'var(--gold2)':'var(--gold2)'}">${combined.rating>0?combined.rating.toFixed(1):'—'}</div>
+          ${combined.hasStats&&combined.manualRating>0?`
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted)">
+            M:${combined.manualRating.toFixed(1)} S:${combined.statRating.overall.toFixed(1)}
+          </div>`:''}
           <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)">★ rating</div>
         </div>
       </div>
       <div class="scout-body">
+
+        <!-- Stats summary if available -->
+        ${statR?`<div style="padding:8px 0 10px;border-bottom:1px solid rgba(201,168,76,0.07);margin-bottom:8px">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--gold2);letter-spacing:2px;margin-bottom:6px">⚡ RATING DE LA TEMPORADA</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:10px;text-align:center">
+            <div style="background:rgba(61,214,140,0.06);border-radius:6px;padding:8px 4px">
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--green)">${statR.anotacion.toFixed(1)}</div>
+              <div style="font-size:9px;color:var(--muted)">ANOTACIÓN</div>
+              <div style="font-size:8px;color:var(--muted)">${statR.detail.ppg} pts/j</div>
+            </div>
+            <div style="background:rgba(201,168,76,0.06);border-radius:6px;padding:8px 4px">
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--gold2)">${statR.equipo.toFixed(1)}</div>
+              <div style="font-size:9px;color:var(--muted)">EQUIPO</div>
+              <div style="font-size:8px;color:var(--muted)">${statR.detail.winPct}% victorias</div>
+            </div>
+            <div style="background:rgba(168,188,207,0.06);border-radius:6px;padding:8px 4px">
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--text)">${statR.basket.toFixed(1)}</div>
+              <div style="font-size:9px;color:var(--muted)">DIVERSIDAD</div>
+              <div style="font-size:8px;color:var(--muted)">${statR.detail.diversity}% balance</div>
+            </div>
+          </div>
+          <div style="font-size:9px;color:var(--muted);margin-top:6px;text-align:center">⚡ Alimentado por estadísticas reales de la temporada</div>
+        </div>`:''}
+
+        <!-- Rating general con ? -->
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--muted);letter-spacing:1px">CÓMO SE CALCULA EL RATING</div>
+          <span class="scout-tip" onclick="showScoutTip('rating')">?</span>
+        </div>
 
         <!-- Posición -->
         <div class="scout-row">
@@ -4638,7 +5911,7 @@ function renderScout(){
 
         <!-- Rol -->
         <div class="scout-row">
-          <span class="scout-label">ROL</span>
+          <span class="scout-label">ROL <span class="scout-tip" onclick="showScoutTip('rol')">?</span></span>
           <div class="scout-pills">
             ${ROLES.map(rol=>`
               <button class="scout-pill ${p.rol===rol?'active-'+rol.toLowerCase():''}"
@@ -4650,7 +5923,7 @@ function renderScout(){
 
         <!-- Consistencia -->
         <div class="scout-row">
-          <span class="scout-label">OFENSIVA</span>
+          <span class="scout-label">OFENSIVA <span class="scout-tip" onclick="showScoutTip('consistencia')">?</span></span>
           <div class="scout-pills">
             ${CONSISTENCY.map(c=>`
               <button class="scout-pill ${p.consistencia===c?'active-'+c.toLowerCase():''}"
@@ -4661,19 +5934,24 @@ function renderScout(){
         </div>
 
         <!-- Star ratings -->
-        ${ATTRS.map(a=>`
-          <div class="scout-row">
-            <span class="scout-label">${a.icon} ${a.label}</span>
+        ${ATTRS.map(a=>{
+          const isManual = a.manual;
+          const statVal = statR && a.statKey ? statR[a.statKey] : null;
+          const statStars = statVal != null ? Math.round(statVal) : null;
+          return `<div class="scout-row" style="flex-wrap:wrap">
+            <span class="scout-label">${a.icon} ${a.label}${isManual?'':' <span style="font-size:8px;color:var(--gold);font-family:DM Mono,monospace">AUTO</span>'} <span class="scout-tip" onclick="showScoutTip('${a.key}')">?</span></span>
             <div class="scout-stars">
               ${[1,2,3,4,5].map(s=>`
-                <span class="star" onclick="setScoutStar('${name}','${a.key}',${s})">
+                <span class="star" onclick="setScoutStar('${name}','${a.key}',${s})" title="${isManual?'Manual':'Ajustado por stats'}">
                   ${(p[a.key]||0)>=s?'⭐':'☆'}
                 </span>`).join('')}
             </div>
-            <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-left:6px">
-              ${p[a.key]||0}/5
-            </span>
-          </div>`).join('')}
+            <div style="margin-left:6px;text-align:right;min-width:60px">
+              <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${p[a.key]||0}/5</div>
+              ${statVal!=null?`<div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--gold2)">📊 ${statVal.toFixed(1)}</div>`:''}
+            </div>
+          </div>`;
+        }).join('')}
 
       </div>
     </div>`;
@@ -4746,8 +6024,11 @@ function autoBalance(){
   if(selected.length<6){alert('Selecciona al menos 6 jugadores para balancear.');return;}
 
   const scout=getScoutData();
-  const players=selected.map(name=>({name,...(scout[name]||{}),rating:getPlayerRating(scout[name]||{})}))
-    .sort((a,b)=>b.rating-a.rating);
+  const players=selected.map(name=>{
+    const sc=scout[name]||{};
+    const cmb=getCombinedRating(name,sc);
+    return {name,...sc,rating:cmb.rating};
+  }).sort((a,b)=>b.rating-a.rating);
 
   // Greedy algorithm: alternate assignment to keep teams balanced
   const teamA=[], teamB=[];
@@ -4796,6 +6077,1313 @@ function autoBalance(){
     <button class="btn btn-outline" style="margin-top:8px" onclick="document.getElementById('balanceResult').style.display='none'">
       Recalcular
     </button>`;
+}
+
+
+
+// ═══════════════════════════════════════════════════════
+// ANOTADOR FIBA
+// ═══════════════════════════════════════════════════════
+const ANOTADOR_KEY = 'goat_anotador';
+
+function defaultAnotador(){
+  return {
+    conteoA: [],
+    conteoB: [],
+    faltasEquipo: {},
+    faltasPersonA: {},
+    faltasPersonB: {},
+    timeouts: {},
+    quarterMarks: {},
+    rosterA: [], // [{name, jersey, lic}]
+    rosterB: [],
+  };
+}
+
+let _anotadorState = defaultAnotador();
+
+function loadAnotadorState(){
+  try{
+    const s = localStorage.getItem(ANOTADOR_KEY);
+    if(s) _anotadorState = Object.assign(defaultAnotador(), JSON.parse(s));
+  }catch(e){}
+}
+
+function saveAnotadorState(){
+  try{ localStorage.setItem(ANOTADOR_KEY, JSON.stringify(_anotadorState)); }catch(e){}
+}
+
+function renderAnotador(){
+  loadAnotadorState();
+  buildConteoGrid();
+  updateTotals();
+  buildRosters();
+  renderFaltasEquipo();
+  renderTimeoutMarks();
+
+  const fi = document.getElementById('fiba_fecha');
+  if(fi && !fi.value) fi.value = new Date().toISOString().split('T')[0];
+  updateQuarterButtons();
+
+  // Restore parcial values from quarterMarks
+  const qm = _anotadorState.quarterMarks || {};
+  let prevA=0,prevB=0;
+  [1,2,3,4].forEach(q=>{
+    if(qm[q]){
+      const inpA=document.getElementById('parcialA'+q);
+      const inpB=document.getElementById('parcialB'+q);
+      if(inpA) inpA.value=qm[q].partialA||0;
+      if(inpB) inpB.value=qm[q].partialB||0;
+    }
+  });
+}
+
+function renderTimeoutMarks(){
+  // Render timeout marks (palitos) for each team
+  const defs = {
+    A: [{id:'tmA_12', max:2}, {id:'tmA_34', max:2}, {id:'tmA_s', max:1}],
+    B: [{id:'tmB_12', max:2}, {id:'tmB_34', max:2}, {id:'tmB_s', max:1}],
+  };
+  ['A','B'].forEach(t=>{
+    defs[t].forEach(({id, max})=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      const count = (_anotadorState.timeouts||{})[id] || 0;
+      el.innerHTML = '';
+      for(let i=0;i<max;i++){
+        const dot = document.createElement('div');
+        dot.style.cssText = `width:18px;height:18px;border-radius:50%;border:1px solid ${i<count?(t==='A'?'var(--green)':'var(--gold)'):'var(--border)'};background:${i<count?(t==='A'?'rgba(61,214,140,0.3)':'rgba(201,168,76,0.3)'):'transparent'};cursor:pointer`;
+        dot.onclick = ()=>{
+          if(!_anotadorState.timeouts) _anotadorState.timeouts={};
+          _anotadorState.timeouts[id] = _anotadorState.timeouts[id]===max ? 0 : (_anotadorState.timeouts[id]||0)+1;
+          saveAnotadorState(); renderTimeoutMarks();
+        };
+        el.appendChild(dot);
+      }
+    });
+  });
+}
+
+function addFaltaEquipo(team){
+  const cuarto = document.getElementById(`fe${team}_cuarto`)?.value || '1';
+  const key = `fe${team}_${cuarto}`;
+  if(!_anotadorState.faltasEquipo) _anotadorState.faltasEquipo = {};
+  _anotadorState.faltasEquipo[key] = (_anotadorState.faltasEquipo[key]||0)+1;
+  saveAnotadorState();
+  renderFaltasEquipo();
+}
+
+function undoFaltaEquipo(team){
+  const cuarto = document.getElementById(`fe${team}_cuarto`)?.value || '1';
+  const key = `fe${team}_${cuarto}`;
+  if(!_anotadorState.faltasEquipo) return;
+  _anotadorState.faltasEquipo[key] = Math.max(0, (_anotadorState.faltasEquipo[key]||0)-1);
+  saveAnotadorState();
+  renderFaltasEquipo();
+}
+
+function renderFaltasEquipo(){
+  ['A','B'].forEach(t=>{
+    [1,2,3,4].forEach(q=>{
+      const el = document.getElementById(`fe${t}_${q}`);
+      if(!el) return;
+      const count = (_anotadorState.faltasEquipo||{})[`fe${t}_${q}`]||0;
+      el.innerHTML='';
+      for(let i=0;i<count;i++){
+        const mark = document.createElement('div');
+        mark.style.cssText=`width:10px;height:14px;border-right:2px solid ${t==='A'?'var(--green)':'var(--gold)'};margin:1px`;
+        el.appendChild(mark);
+      }
+    });
+  });
+}
+
+function syncNombres(){
+  const a = document.getElementById('fiba_equipoA')?.value || 'EQ. A';
+  const b = document.getElementById('fiba_equipoB')?.value || 'EQ. B';
+  ['fibaNameA','fibaFinalA'].forEach(id=>{const el=document.getElementById(id);});
+  const na=document.getElementById('fibaNameA');
+  const nb=document.getElementById('fibaNameB');
+  if(na) na.textContent=a;
+  if(nb) nb.textContent=b;
+}
+
+// ── CONTEO CORRIDO ────────────────────────────────────────────────────────────
+
+let _shotPickerIdx = null;
+let _shotPickerTeam = null;
+
+function openShotPicker(idx, team){
+  const seq = _anotadorState.conteo || [];
+  const entry = seq[idx];
+
+  // If cell already has entry — do nothing, don't overwrite existing shots
+  if(entry) return;
+
+  // Calculate next available slot for this team (sequential — no skipping)
+  const teamPts = seq.filter(x=>x&&x.team===team&&x.showSym).reduce((s,x)=>s+x.pts,0);
+  const nextSlot = teamPts; // 0-based index of next cell
+
+  _shotPickerIdx = nextSlot;
+  _shotPickerTeam = team;
+
+  const title = document.getElementById('anotadorShotTitle');
+  title.textContent = 'EQ. ' + team;
+  title.className = 'shot-player ' + team.toLowerCase();
+
+  const casilla = nextSlot + 1;
+  document.getElementById('anotadorShotSub').textContent =
+    'Siguiente casilla: #' + casilla;
+
+  // Validate: shot must have enough points before it
+  // casilla >= pts: triple needs casilla 3+, campo needs casilla 2+, libre always valid
+  const validMsg = document.getElementById('shotValidationMsg');
+  const btn1 = document.getElementById('shotBtn1');
+  const btn2 = document.getElementById('shotBtn2');
+  const btn3 = document.getElementById('shotBtn3');
+  const valid1 = true;
+  const valid2 = casilla >= 2;
+  const valid3 = casilla >= 3;
+
+  [btn1,btn2,btn3].forEach((b,i)=>{
+    const v = [valid1,valid2,valid3][i];
+    if(b){
+      b.style.opacity = v ? '1' : '0.3';
+      b.style.pointerEvents = v ? 'auto' : 'none';
+    }
+  });
+
+  if(validMsg) validMsg.textContent = casilla === 1
+    ? 'Casilla #1 — solo tiro libre disponible'
+    : casilla === 2
+    ? 'Casilla #2 — tiro libre o campo disponible'
+    : '';
+
+  // Populate player selector
+  const members = getRoster();
+  const half = Math.ceil(members.length/2);
+  const roster = team==='A' ? members.slice(0,half) : members.slice(half);
+  const sel = document.getElementById('anotadorShotPlayer');
+  sel.style.border = '1px solid var(--border)'; // reset border
+  sel.innerHTML = '<option value="">⚠️ Selecciona el anotador *</option>' +
+    roster.map(name=>{
+      const jersey = getJerseyNumber(name);
+      return `<option value="${name}">${jersey?'#'+jersey+' ':''} ${name}</option>`;
+    }).join('');
+
+  // Disable shot buttons until player is selected
+  _updateShotBtnState();
+  document.getElementById('anotadorShotSheet').classList.add('show');
+}
+
+function _updateShotBtnState(){
+  const sel = document.getElementById('anotadorShotPlayer');
+  const hasPly = sel && sel.value;
+  const msg = document.getElementById('shotValidationMsg');
+  ['shotBtn1','shotBtn2','shotBtn3'].forEach(id=>{
+    const btn = document.getElementById(id);
+    if(!btn) return;
+    // Keep validity check (casilla >= pts) AND player required
+    const ptsMap = {'shotBtn1':1,'shotBtn2':2,'shotBtn3':3};
+    const pts = ptsMap[id];
+    const casilla = (_shotPickerIdx||0) + 1;
+    const validCasilla = casilla >= pts;
+    if(hasPly && validCasilla){
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = 'auto';
+    } else {
+      btn.style.opacity = '0.3';
+      btn.style.pointerEvents = 'none';
+    }
+  });
+  if(msg){
+    if(!hasPly){
+      msg.style.color = 'var(--gold)';
+      msg.textContent = '👆 Selecciona el jugador para habilitar los botones';
+    } else {
+      const casilla = (_shotPickerIdx||0) + 1;
+      msg.style.color = 'var(--muted)';
+      msg.textContent = casilla <= 2 ? `Casilla #${casilla} — ${casilla===1?'solo libre disponible':'libre o campo disponible'}` : '';
+    }
+  }
+}
+
+function closeAnotadorShot(){
+  document.getElementById('anotadorShotSheet').classList.remove('show');
+  _shotPickerIdx = null;
+  _shotPickerTeam = null;
+}
+
+function confirmShotPicker(pts){
+  // Validate player BEFORE closing
+  const playerSel = document.getElementById('anotadorShotPlayer');
+  const player = playerSel?.value || '';
+  if(!player){
+    const msg = document.getElementById('shotValidationMsg');
+    if(msg){ msg.style.color='var(--red)'; msg.textContent='⚠️ Debes seleccionar quién anotó.'; }
+    if(playerSel){ playerSel.style.borderColor='var(--red)'; setTimeout(()=>playerSel.style.borderColor='',1500); }
+    return; // Don't close
+  }
+
+  const idx = _shotPickerIdx;
+  const team = _shotPickerTeam;
+  const jersey = getJerseyNumber(player) || '';
+  closeAnotadorShot();
+  if(idx === null) return;
+
+  const seqKey = team==='A' ? 'conteoA' : 'conteoB';
+  if(!_anotadorState[seqKey]) _anotadorState[seqKey] = [];
+  const seq = _anotadorState[seqKey];
+
+  // Place sequentially from next available slot
+  // Symbol on LAST cell, previous cells colored empty
+  for(let i=0; i<pts; i++){
+    const fillIdx = idx + i;
+    while(seq.length <= fillIdx) seq.push(undefined);
+    seq[fillIdx] = {team, pts, pos: i, showSym: i === pts-1, player, jersey};
+  }
+
+  _anotadorState.conteo = seq;
+  saveAnotadorState();
+  buildConteoGrid();
+  updateTotals();
+  if(navigator.vibrate) navigator.vibrate(pts===3?[40,20,40]:40);
+}
+
+const SHOT_SYMBOL = {1:'○', 2:'✕', 3:'★'};
+
+function buildConteoGrid(){
+  const grid = document.getElementById('conteoGrid');
+  if(!grid) return;
+  const seqA = _anotadorState.conteoA || [];
+  const seqB = _anotadorState.conteoB || [];
+  const qMarks = _anotadorState.quarterMarks || {};
+  const QCOLORS = {1:'#3B82F6',2:'#3DD68C',3:'#C9A84C',4:'#E05555'};
+
+  function getSymbol(ent){
+    if(!ent || !ent.showSym) return '';
+    return SHOT_SYMBOL[ent.pts]||'';
+  }
+  function getJersey(ent){
+    if(!ent || !ent.showSym) return '';
+    return ent.jersey||'';
+  }
+  function isFilled(ent){ return !!ent; }
+  function cellInner(sym, jer){
+    if(!sym) return '';
+    if(!jer) return `<span style="font-size:11px;color:#fff">${sym}</span>`;
+    // Symbol | divider | jersey number
+    return `<span style="font-size:11px;color:#fff;padding-right:3px">${sym}</span><span style="border-left:1px solid rgba(255,255,255,0.4);height:14px;display:inline-block;margin:0 2px"></span><span style="font-size:9px;color:rgba(255,255,255,0.9);padding-left:2px">${jer}</span>`;
+  }
+
+  function getQColor(team, pointNum){
+    for(let q=1;q<=4;q++){
+      if(qMarks[q] && qMarks[q][team] === pointNum) return QCOLORS[q];
+    }
+    return null;
+  }
+
+  // Structure per block:
+  // [ A_mark | A_num | # | B_num | B_mark ]
+  // A_mark = symbol+jersey, A_num = point number (green), # = row number, B_num = point number (gold), B_mark = symbol+jersey
+  const CELL = 'height:22px;display:flex;align-items:center;justify-content:center;font-size:9px;cursor:pointer;';
+  const NUM_CELL = 'height:22px;display:flex;align-items:center;justify-content:center;font-family:DM Mono,monospace;font-size:8px;';
+
+  let html = '';
+  for(let col=0; col<4; col++){
+    const startN = col*40 + 1;
+    html += '<div style="border:1px solid rgba(255,255,255,0.25);overflow:hidden;border-radius:3px">';
+
+    // Header: A_n | A | B_n | B
+    html += '<div style="display:grid;grid-template-columns:18px 1fr 18px 1fr;background:#0D1B35;border-bottom:2px solid rgba(255,255,255,0.3)">';
+    html += '<div style="border-right:1px solid rgba(255,255,255,0.1)"></div>';
+    html += '<div style="font-family:DM Mono,monospace;font-size:8px;color:var(--green);text-align:center;padding:3px;border-right:1px solid rgba(255,255,255,0.2)">A</div>';
+    html += '<div style="border-right:1px solid rgba(255,255,255,0.1)"></div>';
+    html += '<div style="font-family:DM Mono,monospace;font-size:8px;color:var(--gold2);text-align:center;padding:3px">B</div>';
+    html += '</div>';
+
+    for(let i=0;i<40;i++){
+      const n = startN + i;
+      const ai = n - 1;
+      const entA = seqA[ai];
+      const entB = seqB[ai];
+      const filledA = isFilled(entA);
+      const filledB = isFilled(entB);
+      const symA = getSymbol(entA);
+      const jerA = getJersey(entA);
+      const symB = getSymbol(entB);
+      const jerB = getJersey(entB);
+      const qcA = getQColor('A', n);
+      const qcB = getQColor('B', n);
+      const rowBorder = (qcA||qcB) ? `border-bottom:2px solid ${qcA||qcB}` : '';
+      const bgA = filledA ? 'rgba(61,214,140,0.2)' : 'transparent';
+      const bgB = filledB ? 'rgba(201,168,76,0.2)' : 'transparent';
+      const borderA = qcA ? `border-right:3px solid ${qcA}` : 'border-right:1px solid rgba(255,255,255,0.15)';
+      const borderB = qcB ? `border-left:3px solid ${qcB}` : 'border-left:1px solid rgba(255,255,255,0.15)';
+
+      // Row: A_num | A_mark | B_num | B_mark  (number appears ONCE per team = 2 total)
+      html += `<div style="display:grid;grid-template-columns:18px 1fr 18px 1fr;border-top:1px solid rgba(255,255,255,0.1);${rowBorder}">`;
+      html += `<div style="${NUM_CELL}color:rgba(61,214,140,0.7);background:${bgA};border-right:1px solid rgba(255,255,255,0.08)" onclick="openShotPicker(${ai},'A')">${n}</div>`;
+      html += `<div style="${CELL}background:${bgA};border-right:1px solid rgba(255,255,255,0.2)" onclick="openShotPicker(${ai},'A')">${cellInner(symA,jerA)}</div>`;
+      html += `<div style="${NUM_CELL}color:rgba(201,168,76,0.7);background:${bgB};border-right:1px solid rgba(255,255,255,0.08)" onclick="openShotPicker(${ai},'B')">${n}</div>`;
+      html += `<div style="${CELL}background:${bgB}" onclick="openShotPicker(${ai},'B')">${cellInner(symB,jerB)}</div>`;
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  grid.innerHTML = html;
+}
+
+function updateTotals(){
+  const seqA = _anotadorState.conteoA || [];
+  const seqB = _anotadorState.conteoB || [];
+  const a = seqA.filter(x=>x&&x.pos===0).reduce((sum,x)=>sum+x.pts,0);
+  const b = seqB.filter(x=>x&&x.pos===0).reduce((sum,x)=>sum+x.pts,0);
+  const nameA = document.getElementById('fiba_equipoA')?.value || 'EQ. A';
+  const nameB = document.getElementById('fiba_equipoB')?.value || 'EQ. B';
+  const ta = document.getElementById('totalA');
+  const tb = document.getElementById('totalB');
+  const fa = document.getElementById('fibaFinalA');
+  const fb = document.getElementById('fibaFinalB');
+  const fg = document.getElementById('fibaGanador');
+  const na = document.getElementById('fibaNameA');
+  const nb = document.getElementById('fibaNameB');
+  if(ta) ta.textContent = a;
+  if(tb) tb.textContent = b;
+  if(fa) fa.textContent = a;
+  if(fb) fb.textContent = b;
+  if(na) na.textContent = nameA;
+  if(nb) nb.textContent = nameB;
+  if(fg){
+    if(a>b) fg.textContent = nameA;
+    else if(b>a) fg.textContent = nameB;
+    else fg.textContent = a>0 ? 'Empate' : '—';
+  }
+}
+
+// ── FALTAS COLECTIVAS ─────────────────────────────────────────────────────────
+function faltaCol(team, periodo, delta){
+  const key = 'faltasCol' + team;
+  if(!_anotadorState[key]) _anotadorState[key] = {1:0,2:0,3:0,4:0};
+  _anotadorState[key][periodo] = Math.max(0, (_anotadorState[key][periodo]||0) + delta);
+  saveAnotadorState();
+  updateFaltasCol();
+}
+
+function updateFaltasCol(){
+  ['A','B'].forEach(t=>{
+    [1,2,3,4].forEach(p=>{
+      const el = document.getElementById(`faltaCol${t}${p}`);
+      if(el) el.textContent = (_anotadorState['faltasCol'+t]||{})[p] || 0;
+    });
+  });
+}
+
+// ── TIEMPOS MUERTOS ───────────────────────────────────────────────────────────
+function toggleTimeout(team, periodo, num){
+  const key = `${team}_${periodo}_${num}`;
+  _anotadorState.timeouts = _anotadorState.timeouts || {};
+  _anotadorState.timeouts[key] = !_anotadorState.timeouts[key];
+  saveAnotadorState();
+  updateTimeouts();
+}
+
+function updateTimeouts(){
+  ['A','B'].forEach(t=>{
+    [1,2,3,4].forEach(p=>{
+      [1,2].forEach(n=>{
+        const el = document.getElementById(`timeout_${t}_${p}_${n}`);
+        if(el){
+          const active = (_anotadorState.timeouts||{})[`${t}_${p}_${n}`];
+          el.style.background = active ? 'var(--gold)' : 'transparent';
+          el.style.borderColor = active ? 'var(--gold)' : 'var(--border)';
+        }
+      });
+    });
+  });
+}
+
+// ── ROSTER CON FALTAS PERSONALES ─────────────────────────────────────────────
+
+
+// ── ANOTADOR ROSTER MANAGEMENT ────────────────────────────────────────────────
+let _editRosterTeam = 'A';
+
+function openRosterEditor(team){
+  _editRosterTeam = team;
+  const isA = team === 'A';
+  const color = isA ? 'var(--green)' : 'var(--gold2)';
+  const bg = isA ? 'rgba(61,214,140,0.08)' : 'rgba(201,168,76,0.08)';
+  const hdr = document.getElementById('mFibaRosterHdr');
+  const title = document.getElementById('mFibaRosterTitle');
+  if(hdr) hdr.style.background = bg;
+  if(title){ title.textContent = `JUGADORES — EQUIPO ${team}`; title.style.color = color; }
+  // Clear add form
+  ['newLic','newJersey','newPlayerName'].forEach(id=>{
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  renderRosterEditor();
+  document.getElementById('mFibaRoster').classList.add('show');
+}
+
+function getRosterForTeam(team){
+  const key = 'roster' + team;
+  if(!_anotadorState[key] || _anotadorState[key].length === 0){
+    const members = getRoster();
+    const half = Math.ceil(members.length/2);
+    const list = team==='A' ? members.slice(0,half) : members.slice(half);
+    _anotadorState[key] = list.map((name,i)=>({
+      name, jersey: getJerseyNumber(name)||String(i+4), lic: String(i+1)
+    }));
+    saveAnotadorState();
+  }
+  return _anotadorState['roster'+team];
+}
+
+function renderRosterEditor(){
+  const team = _editRosterTeam;
+  const roster = getRosterForTeam(team);
+  const isA = team === 'A';
+  const color = isA ? '#3DD68C' : '#C9A84C';
+  const list = document.getElementById('fibaRosterEditList');
+  if(!list) return;
+  list.innerHTML = '';
+
+  if(roster.length === 0){
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">Sin jugadores. Agrega uno arriba.</div>';
+    return;
+  }
+
+  roster.forEach((p, i) => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;gap:6px';
+
+    // Row 1: LIC + jersey + name
+    const row1 = document.createElement('div');
+    row1.style.cssText = 'display:grid;grid-template-columns:44px 52px 1fr 36px;gap:6px;align-items:center';
+
+    const licEl = document.createElement('input');
+    licEl.value = p.lic || '';
+    licEl.placeholder = 'LIC';
+    licEl.maxLength = 4;
+    licEl.style.cssText = 'padding:6px 4px;border-radius:6px;border:1px solid var(--border);background:var(--navy3);color:var(--muted);font-size:12px;text-align:center;width:100%';
+    licEl.addEventListener('input', ()=>{ roster[i].lic = licEl.value; saveAnotadorState(); });
+
+    const jerEl = document.createElement('input');
+    jerEl.value = p.jersey || '';
+    jerEl.placeholder = '#';
+    jerEl.maxLength = 2;
+    jerEl.style.cssText = `padding:6px 4px;border-radius:6px;border:1px solid var(--border);background:var(--navy3);color:${color};font-family:'Bebas Neue',sans-serif;font-size:18px;text-align:center;width:100%`;
+    jerEl.addEventListener('input', ()=>{ roster[i].jersey = jerEl.value; saveAnotadorState(); buildRosters(); });
+
+    const nameEl = document.createElement('input');
+    nameEl.value = p.name || '';
+    nameEl.placeholder = 'Nombre...';
+    nameEl.style.cssText = 'padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--navy3);color:var(--text);font-size:13px;width:100%';
+    nameEl.addEventListener('input', ()=>{ roster[i].name = nameEl.value; saveAnotadorState(); buildRosters(); });
+
+    const delBtn = document.createElement('button');
+    delBtn.innerHTML = '🗑️';
+    delBtn.title = 'Eliminar jugador';
+    delBtn.style.cssText = 'padding:6px;border-radius:6px;border:1px solid rgba(224,85,85,0.4);background:rgba(224,85,85,0.1);cursor:pointer;font-size:14px;width:100%';
+    delBtn.addEventListener('click', ()=>{
+      roster.splice(i, 1);
+      saveAnotadorState();
+      buildRosters();
+      renderRosterEditor();
+    });
+
+    row1.appendChild(licEl);
+    row1.appendChild(jerEl);
+    row1.appendChild(nameEl);
+    row1.appendChild(delBtn);
+    wrap.appendChild(row1);
+    list.appendChild(wrap);
+  });
+}
+
+function addFibaPlayer(){
+  const nameEl = document.getElementById('newPlayerName');
+  const jerseyEl = document.getElementById('newJersey');
+  const licEl = document.getElementById('newLic');
+  const name = nameEl?.value.trim() || '';
+  if(!name){
+    if(nameEl){
+      nameEl.style.borderColor = 'var(--red)';
+      nameEl.placeholder = '⚠️ Nombre requerido';
+      setTimeout(()=>{ nameEl.style.borderColor=''; nameEl.placeholder='Nombre completo...'; }, 2000);
+    }
+    return;
+  }
+  const jersey = jerseyEl?.value.trim() || '';
+  const lic = licEl?.value.trim() || '';
+  const roster = getRosterForTeam(_editRosterTeam);
+  roster.push({name, jersey, lic});
+  saveAnotadorState();
+  if(nameEl) nameEl.value = '';
+  if(jerseyEl) jerseyEl.value = '';
+  if(licEl) licEl.value = '';
+  buildRosters();
+  renderRosterEditor();
+  // Scroll to bottom of list
+  const list = document.getElementById('fibaRosterEditList');
+  if(list) list.lastElementChild?.scrollIntoView({behavior:'smooth'});
+}
+
+
+function syncParciales(){
+  const qm = _anotadorState.quarterMarks || {};
+  const seqA = _anotadorState.conteoA || [];
+  const seqB = _anotadorState.conteoB || [];
+
+  // Count total points up to each quarter mark
+  function ptsAt(seq, upTo){
+    // upTo is the total score at end of quarter (1-based point number)
+    return seq.slice(0, upTo).filter(x=>x&&x.pos===0).reduce((s,x)=>s+x.pts, 0);
+  }
+
+  let prevA = 0, prevB = 0;
+  [1,2,3,4].forEach(q=>{
+    if(!qm[q]) return;
+    // Recalculate partials based on current conteo
+    const totalA = seqA.filter(x=>x&&x.pos===0).reduce((s,x)=>s+x.pts,0);
+    const totalB = seqB.filter(x=>x&&x.pos===0).reduce((s,x)=>s+x.pts,0);
+
+    // Find the last quarter before this one
+    let prevQA = 0, prevQB = 0;
+    for(let pq=1; pq<q; pq++){
+      if(qm[pq]){ prevQA = qm[pq].partialA_cumulative||qm[pq].A||0; prevQB = qm[pq].partialB_cumulative||qm[pq].B||0; }
+    }
+
+    // The quarter mark stores A/B as cumulative totals at that moment
+    const cumA = qm[q].A || 0;
+    const cumB = qm[q].B || 0;
+
+    // Current points in conteo might be less than cumulative if undo happened
+    const currentA = seqA.filter(x=>x&&x.pos===0).reduce((s,x)=>s+x.pts,0);
+    const currentB = seqB.filter(x=>x&&x.pos===0).reduce((s,x)=>s+x.pts,0);
+
+    // Partial = min(cumulative at quarter end, current total) - previous quarter cumulative
+    const effectiveCumA = Math.min(cumA, currentA);
+    const effectiveCumB = Math.min(cumB, currentB);
+    const partialA = Math.max(0, effectiveCumA - prevQA);
+    const partialB = Math.max(0, effectiveCumB - prevQB);
+
+    const inpA = document.getElementById('parcialA'+q);
+    const inpB = document.getElementById('parcialB'+q);
+    if(inpA) inpA.value = partialA;
+    if(inpB) inpB.value = partialB;
+  });
+}
+
+function undoConteo(){
+  // Undo last shot from whichever team was most recently marked
+  let lastTeam = null, lastIdx = -1;
+  ['A','B'].forEach(t=>{
+    const seq = _anotadorState['conteo'+t] || [];
+    for(let i=seq.length-1;i>=0;i--){
+      if(seq[i] && seq[i].showSym){
+        if(lastIdx===-1 || i > lastIdx){ lastIdx=i; lastTeam=t; }
+        break;
+      }
+    }
+  });
+  if(!lastTeam || lastIdx===-1){ return; }
+  const seq = _anotadorState['conteo'+lastTeam];
+  const pts = seq[lastIdx].pts;
+  const startIdx = lastIdx - pts + 1;
+  for(let i=startIdx; i<=lastIdx; i++) seq[i] = undefined;
+  while(seq.length && !seq[seq.length-1]) seq.pop();
+  saveAnotadorState();
+  buildConteoGrid();
+  updateTotals();
+  syncParciales();
+}
+
+const QUARTER_COLORS = {1:'#3B82F6', 2:'#3DD68C', 3:'#C9A84C', 4:'#E05555'};
+
+function cerrarCuarto(q){
+  if(!_anotadorState.quarterMarks) _anotadorState.quarterMarks = {};
+  if(_anotadorState.quarterMarks[q]){
+    anotadorConfirm(
+      `↩ Reabrir ${q}° Cuarto`,
+      `¿Reabrir el ${q}° cuarto? Se quitará la línea de cierre y los parciales de ese cuarto.`,
+      ()=>{
+        // Delete mark directly from state object
+        if(!_anotadorState.quarterMarks) _anotadorState.quarterMarks = {};
+        _anotadorState.quarterMarks[q] = null;
+        delete _anotadorState.quarterMarks[q];
+        // Clear parcial inputs
+        const inpA = document.getElementById('parcialA'+q);
+        const inpB = document.getElementById('parcialB'+q);
+        if(inpA) inpA.value = '';
+        if(inpB) inpB.value = '';
+        saveAnotadorState();
+        // Rebuild everything
+        buildConteoGrid();
+        updateQuarterButtons();
+        updateTotals();
+        syncParciales();
+      }
+    );
+    return;
+  }
+
+  // Calculate current totals at this moment
+  const seqA = _anotadorState.conteoA || [];
+  const seqB = _anotadorState.conteoB || [];
+  const totalA = seqA.filter(x=>x&&x.pos===0).reduce((s,x)=>s+x.pts,0);
+  const totalB = seqB.filter(x=>x&&x.pos===0).reduce((s,x)=>s+x.pts,0);
+
+  // Calculate previous quarter total to get this quarter's partial
+  let prevA=0, prevB=0;
+  for(let pq=1; pq<q; pq++){
+    if(_anotadorState.quarterMarks[pq]){
+      prevA = _anotadorState.quarterMarks[pq].A;
+      prevB = _anotadorState.quarterMarks[pq].B;
+    }
+  }
+
+  const partialA = totalA - prevA;
+  const partialB = totalB - prevB;
+
+  _anotadorState.quarterMarks[q] = {A: totalA, B: totalB, partialA, partialB};
+  saveAnotadorState();
+  buildConteoGrid();
+  updateQuarterButtons();
+
+  // Auto-fill parcial inputs
+  const inpA = document.getElementById('parcialA'+q);
+  const inpB = document.getElementById('parcialB'+q);
+  if(inpA) inpA.value = partialA;
+  if(inpB) inpB.value = partialB;
+
+  alert(`✅ ${q}° cuarto cerrado\nEQ. A: ${partialA} pts · EQ. B: ${partialB} pts`);
+}
+
+function updateQuarterButtons(){
+  const bgColors = {1:'59,130,246', 2:'61,214,140', 3:'201,168,76', 4:'224,85,85'};
+  [1,2,3,4].forEach(q=>{
+    const btn = document.getElementById('btnQ'+q);
+    if(!btn) return;
+    const closed = _anotadorState.quarterMarks && _anotadorState.quarterMarks[q];
+    const rgb = bgColors[q];
+    // Use textContent to avoid losing onclick
+    if(closed){
+      btn.textContent = `✓ ${q}° Q ↩`;
+      btn.style.opacity = '0.75';
+      btn.style.background = `rgba(${rgb},0.25)`;
+      btn.title = 'Toca para reabrir el cuarto';
+    } else {
+      btn.textContent = `🔒 ${q}° Q`;
+      btn.style.opacity = '1';
+      btn.style.background = `rgba(${rgb},0.1)`;
+      btn.title = 'Cerrar cuarto';
+    }
+  });
+}
+
+const FALTA_LABELS = ['P','P','P','P','D'];
+
+function buildRosters(){
+  // Use custom anotador roster if available, else fall back to league roster
+  const rosterA = getRosterForTeam('A');
+  const rosterB = getRosterForTeam('B');
+
+  ['A','B'].forEach(t=>{
+    const roster = t==='A' ? rosterA : rosterB;
+    const color = t==='A' ? 'var(--green)' : 'var(--gold2)';
+    const faltasKey = 'faltasPerson' + t;
+    document.getElementById('fibaRoster'+t).innerHTML = roster.map((player,ri)=>{
+      const name = typeof player === 'string' ? player : player.name;
+      const jersey = typeof player === 'string' ? getJerseyNumber(player) : (player.jersey||'');
+      const lic = typeof player === 'string' ? String(ri+1) : (player.lic||'');
+      const faltas = (_anotadorState[faltasKey]||{})[name] || 0;
+      const isCap = ri===0;
+      return `<div style="display:grid;grid-template-columns:28px 28px 1fr 20px 20px 20px 20px 20px;gap:3px;align-items:center;padding:3px 6px;border-bottom:1px solid rgba(255,255,255,0.04)">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);text-align:center">${lic||ri+1}</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:${color};text-align:center">${jersey||'—'}</div>
+        <div style="font-size:11px;${faltas>=5?'color:var(--red);text-decoration:line-through':''}">${name.split(' ')[0]} ${(name.split(' ')[1]||'')[0]||''}.</div>
+        ${[1,2,3,4,5].map(f=>`
+          <div onclick="toggleFaltaPersonal('${t}','${name}',${f})"
+            style="width:18px;height:18px;border-radius:50%;border:1px solid ${faltas>=f?(f>=5?'#7f0000':'var(--red)'):'var(--border)'};
+            background:${faltas>=f?(f>=5?'rgba(127,0,0,0.5)':'rgba(224,85,85,0.2)'):'transparent'};
+            display:flex;align-items:center;justify-content:center;cursor:pointer;
+            font-family:'DM Mono',monospace;font-size:9px;color:${faltas>=f?'#fff':'var(--muted)'}">
+            ${faltas>=f?FALTA_LABELS[f-1]:''}
+          </div>`).join('')}
+      </div>`;
+    }).join('');
+  });
+}
+
+function toggleFaltaPersonal(team, name, n){
+  const key = 'faltasPerson' + team;
+  if(!_anotadorState[key]) _anotadorState[key] = {};
+  const current = _anotadorState[key][name] || 0;
+  // If clicking same number = undo (go back one), else set to that number
+  _anotadorState[key][name] = current === n ? Math.max(0, n-1) : n;
+  saveAnotadorState();
+  buildRosters();
+}
+
+function undoFaltaPersonal(team, name){
+  const key = 'faltasPerson' + team;
+  if(!_anotadorState[key]) return;
+  const current = _anotadorState[key][name] || 0;
+  if(current > 0){
+    _anotadorState[key][name] = current - 1;
+    saveAnotadorState();
+    buildRosters();
+  }
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────────────────
+function exportarPlanilla(){
+  syncNombres();
+  updateTotals();
+  buildRosters();
+  renderFaltasEquipo();
+  const el = document.getElementById('anotadorContent');
+  if(!el) return;
+  const btn = document.querySelector('[onclick="exportarPlanilla()"]');
+  const orig = btn?.textContent;
+  if(btn){ btn.textContent='⏳ Generando...'; btn.disabled=true; }
+  html2canvas(el, {
+    backgroundColor:'#0B1120', scale:2, useCORS:true, logging:false
+  }).then(canvas=>{
+    if(btn){ btn.textContent=orig; btn.disabled=false; }
+    const link = document.createElement('a');
+    const d = new Date();
+    link.download = `Planilla_${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }).catch(()=>{
+    if(btn){ btn.textContent=orig; btn.disabled=false; }
+    alert('Error al exportar. Intenta de nuevo.');
+  });
+}
+
+
+function anotadorConfirm(title, msg, onOk){
+  document.getElementById('anotadorConfirmTitle').textContent = title;
+  document.getElementById('anotadorConfirmMsg').textContent = msg;
+  const btn = document.getElementById('anotadorConfirmOk');
+  btn.onclick = ()=>{ close2('mAnotadorConfirm'); onOk(); };
+  document.getElementById('mAnotadorConfirm').classList.add('show');
+}
+
+function reiniciarPlanilla(){
+  anotadorConfirm(
+    '↩ Nueva Planilla',
+    '¿Iniciar una nueva planilla? Se perderán todos los datos del juego actual.',
+    ()=>{
+      // Reset full state
+      _anotadorState = defaultAnotador();
+      saveAnotadorState();
+
+      // Clear all text inputs
+      ['fiba_competencia','fiba_torneo','fiba_juegonum','fiba_fecha','fiba_hora','fiba_lugar',
+       'fiba_arb1','fiba_arb2','fiba_equipoA','fiba_equipoB',
+       'fiba_coachA','fiba_coachB','fiba_asistA','fiba_asistB',
+       'fiba_anotador','fiba_cronometrista','fiba_op24'].forEach(id=>{
+        const el = document.getElementById(id);
+        if(el) el.value = '';
+      });
+
+      // Clear parcials
+      [1,2,3,4].forEach(q=>{
+        ['A','B'].forEach(t=>{
+          const el = document.getElementById('parcial'+t+q);
+          if(el) el.value = '';
+        });
+      });
+      ['parcialAExtra','parcialBExtra'].forEach(id=>{
+        const el = document.getElementById(id);
+        if(el) el.value = '';
+      });
+
+      // Re-render everything
+      renderAnotador();
+
+      // Scroll to top
+      document.getElementById('tab-anotador')?.scrollTo({top:0, behavior:'smooth'});
+    }
+  );
+}
+
+// ═══════════════════════════════════════════════════════
+// TORNEO SYSTEM
+// ═══════════════════════════════════════════════════════
+const TORNEO_KEY = 'goat_torneo';
+
+function loadTorneo(){
+  try{ return JSON.parse(localStorage.getItem(TORNEO_KEY)||'null'); }catch(e){return null;}
+}
+function saveTorneo(t){
+  try{ localStorage.setItem(TORNEO_KEY, JSON.stringify(t)); }catch(e){}
+  if(window._saveToFirebase) window._saveToFirebase('torneoData', t);
+}
+
+function defaultTorneoStats(){
+  return {pts:0,reb:0,ast:0,rob:0,per:0,falta:0,pts1:0,pts2:0,pts3:0};
+}
+
+let _torneoStatPending = {name:null, team:null};
+let _selectedFormato = 'libre';
+let _torneoStatHistory = []; // for undo
+
+function selectFormato(id){
+  _selectedFormato = id;
+  ['partido','rr','bracket','libre'].forEach(f=>{
+    const el = document.getElementById(`fmt-${f}`);
+    if(!el) return;
+    if(f===id){
+      el.style.border = '2px solid var(--gold)';
+      el.style.background = 'rgba(201,168,76,0.08)';
+    } else {
+      el.style.border = '1px solid var(--border)';
+      el.style.background = 'transparent';
+    }
+  });
+}
+
+function openCreateTorneo(){
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('torneoFechaInicio').value = today;
+  document.getElementById('torneoNombreInput').value = '';
+  document.getElementById('torneoEquipoA').value = '';
+  document.getElementById('torneoEquipoB').value = '';
+
+  // Build format pills via JS
+  const pills = [
+    {id:'partido', label:'⚡ Un partido'},
+    {id:'rr',      label:'🔄 Round Robin'},
+    {id:'bracket', label:'🏆 Eliminación'},
+    {id:'libre',   label:'🎯 Libre'},
+  ];
+  const pillContainer = document.getElementById('formatoPills');
+  pillContainer.innerHTML = '';
+  pills.forEach(p => {
+    const btn = document.createElement('button');
+    btn.id = 'fmt-' + p.id;
+    btn.textContent = p.label;
+    btn.onclick = () => selectFormato(p.id);
+    btn.style.cssText = 'padding:8px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;font-family:DM Mono,monospace;margin:0 6px 6px 0;transition:all .15s';
+    pillContainer.appendChild(btn);
+  });
+
+  selectFormato('libre');
+  document.getElementById('mCrearTorneo').classList.add('show');
+}
+
+function confirmarCrearTorneo(){
+  const nombre = document.getElementById('torneoNombreInput').value.trim();
+  const equipoA = document.getElementById('torneoEquipoA').value.trim() || 'Equipo A';
+  const equipoB = document.getElementById('torneoEquipoB').value.trim() || 'Equipo B';
+  const fechaInicio = document.getElementById('torneoFechaInicio').value;
+  const fechaFin = document.getElementById('torneoFechaFin').value;
+
+  if(!nombre){ alert('Escribe el nombre del torneo.'); return; }
+
+  const torneo = {
+    id: Date.now(),
+    nombre,
+    equipoA,
+    equipoB,
+    formato: _selectedFormato,
+    fechaInicio,
+    fechaFin: fechaFin || null,
+    activo: true,
+    juegoNum: 1,
+    scA: 0,
+    scB: 0,
+    // Stats acumuladas por jugador en todo el torneo
+    statsA: {}, // name → {pts,reb,ast,rob,per,...}
+    statsB: {},
+    // Stats del juego actual
+    currentStatsA: {},
+    currentStatsB: {},
+    historial: [], // juegos finalizados
+  };
+
+  saveTorneo(torneo);
+  close2('mCrearTorneo');
+  renderTorneo();
+}
+
+function renderTorneo(){
+  const torneo = loadTorneo();
+  document.getElementById('torneoEmpty').style.display = torneo ? 'none' : 'block';
+  document.getElementById('torneoActive').style.display = torneo ? 'block' : 'none';
+  if(!torneo) return;
+
+  // Header
+  document.getElementById('torneoNombre').textContent = torneo.nombre;
+  const fechas = torneo.fechaInicio + (torneo.fechaFin ? ' → ' + torneo.fechaFin : ' → en curso');
+  document.getElementById('torneoFechas').textContent = fechas;
+
+  const formatoNames = {partido:'⚡ Un partido',rr:'🔄 Round Robin',bracket:'🏆 Eliminación directa',libre:'🎯 Libre'};
+  document.getElementById('torneoFormato').textContent = formatoNames[torneo.formato] || torneo.formato;
+
+  // Scoreboard
+  document.getElementById('torneoNameA').textContent = torneo.equipoA;
+  document.getElementById('torneoNameB').textContent = torneo.equipoB;
+  document.getElementById('torneoTeamNameA').textContent = torneo.equipoA;
+  document.getElementById('torneoTeamNameB').textContent = torneo.equipoB;
+  document.getElementById('torneoScA').textContent = torneo.scA;
+  document.getElementById('torneoScB').textContent = torneo.scB;
+  document.getElementById('torneoJuegoNum').textContent = `Juego #${torneo.juegoNum}`;
+
+  // Predicción basada en scout
+  renderPrediccion(torneo);
+
+  // Render players
+  renderTorneoPlayers(torneo, 'A');
+  renderTorneoPlayers(torneo, 'B');
+
+  // Historial
+  renderTorneoHistorial(torneo);
+
+  // Líderes
+  renderTorneoLideres(torneo);
+}
+
+function renderPrediccion(torneo){
+  const scout = getScoutData();
+  const membersA = getRoster().filter(n => torneo.statsA[n] !== undefined || Object.keys(torneo.currentStatsA).includes(n));
+  const membersB = getRoster().filter(n => torneo.statsB[n] !== undefined || Object.keys(torneo.currentStatsB).includes(n));
+
+  // Use all roster members if no stats yet — predict based on scout alone
+  const allMembers = getRoster();
+
+  // Calculate team scout ratings
+  function teamRating(statsObj){
+    const players = Object.keys(statsObj).length > 0 ? Object.keys(statsObj) : allMembers.slice(0,5);
+    if(!players.length) return 0;
+    const ratings = players.map(n => getCombinedRating(n, scout[n]||{}).rating);
+    return ratings.reduce((a,b)=>a+b,0)/ratings.length;
+  }
+
+  const rA = teamRating(Object.keys(torneo.statsA).length > 0 ? torneo.statsA : {});
+  const rB = teamRating(Object.keys(torneo.statsB).length > 0 ? torneo.statsB : {});
+
+  // Also factor in current game performance
+  const ptsA = torneo.scA;
+  const ptsB = torneo.scB;
+  const totalPts = ptsA + ptsB;
+  const gameFactorA = totalPts > 0 ? ptsA/totalPts : 0.5;
+  const gameFactorB = totalPts > 0 ? ptsB/totalPts : 0.5;
+
+  const totalR = rA + rB || 1;
+  const scoutFactorA = rA/totalR;
+  const scoutFactorB = rB/totalR;
+
+  // Combined: 70% scout + 30% current game
+  const probA = Math.round((scoutFactorA * 0.7 + gameFactorA * 0.3) * 100);
+  const probB = 100 - probA;
+
+  const colorA = probA > probB ? 'var(--green)' : 'var(--muted)';
+  const colorB = probB > probA ? 'var(--green)' : 'var(--muted)';
+
+  document.getElementById('prediccionBody').innerHTML = `
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${colorA}">${torneo.equipoA} ${probA}%</span>
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${colorB}">${probB}% ${torneo.equipoB}</span>
+      </div>
+      <div style="display:flex;height:12px;border-radius:99px;overflow:hidden;background:rgba(201,168,76,0.1)">
+        <div style="width:${probA}%;background:var(--green);transition:width .8s"></div>
+        <div style="width:${probB}%;background:var(--gold)"></div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);line-height:1.6">
+      ${probA>probB
+        ? `<strong style="color:var(--green)">${torneo.equipoA}</strong> tiene mayor probabilidad de ganar según los perfiles de scouting${totalPts>0?' y el marcador actual':''}.`
+        : probB>probA
+          ? `<strong style="color:var(--gold)">${torneo.equipoB}</strong> tiene mayor probabilidad de ganar según los perfiles de scouting${totalPts>0?' y el marcador actual':''}.`
+          : 'Los equipos están completamente parejos según los perfiles de scouting.'
+      }
+      ${rA===0&&rB===0?'<br><span style="color:var(--muted);font-size:10px">Completa los perfiles de scouting para mejorar la predicción.</span>':''}
+    </div>`;
+}
+
+function renderTorneoPlayers(torneo, team){
+  const statsKey = team === 'A' ? 'currentStatsA' : 'currentStatsB';
+  const members = getRoster();
+  const color = team === 'A' ? 'var(--green)' : 'var(--gold2)';
+
+  // Show all roster members for this team (or a subset)
+  const players = members.slice(0, team === 'A' ? Math.ceil(members.length/2) : Math.floor(members.length/2));
+
+  document.getElementById(`torneoPlayers${team}`).innerHTML = players.map(name => {
+    const st = (torneo[statsKey][name]) || defaultTorneoStats();
+    const pm = torneo.scA - torneo.scB;
+    const pmStr = team==='A' ? (pm>=0?`+${pm}`:pm) : (pm<=0?`+${Math.abs(pm)}`:'-'+pm);
+    const falta = st.falta||0;
+    const faltaColor = falta>=5?'var(--red)':falta>=3?'var(--gold)':'var(--muted)';
+    return `<div class="torneo-player-row" onclick="openTorneoStat('${name}','${team}')">
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:600">${name.split(' ')[0]}</div>
+        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace">${name.split(' ')[1]||''}</div>
+      </div>
+      <div class="torneo-stat-grid" style="flex:1.4;border-radius:6px;overflow:hidden;gap:1px;background:var(--border);grid-template-columns:repeat(7,1fr)">
+        <div class="torneo-stat-cell"><div class="torneo-stat-val" style="color:${color}">${st.pts||0}</div></div>
+        <div class="torneo-stat-cell"><div class="torneo-stat-val">${st.reb||0}</div></div>
+        <div class="torneo-stat-cell"><div class="torneo-stat-val" style="color:var(--green)">${st.ast||0}</div></div>
+        <div class="torneo-stat-cell"><div class="torneo-stat-val" style="color:var(--gold)">${st.rob||0}</div></div>
+        <div class="torneo-stat-cell"><div class="torneo-stat-val" style="color:var(--red)">${st.per||0}</div></div>
+        <div class="torneo-stat-cell"><div class="torneo-stat-val" style="color:${faltaColor}">${falta}${falta>=5?'🚫':''}</div></div>
+        <div class="torneo-stat-cell"><div class="torneo-stat-val" style="color:var(--muted);font-size:13px">${pmStr}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openTorneoStat(name, team){
+  _torneoStatPending = {name, team};
+  const el = document.getElementById('torneoStatPlayer');
+  el.textContent = name;
+  el.className = `shot-player ${team.toLowerCase()}`;
+  const torneo = loadTorneo();
+  const statsKey = team==='A' ? 'currentStatsA' : 'currentStatsB';
+  const st = (torneo[statsKey][name]) || defaultTorneoStats();
+  document.getElementById('torneoStatSub').textContent =
+    `${st.pts||0}pts · ${st.reb||0}reb · ${st.ast||0}ast · ${st.rob||0}rob · ${st.per||0}per · ${st.falta||0}fal`;
+  document.getElementById('torneoStatSheet').classList.add('show');
+}
+
+function closeTorneoStat(){
+  document.getElementById('torneoStatSheet').classList.remove('show');
+}
+
+function registerTorneoStat(action){
+  closeTorneoStat();
+  const {name, team} = _torneoStatPending;
+  if(!name) return;
+  const torneo = loadTorneo();
+  if(!torneo) return;
+
+  const statsKey = team==='A' ? 'currentStatsA' : 'currentStatsB';
+  if(!torneo[statsKey][name]) torneo[statsKey][name] = defaultTorneoStats();
+
+  // Save for undo
+  _torneoStatHistory.push({name, team, action});
+
+  const st = torneo[statsKey][name];
+  let pts = 0;
+  if(action==='pts1'){ st.pts+=1; st.pts1=(st.pts1||0)+1; pts=1; }
+  else if(action==='pts2'){ st.pts+=2; st.pts2=(st.pts2||0)+1; pts=2; }
+  else if(action==='pts3'){ st.pts+=3; st.pts3=(st.pts3||0)+1; pts=3; }
+  else if(action==='reb'){ st.reb=(st.reb||0)+1; }
+  else if(action==='ast'){ st.ast=(st.ast||0)+1; }
+  else if(action==='rob'){ st.rob=(st.rob||0)+1; }
+  else if(action==='per'){ st.per=(st.per||0)+1; }
+  else if(action==='falta'){ st.falta=(st.falta||0)+1; }
+
+  // Update scoreboard
+  if(pts>0){
+    if(team==='A') torneo.scA+=pts;
+    else torneo.scB+=pts;
+  }
+
+  saveTorneo(torneo);
+  renderTorneo();
+  if(navigator.vibrate) navigator.vibrate(40);
+}
+
+function undoTorneoStat(){
+  if(!_torneoStatHistory.length){ alert('Nada que deshacer.'); return; }
+  const last = _torneoStatHistory.pop();
+  const torneo = loadTorneo();
+  if(!torneo) return;
+  const statsKey = last.team==='A' ? 'currentStatsA' : 'currentStatsB';
+  const st = torneo[statsKey][last.name];
+  if(!st) return;
+  if(last.action==='pts1'){ st.pts=Math.max(0,st.pts-1); st.pts1=Math.max(0,(st.pts1||1)-1); torneo.scA=last.team==='A'?Math.max(0,torneo.scA-1):torneo.scA; torneo.scB=last.team==='B'?Math.max(0,torneo.scB-1):torneo.scB; }
+  else if(last.action==='pts2'){ st.pts=Math.max(0,st.pts-2); st.pts2=Math.max(0,(st.pts2||1)-1); torneo.scA=last.team==='A'?Math.max(0,torneo.scA-2):torneo.scA; torneo.scB=last.team==='B'?Math.max(0,torneo.scB-2):torneo.scB; }
+  else if(last.action==='pts3'){ st.pts=Math.max(0,st.pts-3); st.pts3=Math.max(0,(st.pts3||1)-1); torneo.scA=last.team==='A'?Math.max(0,torneo.scA-3):torneo.scA; torneo.scB=last.team==='B'?Math.max(0,torneo.scB-3):torneo.scB; }
+  else if(last.action==='reb') st.reb=Math.max(0,(st.reb||1)-1);
+  else if(last.action==='ast') st.ast=Math.max(0,(st.ast||1)-1);
+  else if(last.action==='rob') st.rob=Math.max(0,(st.rob||1)-1);
+  else if(last.action==='per') st.per=Math.max(0,(st.per||1)-1);
+  else if(last.action==='falta') st.falta=Math.max(0,(st.falta||1)-1);
+  saveTorneo(torneo);
+  renderTorneo();
+}
+
+function openTorneoFin(){
+  const torneo = loadTorneo();
+  if(!torneo) return;
+  const winner = torneo.scA > torneo.scB ? torneo.equipoA : torneo.scB > torneo.scA ? torneo.equipoB : 'Empate';
+  document.getElementById('torneoFinScore').innerHTML =
+    `<strong style="color:var(--green)">${torneo.equipoA}: ${torneo.scA}</strong> &nbsp;—&nbsp; <strong style="color:var(--gold)">${torneo.equipoB}: ${torneo.scB}</strong>`;
+  document.getElementById('torneoFinFoot').innerHTML =
+    `<button class="btn btn-gold" onclick="confirmarFinJuegoTorneo('${torneo.scA>torneo.scB?'A':torneo.scB>torneo.scA?'B':'A'}')">✅ CONFIRMAR</button>
+     <button class="btn btn-outline" onclick="close2('mTorneoFin')">← Cancelar</button>`;
+  document.getElementById('mTorneoFin').classList.add('show');
+}
+
+function confirmarFinJuegoTorneo(winner){
+  close2('mTorneoFin');
+  const torneo = loadTorneo();
+  if(!torneo) return;
+
+  // Save game to history
+  torneo.historial.push({
+    num: torneo.juegoNum,
+    scA: torneo.scA,
+    scB: torneo.scB,
+    winner,
+    statsA: {...torneo.currentStatsA},
+    statsB: {...torneo.currentStatsB},
+    fecha: new Date().toLocaleDateString('es-DO'),
+  });
+
+  // Accumulate stats
+  ['A','B'].forEach(t=>{
+    const cur = t==='A' ? torneo.currentStatsA : torneo.currentStatsB;
+    const acc = t==='A' ? torneo.statsA : torneo.statsB;
+    Object.entries(cur).forEach(([name, st])=>{
+      if(!acc[name]) acc[name] = defaultTorneoStats();
+      ['pts','reb','ast','rob','per','pts1','pts2','pts3'].forEach(k=>{
+        acc[name][k] = (acc[name][k]||0) + (st[k]||0);
+      });
+    });
+  });
+
+  // Reset current game
+  torneo.juegoNum++;
+  torneo.scA = 0;
+  torneo.scB = 0;
+  torneo.currentStatsA = {};
+  torneo.currentStatsB = {};
+  _torneoStatHistory = [];
+
+  saveTorneo(torneo);
+
+  // Feed scout
+  feedTorneoToScout(torneo);
+  renderTorneo();
+}
+
+function feedTorneoToScout(torneo){
+  // Update season stats with torneo data for scout feeding
+  const season = loadSeason();
+  if(!season.torneoStats) season.torneoStats = {};
+
+  ['A','B'].forEach(t=>{
+    const stats = t==='A' ? torneo.statsA : torneo.statsB;
+    Object.entries(stats).forEach(([name, st])=>{
+      if(!season.torneoStats[name]) season.torneoStats[name] = defaultTorneoStats();
+      ['pts','reb','ast','rob','per','pts1','pts2','pts3'].forEach(k=>{
+        season.torneoStats[name][k] = st[k]||0;
+      });
+    });
+  });
+  saveSeason(season);
+}
+
+function renderTorneoHistorial(torneo){
+  document.getElementById('torneoHistBadge').textContent = `${torneo.historial.length} juegos`;
+  document.getElementById('torneoHistList').innerHTML = torneo.historial.length
+    ? [...torneo.historial].reverse().map(g=>`
+        <div style="padding:10px 14px;border-bottom:1px solid rgba(201,168,76,0.07)">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-family:'DM Mono',monospace;color:var(--muted);font-size:10px;width:26px">#${g.num}</span>
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--green)">${g.scA}</span>
+            <span style="color:var(--muted);font-family:'Bebas Neue',sans-serif;font-size:14px">—</span>
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold)">${g.scB}</span>
+            <span style="flex:1;font-size:11px;color:var(--muted)">${g.fecha||''}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:10px;padding:2px 8px;border-radius:10px;background:${g.winner==='A'?'rgba(61,214,140,0.15)':'rgba(201,168,76,0.15)'};color:${g.winner==='A'?'var(--green)':'var(--gold)'}">
+              🏆 ${g.winner==='A'?torneo.equipoA:torneo.equipoB}
+            </span>
+          </div>
+        </div>`).join('')
+    : '<div class="empty">Sin juegos aún</div>';
+}
+
+function renderTorneoLideres(torneo){
+  const allStats = {};
+  ['A','B'].forEach(t=>{
+    const stats = t==='A' ? torneo.statsA : torneo.statsB;
+    Object.entries(stats).forEach(([name,st])=>{
+      allStats[name] = st;
+    });
+  });
+
+  if(!Object.keys(allStats).length){
+    document.getElementById('torneoLideres').innerHTML='<div class="empty">Sin estadísticas aún</div>';
+    return;
+  }
+
+  const cats = [
+    {key:'pts', label:'ANOTADOR', icon:'🎯', color:'var(--gold2)'},
+    {key:'reb', label:'REBOTES', icon:'💪', color:'var(--muted)'},
+    {key:'ast', label:'ASISTENCIAS', icon:'🤝', color:'var(--green)'},
+    {key:'rob', label:'ROBOS', icon:'🔒', color:'var(--gold)'},
+    {key:'per', label:'PÉRDIDAS', icon:'❌', color:'var(--red)'},
+    {key:'falta', label:'FALTAS', icon:'🚫', color:'var(--red)'},
+  ];
+
+  document.getElementById('torneoLideres').innerHTML = cats.map(c=>{
+    const leader = Object.entries(allStats).sort((a,b)=>(b[1][c.key]||0)-(a[1][c.key]||0))[0];
+    if(!leader || !leader[1][c.key]) return '';
+    return `<div style="display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid rgba(201,168,76,0.07);gap:10px">
+      <span style="font-size:18px">${c.icon}</span>
+      <div style="flex:1">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:2px">${c.label}</div>
+        <div style="font-size:13px;font-weight:700">${leader[0]}</div>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:${c.color}">${leader[1][c.key]}</div>
+    </div>`;
+  }).join('');
+}
+
+function conservarTorneo(){
+  if(!confirm('¿Archivar el torneo? Quedará guardado en la temporada para siempre.')) return;
+  const torneo = loadTorneo();
+  if(!torneo) return;
+  const season = loadSeason();
+  if(!season.torneos) season.torneos = [];
+  season.torneos.push({...torneo, activo:false, fechaCierre: new Date().toLocaleDateString('es-DO')});
+  saveSeason(season);
+  localStorage.removeItem(TORNEO_KEY);
+  if(window._saveToFirebase) window._saveToFirebase('torneoData', null);
+  renderTorneo();
+  alert('✅ Torneo archivado en la temporada.');
+}
+
+function fusionarTorneo(){
+  if(!confirm('¿Fusionar las estadísticas del torneo con las de la liga?\nLos puntos, rebotes y más se sumarán al perfil de cada jugador.')) return;
+  const torneo = loadTorneo();
+  if(!torneo) return;
+  const season = loadSeason();
+  if(!season.playerStats) season.playerStats={};
+
+  ['A','B'].forEach(t=>{
+    const stats = t==='A' ? torneo.statsA : torneo.statsB;
+    Object.entries(stats).forEach(([name,st])=>{
+      if(!season.playerStats[name]) season.playerStats[name]={pts:0,games:0,wins:0,losses:0,shots:{1:0,2:0,3:0}};
+      season.playerStats[name].pts += (st.pts||0);
+      season.playerStats[name].shots[1] += (st.pts1||0);
+      season.playerStats[name].shots[2] += (st.pts2||0);
+      season.playerStats[name].shots[3] += (st.pts3||0);
+    });
+  });
+  saveSeason(season);
+  localStorage.removeItem(TORNEO_KEY);
+  if(window._saveToFirebase) window._saveToFirebase('torneoData', null);
+  renderTorneo();
+  alert('✅ Estadísticas fusionadas con la liga.');
+}
+
+function eliminarTorneo(){
+  if(!confirm('¿Eliminar el torneo y todas sus estadísticas?\nEsta acción no se puede deshacer.')) return;
+  localStorage.removeItem(TORNEO_KEY);
+  if(window._saveToFirebase) window._saveToFirebase('torneoData', null);
+  renderTorneo();
+  alert('🗑️ Torneo eliminado.');
 }
 
 function compartirDeudas(){
@@ -4879,6 +7467,7 @@ if(S.started){renderGame();updateChampBanner();}
 
 // Event listeners — after DOM ready
 document.getElementById('memberInput').addEventListener('keydown',e=>{if(e.key==='Enter')confirmAddMember();});
+document.getElementById('editMemberInput').addEventListener('keydown',e=>{if(e.key==='Enter')confirmEditMember();});
 document.getElementById('invInput').addEventListener('keydown',e=>{if(e.key==='Enter')confirmInv();});
 </script>
 
