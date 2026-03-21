@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Actions\Api\Auth\IssueMobileToken;
 use App\Actions\Api\Auth\RevokeCurrentAccessToken;
+use App\Actions\Api\Auth\CreateMobileTwoFactorChallenge;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Auth\LoginRequest;
 use App\Http\Resources\V1\AuthTokenResource;
@@ -16,7 +17,11 @@ use Illuminate\Validation\ValidationException;
 
 class AuthenticatedSessionController extends Controller
 {
-    public function store(LoginRequest $request, IssueMobileToken $issueMobileToken): JsonResponse
+    public function store(
+        LoginRequest $request,
+        IssueMobileToken $issueMobileToken,
+        CreateMobileTwoFactorChallenge $createMobileTwoFactorChallenge,
+    ): JsonResponse
     {
         $user = User::query()
             ->where('email', $request->string('email')->value())
@@ -35,6 +40,15 @@ class AuthenticatedSessionController extends Controller
                 [
                     'email' => ['Tu cuenta todavia no ha verificado el correo electronico.'],
                 ],
+            );
+        }
+
+        if ($user->hasEnabledTwoFactorAuthentication()) {
+            return TwoFactorChallengeController::pendingResponse(
+                $request,
+                $user,
+                $request->deviceName(),
+                $createMobileTwoFactorChallenge,
             );
         }
 

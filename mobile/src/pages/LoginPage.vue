@@ -11,11 +11,12 @@ import {
 } from '@ionic/vue'
 import type { AxiosError } from 'axios'
 import { computed, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { login } from '@/services/auth'
+import { useRoute, useRouter } from 'vue-router'
+import { googleAuthUrl, login } from '@/services/auth'
 import type { ErrorResponse, LoginPayload } from '@/types/api'
 
 const router = useRouter()
+const route = useRoute()
 
 const form = reactive<LoginPayload>({
   email: '',
@@ -27,6 +28,11 @@ const isSubmitting = ref(false)
 const errorMessage = ref<string | null>(null)
 
 const canSubmit = computed(() => form.email.trim() !== '' && form.password.trim() !== '')
+const statusMessage = computed(() =>
+  route.query.registered === '1'
+    ? 'Cuenta creada. Revisa tu correo, verifica tu email y luego vuelve a entrar.'
+    : null,
+)
 
 async function submit(): Promise<void> {
   if (!canSubmit.value) {
@@ -37,7 +43,19 @@ async function submit(): Promise<void> {
   errorMessage.value = null
 
   try {
-    await login(form)
+    const result = await login(form)
+
+    if (result.kind === 'two-factor') {
+      await router.replace({
+        name: 'two-factor-challenge',
+        query: {
+          challenge: result.response.data.challenge_token,
+        },
+      })
+
+      return
+    }
+
     await router.replace({ name: 'home' })
   } catch (error) {
     const response = (error as AxiosError<ErrorResponse>).response?.data
@@ -50,6 +68,10 @@ async function submit(): Promise<void> {
     isSubmitting.value = false
   }
 }
+
+function continueWithGoogle(): void {
+  window.location.href = googleAuthUrl()
+}
 </script>
 
 <template>
@@ -58,14 +80,19 @@ async function submit(): Promise<void> {
       <div class="mobile-shell">
         <div class="mobile-stack">
           <section class="app-surface auth-hero">
-            <p class="app-kicker auth-brand">Vamo al Game</p>
+            <p class="app-kicker auth-brand">Entrar a tu cuenta</p>
             <h1 class="app-display auth-title">Acceso movil</h1>
             <p class="app-body-copy">
-              La app movil consume la misma API versionada del backend Laravel.
+              Accede con tu correo y contrasena. Toda cuenta debe verificar el email antes de
+              entrar al sistema.
             </p>
           </section>
 
           <section class="app-surface auth-form">
+            <IonText v-if="statusMessage" color="warning">
+              <p class="status-message">{{ statusMessage }}</p>
+            </IonText>
+
             <div class="field-group">
               <IonLabel position="stacked">Correo</IonLabel>
               <IonItem lines="none">
@@ -104,6 +131,29 @@ async function submit(): Promise<void> {
               <IonSpinner v-if="isSubmitting" name="crescent" />
               <span v-else>Iniciar sesion</span>
             </IonButton>
+
+            <IonButton
+              class="google-action"
+              color="light"
+              expand="block"
+              fill="outline"
+              @click="continueWithGoogle"
+            >
+              Continuar con Google
+            </IonButton>
+
+            <IonButton
+              class="secondary-action"
+              color="secondary"
+              expand="block"
+              @click="router.push({ name: 'register' })"
+            >
+              Crear cuenta
+            </IonButton>
+
+            <button class="text-link" type="button" @click="router.push({ name: 'landing' })">
+              Volver al landing
+            </button>
           </section>
         </div>
       </div>
@@ -142,6 +192,33 @@ async function submit(): Promise<void> {
 }
 
 .auth-button {
+  margin: 0;
+}
+
+.secondary-action {
   margin-top: 8px;
+}
+
+.google-action {
+  margin: 0;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --color: #f8fafc;
+}
+
+.status-message {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #e5b849;
+}
+
+.text-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 600;
+  color: #94a3b8;
 }
 </style>

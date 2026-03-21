@@ -1,6 +1,7 @@
 import { IonicVue } from '@ionic/vue'
 import { createApp } from 'vue'
 import App from './App.vue'
+import { initializeTheme } from './composables/useAppearance'
 import router from './router'
 import '@ionic/vue/css/core.css'
 import '@ionic/vue/css/normalize.css'
@@ -13,6 +14,8 @@ import '@ionic/vue/css/text-transformation.css'
 import '@ionic/vue/css/flex-utils.css'
 import '@ionic/vue/css/display.css'
 import './theme/variables.css'
+
+initializeTheme()
 
 const app = createApp(App)
 

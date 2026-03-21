@@ -12,6 +12,8 @@ export default defineConfig({
   },
   plugins: [vue()],
   server: {
+    port: 8100,
+    strictPort: true,
     fs: {
       allow: [path.resolve(__dirname, '..')],
     },

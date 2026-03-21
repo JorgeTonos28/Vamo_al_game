@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Vamo al Game</string>
+    <string name="title_activity_main">Vamo al Game</string>
+    <string name="package_name">com.vamoalgame.app</string>
+    <string name="custom_url_scheme">com.vamoalgame.app</string>
+</resources>

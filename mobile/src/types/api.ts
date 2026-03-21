@@ -1,8 +1,22 @@
 import type { components } from '@contracts/api'
 
 export type ApiUser = components['schemas']['User']
+export type AuthChallengeResponse = components['schemas']['TwoFactorChallengeResponse']
+export type AuthResultResponse = AuthTokenResponse | AuthChallengeResponse
+export type GoogleExchangePayload = components['schemas']['GoogleExchangeRequest']
 export type LoginPayload = components['schemas']['LoginRequest']
+export type ProfileUpdatePayload = components['schemas']['ProfileUpdateRequest']
+export type PasswordUpdatePayload = components['schemas']['PasswordUpdateRequest']
+export type DeleteAccountPayload = components['schemas']['ProfileDeleteRequest']
+export type RegisterPayload = components['schemas']['RegisterRequest']
+export type TwoFactorChallengePayload = components['schemas']['TwoFactorChallengeRequest']
 export type AuthTokenResponse = components['schemas']['AuthTokenResponse']
 export type UserResponse = components['schemas']['UserResponse']
 export type HealthResponse = components['schemas']['HealthResponse']
+export type TwoFactorStatusResponse = components['schemas']['TwoFactorStatusResponse']
+export type TwoFactorSetupResponse = components['schemas']['TwoFactorSetupResponse']
+export type RecoveryCodesResponse = components['schemas']['RecoveryCodesResponse']
 export type ErrorResponse = components['schemas']['ErrorResponse']
+export type TwoFactorStatusData = components['schemas']['TwoFactorStatus']
+export type TwoFactorSetupData = components['schemas']['TwoFactorSetup']
+export type RecoveryCodesData = components['schemas']['RecoveryCodes']

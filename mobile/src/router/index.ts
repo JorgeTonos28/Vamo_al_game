@@ -1,22 +1,53 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router'
 import type { RouteRecordRaw } from 'vue-router'
+import AppearancePage from '@/pages/AppearancePage.vue'
+import GoogleAuthCallbackPage from '@/pages/GoogleAuthCallbackPage.vue'
 import HealthPage from '@/pages/HealthPage.vue'
 import HomePage from '@/pages/HomePage.vue'
+import LandingPage from '@/pages/LandingPage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
 import ProfilePage from '@/pages/ProfilePage.vue'
+import RegisterPage from '@/pages/RegisterPage.vue'
+import SecurityPage from '@/pages/SecurityPage.vue'
 import TabsPage from '@/pages/TabsPage.vue'
+import TwoFactorChallengePage from '@/pages/TwoFactorChallengePage.vue'
 import { fetchCurrentUser } from '@/services/auth'
 import { hydrateSessionState, sessionState } from '@/state/session'
 
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    redirect: '/tabs/home',
+    name: 'landing',
+    component: LandingPage,
   },
   {
     path: '/login',
     name: 'login',
     component: LoginPage,
+    meta: {
+      guestOnly: true,
+    },
+  },
+  {
+    path: '/auth/google/callback',
+    name: 'google-callback',
+    component: GoogleAuthCallbackPage,
+    meta: {
+      guestOnly: true,
+    },
+  },
+  {
+    path: '/register',
+    name: 'register',
+    component: RegisterPage,
+    meta: {
+      guestOnly: true,
+    },
+  },
+  {
+    path: '/two-factor-challenge',
+    name: 'two-factor-challenge',
+    component: TwoFactorChallengePage,
     meta: {
       guestOnly: true,
     },
@@ -41,9 +72,29 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'profile',
-        name: 'profile',
+        path: 'settings',
+        redirect: '/tabs/settings/profile',
+      },
+      {
+        path: 'settings/profile',
+        name: 'settings-profile',
         component: ProfilePage,
+        meta: {
+          requiresAuth: true,
+        },
+      },
+      {
+        path: 'settings/security',
+        name: 'settings-security',
+        component: SecurityPage,
+        meta: {
+          requiresAuth: true,
+        },
+      },
+      {
+        path: 'settings/appearance',
+        name: 'settings-appearance',
+        component: AppearancePage,
         meta: {
           requiresAuth: true,
         },

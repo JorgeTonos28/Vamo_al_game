@@ -7,7 +7,7 @@ import {
   IonTabButton,
   IonTabs,
 } from '@ionic/vue'
-import { homeOutline, personCircleOutline, pulseOutline } from 'ionicons/icons'
+import { gridOutline, pulseOutline, settingsOutline } from 'ionicons/icons'
 </script>
 
 <template>
@@ -15,22 +15,22 @@ import { homeOutline, personCircleOutline, pulseOutline } from 'ionicons/icons'
     <IonRouterOutlet />
 
     <template v-slot:bottom>
-<IonTabBar >
+      <IonTabBar>
       <IonTabButton tab="home" href="/tabs/home">
-        <IonIcon :icon="homeOutline" />
-        <IonLabel>Home</IonLabel>
+        <IonIcon :icon="gridOutline" />
+        <IonLabel>Panel</IonLabel>
       </IonTabButton>
 
-      <IonTabButton tab="profile" href="/tabs/profile">
-        <IonIcon :icon="personCircleOutline" />
-        <IonLabel>Perfil</IonLabel>
+      <IonTabButton tab="settings" href="/tabs/settings/profile">
+        <IonIcon :icon="settingsOutline" />
+        <IonLabel>Ajustes</IonLabel>
       </IonTabButton>
 
       <IonTabButton tab="health" href="/tabs/health">
         <IonIcon :icon="pulseOutline" />
         <IonLabel>Health</IonLabel>
       </IonTabButton>
-    </IonTabBar>
-</template>
+      </IonTabBar>
+    </template>
   </IonTabs>
 </template>

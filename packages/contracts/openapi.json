@@ -55,6 +55,16 @@
               }
             }
           },
+          "202": {
+            "description": "Se requiere segundo factor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorChallengeResponse"
+                }
+              }
+            }
+          },
           "403": {
             "description": "Correo no verificado",
             "content": {
@@ -67,6 +77,130 @@
           },
           "422": {
             "description": "Credenciales invalidas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/google/exchange": {
+      "post": {
+        "operationId": "exchangeGoogleHandoff",
+        "summary": "Intercambia un handoff OAuth de Google por token movil",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleExchangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sesion iniciada con Google",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTokenResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Se requiere segundo factor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorChallengeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Handoff invalido o expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/two-factor-challenge": {
+      "post": {
+        "operationId": "completeTwoFactorChallenge",
+        "summary": "Completa el reto de dos factores y emite un token movil",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorChallengeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sesion iniciada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTokenResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Reto o codigo invalido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "operationId": "register",
+        "summary": "Registro movil con verificacion de correo obligatoria",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Cuenta creada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Datos invalidos",
             "content": {
               "application/json": {
                 "schema": {
@@ -127,6 +261,451 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settings/profile": {
+      "patch": {
+        "operationId": "updateProfile",
+        "summary": "Actualiza nombre y correo del usuario autenticado",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Perfil actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Datos invalidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteAccount",
+        "summary": "Elimina la cuenta autenticada",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileDeleteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cuenta eliminada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptySuccessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Password invalida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settings/password": {
+      "put": {
+        "operationId": "updatePassword",
+        "summary": "Actualiza la contrasena del usuario autenticado",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contrasena actualizada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptySuccessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Datos invalidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settings/email/verification-notification": {
+      "post": {
+        "operationId": "sendVerificationEmail",
+        "summary": "Reenvia el correo de verificacion",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Correo reenviado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settings/two-factor": {
+      "get": {
+        "operationId": "showTwoFactorStatus",
+        "summary": "Muestra el estado actual de 2FA",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Estado de 2FA",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorStatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "enableTwoFactor",
+        "summary": "Inicia el setup de 2FA",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Setup de 2FA listo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorSetupResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "disableTwoFactor",
+        "summary": "Desactiva 2FA",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "2FA desactivada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorStatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settings/two-factor/setup": {
+      "get": {
+        "operationId": "showTwoFactorSetup",
+        "summary": "Obtiene el setup actual de 2FA",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Setup cargado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorSetupResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "2FA no iniciada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settings/two-factor/confirm": {
+      "post": {
+        "operationId": "confirmTwoFactor",
+        "summary": "Confirma el setup de 2FA",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmTwoFactorRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "2FA activada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorStatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Codigo invalido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settings/two-factor/recovery-codes": {
+      "get": {
+        "operationId": "listRecoveryCodes",
+        "summary": "Lista los recovery codes activos",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recovery codes cargados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryCodesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "regenerateRecoveryCodes",
+        "summary": "Regenera los recovery codes",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recovery codes regenerados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryCodesResponse"
                 }
               }
             }
@@ -223,6 +802,226 @@
           },
           "device_name": {
             "type": "string"
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "email",
+          "password",
+          "password_confirmation"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255
+          },
+          "password": {
+            "type": "string"
+          },
+          "password_confirmation": {
+            "type": "string"
+          }
+        }
+      },
+      "GoogleExchangeRequest": {
+        "type": "object",
+        "required": [
+          "handoff"
+        ],
+        "properties": {
+          "handoff": {
+            "type": "string",
+            "minLength": 64,
+            "maxLength": 64
+          }
+        }
+      },
+      "ProfileUpdateRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "email"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255
+          }
+        }
+      },
+      "PasswordUpdateRequest": {
+        "type": "object",
+        "required": [
+          "current_password",
+          "password",
+          "password_confirmation"
+        ],
+        "properties": {
+          "current_password": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "password_confirmation": {
+            "type": "string"
+          }
+        }
+      },
+      "ProfileDeleteRequest": {
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "properties": {
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "ConfirmTwoFactorRequest": {
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        }
+      },
+      "TwoFactorChallengeRequest": {
+        "type": "object",
+        "required": [
+          "challenge_token"
+        ],
+        "properties": {
+          "challenge_token": {
+            "type": "string"
+          },
+          "code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "recovery_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "TwoFactorChallenge": {
+        "type": "object",
+        "required": [
+          "challenge_token",
+          "recovery_code_allowed"
+        ],
+        "properties": {
+          "challenge_token": {
+            "type": "string"
+          },
+          "recovery_code_allowed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TwoFactorStatus": {
+        "type": "object",
+        "required": [
+          "enabled",
+          "confirmed",
+          "pending_setup",
+          "can_manage",
+          "requires_confirmation",
+          "recovery_codes_available"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "confirmed": {
+            "type": "boolean"
+          },
+          "pending_setup": {
+            "type": "boolean"
+          },
+          "can_manage": {
+            "type": "boolean"
+          },
+          "requires_confirmation": {
+            "type": "boolean"
+          },
+          "recovery_codes_available": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TwoFactorSetup": {
+        "type": "object",
+        "required": [
+          "enabled",
+          "confirmed",
+          "pending_setup",
+          "can_manage",
+          "requires_confirmation",
+          "qr_code_svg",
+          "qr_code_url",
+          "secret_key"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "confirmed": {
+            "type": "boolean"
+          },
+          "pending_setup": {
+            "type": "boolean"
+          },
+          "can_manage": {
+            "type": "boolean"
+          },
+          "requires_confirmation": {
+            "type": "boolean"
+          },
+          "qr_code_svg": {
+            "type": "string"
+          },
+          "qr_code_url": {
+            "type": "string"
+          },
+          "secret_key": {
+            "type": "string"
+          }
+        }
+      },
+      "RecoveryCodes": {
+        "type": "object",
+        "required": [
+          "codes"
+        ],
+        "properties": {
+          "codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -400,6 +1199,126 @@
           },
           "data": {
             "$ref": "#/components/schemas/AuthToken"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "TwoFactorChallengeResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TwoFactorChallenge"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "TwoFactorStatusResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TwoFactorStatus"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "TwoFactorSetupResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TwoFactorSetup"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "RecoveryCodesResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RecoveryCodes"
           },
           "errors": {
             "type": "array",

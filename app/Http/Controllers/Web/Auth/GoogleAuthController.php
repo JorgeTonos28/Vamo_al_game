@@ -2,61 +2,65 @@
 
 namespace App\Http\Controllers\Web\Auth;
 
+use App\Actions\Api\Auth\CreateMobileOauthHandoff;
+use App\Actions\Auth\SynchronizeGoogleUser;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use GuzzleHttp\Client;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\GoogleProvider;
 use Throwable;
 
 class GoogleAuthController extends Controller
 {
-    public function redirect(): RedirectResponse
+    public function redirect(Request $request): RedirectResponse
     {
+        if ($request->string('channel')->value() === 'mobile') {
+            $request->session()->put('auth.google.channel', 'mobile');
+        } else {
+            $request->session()->forget('auth.google.channel');
+        }
+
         return $this->googleProvider()
             ->redirect();
     }
 
-    public function callback(): RedirectResponse
+    public function callback(
+        Request $request,
+        SynchronizeGoogleUser $synchronizeGoogleUser,
+        CreateMobileOauthHandoff $createMobileOauthHandoff,
+    ): RedirectResponse
     {
         try {
             $googleUser = $this->googleProvider()->user();
         } catch (Throwable $exception) {
             report($exception);
 
-            return redirect()
-                ->route('login')
-                ->with('status', $this->googleFailureMessage($exception));
+            return $this->googleFailureRedirect(
+                $request,
+                $this->googleFailureMessage($exception),
+            );
         }
 
         if (! $googleUser->getEmail()) {
-            return redirect()
-                ->route('login')
-                ->with('status', 'Google no devolvio un correo valido para crear la cuenta.');
+            return $this->googleFailureRedirect(
+                $request,
+                'Google no devolvio un correo valido para crear la cuenta.',
+            );
         }
 
-        $user = User::query()
-            ->where('google_id', $googleUser->getId())
-            ->orWhere('email', $googleUser->getEmail())
-            ->first();
+        $user = $synchronizeGoogleUser->handle($googleUser);
 
-        if (! $user) {
-            $user = User::create([
-                'name' => $googleUser->getName() ?: $googleUser->getNickname() ?: 'Google User',
-                'email' => $googleUser->getEmail(),
-                'password' => Str::password(32),
-                'google_id' => $googleUser->getId(),
-                'avatar' => $googleUser->getAvatar(),
-            ]);
-        } else {
-            $user->forceFill([
-                'google_id' => $googleUser->getId(),
-                'avatar' => $googleUser->getAvatar() ?: $user->avatar,
-                'name' => $user->name ?: ($googleUser->getName() ?: 'Google User'),
-            ])->save();
+        if ($this->usesMobileChannel($request)) {
+            $request->session()->forget('auth.google.channel');
+
+            return $this->completeMobileSignIn(
+                $user,
+                $createMobileOauthHandoff,
+            );
         }
 
         Auth::login($user, true);
@@ -72,6 +76,27 @@ class GoogleAuthController extends Controller
         return redirect()->intended(route('dashboard'));
     }
 
+    private function completeMobileSignIn(
+        User $user,
+        CreateMobileOauthHandoff $createMobileOauthHandoff,
+    ): RedirectResponse
+    {
+        if (! $user->hasVerifiedEmail()) {
+            $user->sendEmailVerificationNotification();
+
+            return redirect()->away($this->mobileCallbackUrl([
+                'status' => 'verification_required',
+                'message' => 'Debes verificar tu correo antes de entrar desde movil.',
+            ]));
+        }
+
+        $handoff = $createMobileOauthHandoff->handle($user, 'Google OAuth');
+
+        return redirect()->away($this->mobileCallbackUrl([
+            'handoff' => $handoff,
+        ]));
+    }
+
     private function googleProvider(): GoogleProvider
     {
         $caBundle = ini_get('curl.cainfo') ?: ini_get('openssl.cafile') ?: true;
@@ -82,6 +107,42 @@ class GoogleAuthController extends Controller
                 'timeout' => 10,
                 'verify' => $caBundle,
             ]));
+    }
+
+    private function googleFailureRedirect(Request $request, string $message): RedirectResponse
+    {
+        if ($this->usesMobileChannel($request)) {
+            $request->session()->forget('auth.google.channel');
+
+            return redirect()->away($this->mobileCallbackUrl([
+                'status' => 'google_failed',
+                'message' => $message,
+            ]));
+        }
+
+        return redirect()
+            ->route('login')
+            ->with('status', $message);
+    }
+
+    private function usesMobileChannel(Request $request): bool
+    {
+        return $request->session()->get('auth.google.channel') === 'mobile';
+    }
+
+    /**
+     * @param  array<string, string>  $query
+     */
+    private function mobileCallbackUrl(array $query = []): string
+    {
+        $baseUrl = rtrim((string) config('app.mobile_url'), '/');
+        $url = "{$baseUrl}/auth/google/callback";
+
+        if ($query === []) {
+            return $url;
+        }
+
+        return $url.'?'.http_build_query($query);
     }
 
     private function googleFailureMessage(Throwable $exception): string

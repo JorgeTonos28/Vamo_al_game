@@ -1,13 +1,21 @@
 import axios from 'axios'
 import { clearSessionState, sessionState } from '@/state/session'
 
+const fallbackApiBaseUrl = 'http://127.0.0.1:8000/api/v1'
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000/api/v1',
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? fallbackApiBaseUrl,
   headers: {
     Accept: 'application/json',
     'Content-Type': 'application/json',
   },
 })
+
+export function backendBaseUrl(): string {
+  const apiBaseUrl = api.defaults.baseURL ?? fallbackApiBaseUrl
+
+  return apiBaseUrl.replace(/\/api\/v\d+\/?$/, '')
+}
 
 api.interceptors.request.use((config) => {
   if (sessionState.token) {

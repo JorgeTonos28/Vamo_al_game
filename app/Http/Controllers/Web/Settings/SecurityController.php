@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web\Settings;
 
+use App\Actions\Auth\UpdateUserPassword;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\Settings\PasswordUpdateRequest;
 use App\Http\Requests\Web\Settings\TwoFactorAuthenticationRequest;
@@ -38,11 +39,12 @@ class SecurityController extends Controller implements HasMiddleware
         return Inertia::render('settings/Security', $props);
     }
 
-    public function update(PasswordUpdateRequest $request): RedirectResponse
+    public function update(
+        PasswordUpdateRequest $request,
+        UpdateUserPassword $updateUserPassword,
+    ): RedirectResponse
     {
-        $request->user()->update([
-            'password' => $request->password,
-        ]);
+        $updateUserPassword->handle($request->user(), $request->string('password')->value());
 
         return back();
     }

@@ -14,6 +14,8 @@
         "lint:check": "eslint .",
         "mobile:build": "npm --prefix mobile run build",
         "mobile:dev": "npm --prefix mobile run dev",
+        "mobile:android": "npm --prefix mobile run android",
+        "mobile:ios": "npm --prefix mobile run ios",
         "mobile:sync": "npm --prefix mobile run sync",
         "mobile:typecheck": "npm --prefix mobile run typecheck",
         "types:check": "vue-tsc --noEmit"

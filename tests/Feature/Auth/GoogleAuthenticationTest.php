@@ -77,6 +77,40 @@ class GoogleAuthenticationTest extends TestCase
         $response->assertRedirect(route('dashboard'));
     }
 
+    public function test_mobile_google_callback_redirects_back_to_the_mobile_shell_with_a_handoff(): void
+    {
+        config([
+            'app.mobile_url' => 'http://localhost:8100',
+        ]);
+
+        $user = User::factory()->create([
+            'email' => 'verified@example.com',
+        ]);
+
+        $googleUser = Mockery::mock(SocialiteUserContract::class);
+        $googleUser->shouldReceive('getId')->andReturn('google-mobile');
+        $googleUser->shouldReceive('getEmail')->andReturn('verified@example.com');
+        $googleUser->shouldReceive('getName')->andReturn('Verified Mobile User');
+        $googleUser->shouldReceive('getNickname')->andReturn(null);
+        $googleUser->shouldReceive('getAvatar')->andReturn('https://example.com/mobile.png');
+
+        $provider = Mockery::mock(GoogleProvider::class);
+        $provider->shouldReceive('setHttpClient')->once()->andReturnSelf();
+        $provider->shouldReceive('user')->once()->andReturn($googleUser);
+
+        Socialite::shouldReceive('driver')
+            ->once()
+            ->with('google')
+            ->andReturn($provider);
+
+        $response = $this
+            ->withSession(['auth.google.channel' => 'mobile'])
+            ->get(route('auth.google.callback'));
+
+        $this->assertGuest();
+        $response->assertRedirectContains('http://localhost:8100/auth/google/callback?handoff=');
+    }
+
     public function test_google_callback_returns_an_actionable_message_for_ssl_certificate_errors(): void
     {
         $provider = Mockery::mock(GoogleProvider::class);

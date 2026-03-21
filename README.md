@@ -11,6 +11,7 @@ El repositorio sigue en una fase inicial, pero ahora ya incluye la base tecnica 
 - API versionada en `routes/api.php` bajo `/api/v1`.
 - Autenticacion web con Fortify y autenticacion movil por token con Sanctum.
 - Shell movil en [`mobile/`](./mobile) con Ionic Vue + Capacitor.
+- Shell movil con landing, login, registro, reto 2FA, panel, ajustes y health, consumiendo la API.
 - Contrato OpenAPI en [`packages/contracts/openapi.json`](./packages/contracts/openapi.json) y tipos TypeScript generados en [`packages/contracts/generated/api.d.ts`](./packages/contracts/generated/api.d.ts).
 - Tokens visuales compartidos en [`packages/design-tokens/theme.css`](./packages/design-tokens/theme.css).
 - Base de datos SQLite por defecto para desarrollo local.
@@ -35,9 +36,15 @@ La base de trabajo a partir de ahora queda definida asi:
 ### Endpoints base disponibles
 
 - `GET /api/v1/health`
+- `POST /api/v1/auth/register`
 - `POST /api/v1/auth/login`
+- `POST /api/v1/auth/two-factor-challenge`
 - `POST /api/v1/auth/logout`
 - `GET /api/v1/me`
+- `PATCH|DELETE /api/v1/settings/profile`
+- `PUT /api/v1/settings/password`
+- `POST /api/v1/settings/email/verification-notification`
+- `GET|POST|DELETE /api/v1/settings/two-factor`
 - `GET /api/v1/users/{user}` como recurso protegido de ejemplo con policy
 
 ## Stack principal
@@ -147,8 +154,11 @@ La autenticacion queda separada por canal:
 Reglas actuales:
 
 - Registro tradicional con email y password.
+- Registro movil por API con verificacion obligatoria antes del primer login.
 - Verificacion obligatoria de correo antes de usar la app web o de recibir token movil.
 - Acceso web con Google mediante Socialite.
+- Acceso movil con Google mediante handoff OAuth y token Sanctum, iniciando desde las pantallas mobile de login/registro.
+- Si la cuenta tiene 2FA activa, el login movil por password o por Google devuelve un reto 2FA antes de emitir el token.
 
 El `DatabaseSeeder` crea o actualiza un usuario demo ya verificado:
 
@@ -157,11 +167,14 @@ El `DatabaseSeeder` crea o actualiza un usuario demo ya verificado:
 
 ### Flujo movil minimo
 
-1. `POST /api/v1/auth/login`
-2. guardar `data.token`
-3. enviar `Authorization: Bearer <token>`
-4. consultar `GET /api/v1/me`
-5. cerrar sesion con `POST /api/v1/auth/logout`
+1. `POST /api/v1/auth/register` si la cuenta aun no existe
+2. verificar correo desde el enlace enviado por Laravel
+3. `POST /api/v1/auth/login`
+4. si la cuenta usa 2FA, completar `POST /api/v1/auth/two-factor-challenge`
+5. guardar `data.token`
+6. enviar `Authorization: Bearer <token>`
+7. consultar `GET /api/v1/me`
+8. cerrar sesion con `POST /api/v1/auth/logout`
 
 Variables relevantes para web/movil:
 
@@ -174,6 +187,13 @@ Variables relevantes para web/movil:
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
 - `GOOGLE_REDIRECT_URI`
+
+Nota para Google en movil:
+
+- `MOBILE_APP_URL` debe coincidir con la URL real desde la que corres el shell movil.
+- En desarrollo, el proyecto movil ahora usa el puerto `8100` para mantener estable el callback de Google.
+- El flujo movil de Google vuelve a `MOBILE_APP_URL/auth/google/callback` y desde ahi intercambia un handoff por token Sanctum.
+- Si la cuenta que vuelve desde Google tiene 2FA activa, el exchange devuelve un reto y el shell movil lo resuelve antes de entrar.
 
 ## Correos en local
 
@@ -360,6 +380,7 @@ Notas importantes:
 
 - Si la URI de callback no coincide exactamente con la configurada en Google, el login fallara.
 - Si el host cambia entre `localhost` y `127.0.0.1`, puedes romper el `state` de OAuth o la sesion del navegador.
+- Si quieres probar Google desde el shell movil en local, `MOBILE_APP_URL` debe apuntar al host/puerto reales del frontend movil, por defecto `http://localhost:8100`.
 - Si la app esta en modo testing en Google, solo podran entrar usuarios agregados como testers.
 - Las cuentas creadas con Google tambien quedan obligadas a verificar email antes de entrar al sistema.
 
@@ -371,6 +392,8 @@ Notas importantes:
 - `npm run contracts:generate`: regenera tipos TypeScript desde `packages/contracts/openapi.json`
 - `npm run mobile:dev`: levanta el shell movil Ionic en desarrollo
 - `npm run mobile:build`: build del shell movil
+- `npm run mobile:android`: abre la plataforma Android en Android Studio
+- `npm run mobile:ios`: abre la plataforma iOS en Xcode
 - `npm run mobile:sync`: sincroniza Capacitor
 - `npm run mobile:typecheck`: validacion de tipos del shell movil
 - `npm run lint`: corrige problemas ESLint cuando es posible
