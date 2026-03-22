@@ -11,13 +11,13 @@ El repositorio sigue en una fase inicial, pero ahora ya incluye la base tecnica 
 - API versionada en `routes/api.php` bajo `/api/v1`.
 - Autenticacion web con Fortify y autenticacion movil por token con Sanctum.
 - Shell movil en [`mobile/`](./mobile) con Ionic Vue + Capacitor.
-- Shell movil con landing, login, registro, reto 2FA, panel, ajustes y health, consumiendo la API.
+- Shell movil con starter animado, login, registro, reto 2FA, panel, ajustes y health, consumiendo la API.
 - Contrato OpenAPI en [`packages/contracts/openapi.json`](./packages/contracts/openapi.json) y tipos TypeScript generados en [`packages/contracts/generated/api.d.ts`](./packages/contracts/generated/api.d.ts).
 - Tokens visuales compartidos en [`packages/design-tokens/theme.css`](./packages/design-tokens/theme.css).
 - Base de datos SQLite por defecto para desarrollo local.
 - Suite de pruebas con Pest.
 
-La web actual sigue funcionando con sus pantallas base y la identidad visual mobile-first ya aplicada en bienvenida, auth, dashboard y settings.
+La web actual separa el landing promocional del shell operativo, adapta dashboard/settings a pantallas grandes y deja el flujo móvil enfocado en starter + acceso + panel operativo.
 
 ## Arquitectura dual web + movil
 
@@ -176,6 +176,8 @@ El `DatabaseSeeder` crea o actualiza un usuario demo ya verificado:
 7. consultar `GET /api/v1/me`
 8. cerrar sesion con `POST /api/v1/auth/logout`
 
+Al abrir la app móvil, el flujo visible arranca con un starter animado con marca y luego redirige al login. Si ya existe sesión, el guard de rutas envía al panel autenticado.
+
 Variables relevantes para web/movil:
 
 - `WEB_APP_URL`
@@ -256,7 +258,7 @@ Si vas a desplegar la app en un hosting con cPanel, lo normal es usar una cuenta
 1. Entra a cPanel.
 2. Ve a `Email Accounts`.
 3. Crea la cuenta que usara la app, por ejemplo:
-   - `no-reply@tu-dominio.com`
+    - `no-reply@tu-dominio.com`
 4. Guarda la contrasena del buzón.
 
 ### Paso 2: Consultar los datos SMTP en cPanel
@@ -343,20 +345,20 @@ Paso a paso:
 2. Crea un proyecto nuevo o usa uno existente para `Vamo al Game`.
 3. Ve a `APIs y servicios` -> `Pantalla de consentimiento OAuth`.
 4. Configura la app:
-   - Tipo: `External` si la usaran cuentas personales de Google.
-   - Nombre de la app, correo de soporte y dominio si aplica.
-   - Agrega tu correo como usuario de prueba mientras la app no este publicada.
+    - Tipo: `External` si la usaran cuentas personales de Google.
+    - Nombre de la app, correo de soporte y dominio si aplica.
+    - Agrega tu correo como usuario de prueba mientras la app no este publicada.
 5. Luego ve a `APIs y servicios` -> `Credenciales`.
 6. Crea una credencial de tipo `ID de cliente OAuth`.
 7. Elige `Aplicacion web`.
 8. En `URIs de redireccion autorizados` agrega:
-   - `http://localhost:8000/auth/google/callback` si ese es tu `APP_URL`
-   - `http://127.0.0.1:8000/auth/google/callback` si abres la app asi
-   - y en produccion, la URL real de tu app: `https://tu-dominio.com/auth/google/callback`
+    - `http://localhost:8000/auth/google/callback` si ese es tu `APP_URL`
+    - `http://127.0.0.1:8000/auth/google/callback` si abres la app asi
+    - y en produccion, la URL real de tu app: `https://tu-dominio.com/auth/google/callback`
 9. En `Origenes autorizados de JavaScript` agrega los origenes base equivalentes:
-   - `http://localhost:8000`
-   - `http://127.0.0.1:8000`
-   - y tu dominio real en produccion si aplica
+    - `http://localhost:8000`
+    - `http://127.0.0.1:8000`
+    - y tu dominio real en produccion si aplica
 10. Copia el `Client ID` y el `Client Secret`.
 11. Pegalos en tu `.env`:
 

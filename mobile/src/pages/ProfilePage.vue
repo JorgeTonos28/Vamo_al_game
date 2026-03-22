@@ -73,7 +73,7 @@ async function handleDeleteAccount(): Promise<void> {
 
   try {
     await deleteAccount(deleteForm)
-    await router.replace({ name: 'landing' })
+    await router.replace({ name: 'login' })
   } finally {
     isDeleting.value = false
   }

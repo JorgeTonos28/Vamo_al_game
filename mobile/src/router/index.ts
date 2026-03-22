@@ -4,11 +4,11 @@ import AppearancePage from '@/pages/AppearancePage.vue'
 import GoogleAuthCallbackPage from '@/pages/GoogleAuthCallbackPage.vue'
 import HealthPage from '@/pages/HealthPage.vue'
 import HomePage from '@/pages/HomePage.vue'
-import LandingPage from '@/pages/LandingPage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
 import ProfilePage from '@/pages/ProfilePage.vue'
 import RegisterPage from '@/pages/RegisterPage.vue'
 import SecurityPage from '@/pages/SecurityPage.vue'
+import StarterPage from '@/pages/StarterPage.vue'
 import TabsPage from '@/pages/TabsPage.vue'
 import TwoFactorChallengePage from '@/pages/TwoFactorChallengePage.vue'
 import { fetchCurrentUser } from '@/services/auth'
@@ -17,8 +17,8 @@ import { hydrateSessionState, sessionState } from '@/state/session'
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    name: 'landing',
-    component: LandingPage,
+    name: 'starter',
+    component: StarterPage,
   },
   {
     path: '/login',

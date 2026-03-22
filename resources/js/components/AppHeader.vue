@@ -46,60 +46,135 @@ const mainNavItems: NavItem[] = [
         class="sticky top-0 z-30 border-b border-white/6 bg-[rgba(10,15,29,0.88)] backdrop-blur-md"
     >
         <div
-            class="app-shell-width flex items-center gap-3 pb-4 pt-[calc(env(safe-area-inset-top)+12px)]"
+            class="app-shell-width py-[calc(env(safe-area-inset-top)+8px)] md:py-[calc(env(safe-area-inset-top)+6px)]"
         >
-            <Link :href="dashboard()" class="min-w-0 flex-1">
-                <AppLogo />
-            </Link>
+            <div class="hidden items-center justify-between gap-6 md:flex">
+                <div class="flex min-w-0 flex-1 items-center gap-8">
+                    <Link :href="dashboard()" class="shrink-0">
+                        <AppLogo compact />
+                    </Link>
 
-            <DropdownMenu>
-                <DropdownMenuTrigger :as-child="true">
-                    <Button
-                        variant="secondary"
-                        size="icon"
-                        class="relative size-12 rounded-full border border-white/6 p-1"
+                    <nav
+                        class="app-tab-strip min-w-0 flex-1 items-center gap-6 overflow-visible"
                     >
-                        <Avatar class="size-10 overflow-hidden rounded-full">
-                            <AvatarImage
-                                v-if="auth.user.avatar"
-                                :src="auth.user.avatar"
-                                :alt="auth.user.name"
-                            />
-                            <AvatarFallback
-                                class="rounded-full bg-[#0E1628] font-semibold text-[#F8FAFC]"
+                        <Link
+                            v-for="item in mainNavItems"
+                            :key="item.title"
+                            :href="item.href"
+                            :class="[
+                                'app-tab-link min-h-10',
+                                {
+                                    'is-active': isCurrentOrParentUrl(
+                                        item.href,
+                                    ),
+                                },
+                            ]"
+                        >
+                            {{ item.title }}
+                        </Link>
+                    </nav>
+                </div>
+
+                <div class="flex shrink-0 items-center gap-3">
+                    <p
+                        v-if="currentPage"
+                        class="hidden rounded-full border border-[rgba(229,184,73,0.14)] bg-[rgba(229,184,73,0.08)] px-3 py-2 text-[11px] font-bold tracking-[0.12em] text-[#E5B849] uppercase xl:inline-flex"
+                    >
+                        {{ currentPage.title }}
+                    </p>
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger :as-child="true">
+                            <Button
+                                variant="secondary"
+                                size="icon-sm"
+                                class="relative shrink-0 rounded-full border border-white/6 bg-[#131B2F] p-0.5 hover:bg-[#1A243A]"
                             >
-                                {{ getInitials(auth.user?.name) }}
-                            </AvatarFallback>
-                        </Avatar>
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" class="w-56">
-                    <UserMenuContent :user="auth.user" />
-                </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
+                                <Avatar
+                                    class="size-[34px] overflow-hidden rounded-full"
+                                >
+                                    <AvatarImage
+                                        v-if="auth.user.avatar"
+                                        :src="auth.user.avatar"
+                                        :alt="auth.user.name"
+                                    />
+                                    <AvatarFallback
+                                        class="rounded-full bg-[#0E1628] font-semibold text-[#F8FAFC]"
+                                    >
+                                        {{ getInitials(auth.user?.name) }}
+                                    </AvatarFallback>
+                                </Avatar>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" class="w-56">
+                            <UserMenuContent :user="auth.user" />
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            </div>
 
-        <div class="app-shell-width pb-3">
-            <nav class="app-tab-strip">
-                <Link
-                    v-for="item in mainNavItems"
-                    :key="item.title"
-                    :href="item.href"
-                    :class="[
-                        'app-tab-link',
-                        { 'is-active': isCurrentOrParentUrl(item.href) },
-                    ]"
+            <div class="md:hidden">
+                <div class="flex items-center justify-between gap-4">
+                    <Link :href="dashboard()" class="min-w-0">
+                        <AppLogo compact />
+                    </Link>
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger :as-child="true">
+                            <Button
+                                variant="secondary"
+                                size="icon-sm"
+                                class="relative rounded-full border border-white/6 bg-[#131B2F] p-0.5 hover:bg-[#1A243A]"
+                            >
+                                <Avatar
+                                    class="size-[34px] overflow-hidden rounded-full"
+                                >
+                                    <AvatarImage
+                                        v-if="auth.user.avatar"
+                                        :src="auth.user.avatar"
+                                        :alt="auth.user.name"
+                                    />
+                                    <AvatarFallback
+                                        class="rounded-full bg-[#0E1628] font-semibold text-[#F8FAFC]"
+                                    >
+                                        {{ getInitials(auth.user?.name) }}
+                                    </AvatarFallback>
+                                </Avatar>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" class="w-56">
+                            <UserMenuContent :user="auth.user" />
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+
+                <div class="mt-3 flex items-end justify-between gap-4">
+                    <nav class="app-tab-strip flex-1">
+                        <Link
+                            v-for="item in mainNavItems"
+                            :key="item.title"
+                            :href="item.href"
+                            :class="[
+                                'app-tab-link',
+                                {
+                                    'is-active': isCurrentOrParentUrl(
+                                        item.href,
+                                    ),
+                                },
+                            ]"
+                        >
+                            {{ item.title }}
+                        </Link>
+                    </nav>
+                </div>
+
+                <p
+                    v-if="currentPage"
+                    class="mt-2 text-[11px] font-bold tracking-[0.12em] text-[#E5B849] uppercase"
                 >
-                    {{ item.title }}
-                </Link>
-            </nav>
-
-            <p
-                v-if="currentPage"
-                class="mt-3 text-[12px] font-bold uppercase tracking-[0.08em] text-[#E5B849]"
-            >
-                {{ currentPage.title }}
-            </p>
+                    {{ currentPage.title }}
+                </p>
+            </div>
         </div>
     </div>
 </template>

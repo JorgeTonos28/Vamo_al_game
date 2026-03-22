@@ -26,7 +26,7 @@ withDefaults(defineProps<Props>(), {
             :class="
                 variant === 'small'
                     ? 'app-body-copy'
-                    : 'max-w-sm text-[14px] leading-6 text-[#94A3B8]'
+                    : 'max-w-2xl text-[14px] leading-6 text-[#94A3B8]'
             "
         >
             {{ description }}

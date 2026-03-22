@@ -10,15 +10,15 @@ import type { NavItem } from '@/types';
 
 const sidebarNavItems: NavItem[] = [
     {
-        title: 'Profile',
+        title: 'Perfil',
         href: editProfile(),
     },
     {
-        title: 'Security',
+        title: 'Seguridad',
         href: editSecurity(),
     },
     {
-        title: 'Appearance',
+        title: 'Apariencia',
         href: editAppearance(),
     },
 ];
@@ -30,27 +30,40 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
     <div class="app-page-stack">
         <Heading
             title="Ajustes"
-            description="Controla tu cuenta, seguridad y preferencias dentro del mismo shell mobile-first."
+            description="Organiza tu cuenta, seguridad y apariencia desde un centro de control mas claro en desktop, sin perder el ritmo movil."
         />
 
-        <nav class="-mx-4 px-4" aria-label="Settings">
-            <div class="app-tab-strip">
-                <Link
-                    v-for="item in sidebarNavItems"
-                    :key="toUrl(item.href)"
-                    :href="item.href"
-                    :class="[
-                        'app-tab-link',
-                        { 'is-active': isCurrentOrParentUrl(item.href) },
-                    ]"
-                >
-                    {{ item.title }}
-                </Link>
-            </div>
-        </nav>
+        <div class="app-settings-shell">
+            <aside
+                class="app-surface space-y-5 xl:sticky xl:top-24 xl:self-start"
+            >
+                <div class="space-y-2">
+                    <p class="app-kicker text-[#E5B849]">Centro de control</p>
+                    <p class="text-[14px] leading-6 text-[#94A3B8]">
+                        Ajusta tus datos, fortalece el acceso y define la
+                        apariencia del panel desde una navegacion mas comoda en
+                        pantallas amplias.
+                    </p>
+                </div>
 
-        <section class="app-surface space-y-12">
-            <slot />
-        </section>
+                <nav class="app-settings-nav" aria-label="Settings">
+                    <Link
+                        v-for="item in sidebarNavItems"
+                        :key="toUrl(item.href)"
+                        :href="item.href"
+                        :class="[
+                            'app-settings-link',
+                            { 'is-active': isCurrentOrParentUrl(item.href) },
+                        ]"
+                    >
+                        {{ item.title }}
+                    </Link>
+                </nav>
+            </aside>
+
+            <section class="app-surface space-y-10 md:space-y-12">
+                <slot />
+            </section>
+        </div>
     </div>
 </template>

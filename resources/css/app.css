@@ -60,6 +60,32 @@
         border-color: var(--border);
         -webkit-tap-highlight-color: transparent;
     }
+
+    html {
+        background: var(--background);
+        color: var(--foreground);
+        scroll-behavior: smooth;
+    }
+
+    body {
+        min-height: 100svh;
+        margin: 0;
+        font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+        background:
+            radial-gradient(
+                circle at top,
+                rgba(74, 222, 128, 0.12),
+                transparent 26%
+            ),
+            radial-gradient(
+                circle at bottom,
+                rgba(229, 184, 73, 0.14),
+                transparent 32%
+            ),
+            var(--background);
+        color: var(--foreground);
+    }
+
     main {
         width: 100%;
     }
@@ -71,4 +97,332 @@
 }
 
 @layer utilities {
+    :root {
+        --app-web-max: 1280px;
+    }
+
+    .app-shell-width {
+        width: 100%;
+        max-width: calc(var(--app-shell-max) + (var(--app-gutter) * 2));
+        margin-inline: auto;
+        padding-inline: var(--app-gutter);
+    }
+
+    .app-shell-frame {
+        width: 100%;
+        min-height: 100svh;
+        max-width: calc(var(--app-shell-max) + (var(--app-gutter) * 2));
+        margin-inline: auto;
+        padding-inline: var(--app-gutter);
+        padding-top: calc(env(safe-area-inset-top) + 16px);
+        padding-bottom: calc(env(safe-area-inset-bottom) + 24px);
+    }
+
+    .app-main-shell {
+        margin-inline: auto;
+        display: flex;
+        min-height: 100%;
+        width: 100%;
+        max-width: calc(var(--app-shell-max) + (var(--app-gutter) * 2));
+        flex: 1;
+        flex-direction: column;
+        gap: 24px;
+        padding-inline: var(--app-gutter);
+        padding-top: 20px;
+        padding-bottom: calc(env(safe-area-inset-bottom) + 24px);
+    }
+
+    .app-page-stack {
+        display: flex;
+        flex-direction: column;
+        gap: var(--app-section-gap);
+    }
+
+    .app-surface {
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        border-radius: 12px;
+        background: var(--card);
+        padding: var(--app-card-padding);
+    }
+
+    .app-surface-elevated {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px 24px 0 0;
+        background: var(--popover);
+        padding: var(--app-card-padding);
+    }
+
+    .app-kicker {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--foreground);
+    }
+
+    .app-body-copy {
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--muted-foreground);
+    }
+
+    .app-display {
+        font-family: var(--font-display), ui-sans-serif, sans-serif;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .app-tab-strip {
+        display: flex;
+        gap: 20px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        scroll-behavior: smooth;
+        scroll-snap-type: x mandatory;
+    }
+
+    .app-tab-strip::-webkit-scrollbar,
+    .scrollbar-none::-webkit-scrollbar,
+    .app-settings-nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .app-tab-link {
+        position: relative;
+        display: inline-flex;
+        min-height: 48px;
+        align-items: center;
+        white-space: nowrap;
+        scroll-snap-align: start;
+        padding-bottom: 2px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #94a3b8;
+        transition:
+            color 0.15s ease-out,
+            opacity 0.1s ease-out,
+            transform 0.1s ease-out;
+    }
+
+    .app-tab-link::after {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        height: 2px;
+        border-radius: 2px 2px 0 0;
+        background: transparent;
+        content: '';
+        transition: background-color 0.15s ease-out;
+    }
+
+    .app-tab-link:hover {
+        color: #f8fafc;
+    }
+
+    .app-tab-link:active {
+        transform: scale(0.97);
+        opacity: 0.8;
+    }
+
+    .app-tab-link.is-active {
+        color: #e5b849;
+    }
+
+    .app-tab-link.is-active::after {
+        background: #e5b849;
+    }
+
+    .app-badge-positive,
+    .app-badge-negative {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+    }
+
+    .app-badge-positive {
+        background: rgba(74, 222, 128, 0.12);
+        color: #4ade80;
+    }
+
+    .app-badge-negative {
+        background: rgba(248, 113, 113, 0.15);
+        color: #fca5a5;
+    }
+
+    .app-divider-list > * {
+        padding-block: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .app-divider-list > *:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .app-settings-shell {
+        display: grid;
+        gap: 24px;
+    }
+
+    .app-settings-nav {
+        display: flex;
+        gap: 12px;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .app-settings-link {
+        display: inline-flex;
+        min-height: 48px;
+        min-width: max-content;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding-inline: 16px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #94a3b8;
+        background: rgba(14, 22, 40, 0.72);
+        transition:
+            transform 0.1s ease-out,
+            opacity 0.1s ease-out,
+            border-color 0.2s ease-out,
+            background-color 0.2s ease-out,
+            color 0.2s ease-out;
+    }
+
+    .app-settings-link:hover {
+        color: #f8fafc;
+        border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .app-settings-link:active {
+        transform: scale(0.97);
+        opacity: 0.8;
+    }
+
+    .app-settings-link.is-active {
+        color: #f8fafc;
+        border-color: rgba(229, 184, 73, 0.28);
+        background: rgba(229, 184, 73, 0.12);
+    }
+
+    .landing-showcase-card {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 28px;
+        background: linear-gradient(
+            180deg,
+            rgba(26, 36, 58, 0.96),
+            rgba(14, 22, 40, 0.9)
+        );
+        padding: 20px;
+        backdrop-filter: blur(14px);
+    }
+
+    .landing-grid-bg {
+        background-image:
+            linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+            linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0.05) 1px,
+                transparent 1px
+            );
+        background-size: 48px 48px;
+        mask-image: linear-gradient(
+            180deg,
+            rgba(0, 0, 0, 0.9),
+            rgba(0, 0, 0, 0.5) 72%,
+            transparent
+        );
+    }
+
+    .landing-reveal {
+        opacity: 0;
+        animation: landing-reveal 0.72s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .landing-reveal-delay {
+        animation-delay: 0.12s;
+    }
+
+    .landing-reveal-delay-2 {
+        animation-delay: 0.24s;
+    }
+
+    .landing-float-slow {
+        animation: landing-float 10s ease-in-out infinite;
+    }
+
+    .landing-float-fast {
+        animation: landing-float 7s ease-in-out infinite reverse;
+    }
+
+    .scrollbar-none {
+        scrollbar-width: none;
+    }
+
+    @keyframes landing-reveal {
+        from {
+            opacity: 0;
+            transform: translate3d(0, 20px, 0);
+        }
+
+        to {
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+        }
+    }
+
+    @keyframes landing-float {
+        0%,
+        100% {
+            transform: translate3d(0, 0, 0);
+        }
+
+        50% {
+            transform: translate3d(0, -12px, 0);
+        }
+    }
+
+    @media (min-width: 768px) {
+        .app-shell-width,
+        .app-shell-frame,
+        .app-main-shell {
+            max-width: min(var(--app-web-max), calc(100vw - 48px));
+            padding-inline: 24px;
+        }
+
+        .app-main-shell {
+            gap: 28px;
+            padding-top: 28px;
+        }
+
+        .landing-showcase-card {
+            padding: 24px;
+        }
+    }
+
+    @media (min-width: 1280px) {
+        .app-settings-shell {
+            grid-template-columns: 280px minmax(0, 1fr);
+            align-items: start;
+        }
+
+        .app-settings-nav {
+            flex-direction: column;
+            overflow: visible;
+        }
+
+        .app-settings-link {
+            width: 100%;
+            justify-content: flex-start;
+        }
+    }
 }
