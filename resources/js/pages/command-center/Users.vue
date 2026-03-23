@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,11 @@ defineProps<{
     roleOptions: Array<{
         value: string;
         label: string;
+    }>;
+    leagueOptions: Array<{
+        id: number;
+        name: string;
+        slug: string;
     }>;
     users: Array<{
         id: number;
@@ -39,7 +44,21 @@ const form = useForm({
     address: '',
     email: '',
     account_role: '',
+    league_id: '',
 });
+
+const requiresLeagueAssignment = computed(() =>
+    ['league_admin', 'member'].includes(form.account_role),
+);
+
+watch(
+    () => form.account_role,
+    (role) => {
+        if (! ['league_admin', 'member'].includes(role)) {
+            form.league_id = '';
+        }
+    },
+);
 
 const submit = () => {
     form.post('/command-center/users', {
@@ -130,6 +149,28 @@ const submit = () => {
                             </option>
                         </select>
                         <InputError :message="form.errors.account_role" />
+                    </div>
+
+                    <div v-if="requiresLeagueAssignment" class="grid gap-2 md:col-span-2">
+                        <Label for="league_id">Liga inicial</Label>
+                        <select
+                            id="league_id"
+                            v-model="form.league_id"
+                            class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-3 text-sm text-[#F8FAFC] outline-none transition focus:border-[rgba(229,184,73,0.28)]"
+                        >
+                            <option value="">Selecciona una liga activa</option>
+                            <option
+                                v-for="league in leagueOptions"
+                                :key="league.id"
+                                :value="league.id"
+                            >
+                                {{ league.name }}
+                            </option>
+                        </select>
+                        <p class="text-[13px] text-[#94A3B8]">
+                            Esta seleccion crea la membresia inicial y define la liga activa del usuario invitado.
+                        </p>
+                        <InputError :message="form.errors.league_id" />
                     </div>
 
                     <div class="md:col-span-2">

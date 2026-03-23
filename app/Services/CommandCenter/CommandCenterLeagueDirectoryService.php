@@ -2,7 +2,11 @@
 
 namespace App\Services\CommandCenter;
 
+use App\Enums\LeagueMembershipRole;
 use App\Models\League;
+use App\Models\LeagueMembership;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class CommandCenterLeagueDirectoryService
 {
@@ -45,9 +49,15 @@ class CommandCenterLeagueDirectoryService
      */
     public function toggle(League $league): array
     {
-        $league->update([
-            'is_active' => ! $league->is_active,
-        ]);
+        DB::transaction(function () use ($league): void {
+            $league->update([
+                'is_active' => ! $league->is_active,
+            ]);
+
+            if (! $league->is_active) {
+                $this->reassignUsersFromInactiveLeague($league);
+            }
+        });
 
         return $this->toArray(
             $league->fresh([
@@ -86,5 +96,38 @@ class CommandCenterLeagueDirectoryService
             'members_count' => (int) $league->member_memberships_count,
             'created_at' => $league->created_at?->toDateTimeString(),
         ];
+    }
+
+    private function reassignUsersFromInactiveLeague(League $league): void
+    {
+        User::query()
+            ->where('active_league_id', $league->id)
+            ->get()
+            ->each(function (User $user) use ($league): void {
+                $fallbackLeagueId = $this->fallbackActiveLeagueIdFor($user, $league->id);
+
+                if ($fallbackLeagueId === null) {
+                    return;
+                }
+
+                $user->forceFill([
+                    'active_league_id' => $fallbackLeagueId,
+                ])->save();
+            });
+    }
+
+    private function fallbackActiveLeagueIdFor(User $user, int $excludedLeagueId): ?int
+    {
+        return LeagueMembership::query()
+            ->join('leagues', 'leagues.id', '=', 'league_memberships.league_id')
+            ->where('league_memberships.user_id', $user->id)
+            ->where('league_memberships.league_id', '!=', $excludedLeagueId)
+            ->where('leagues.is_active', true)
+            ->orderByRaw(
+                'case when league_memberships.role = ? then 0 else 1 end',
+                [LeagueMembershipRole::Admin->value],
+            )
+            ->orderBy('leagues.name')
+            ->value('leagues.id');
     }
 }

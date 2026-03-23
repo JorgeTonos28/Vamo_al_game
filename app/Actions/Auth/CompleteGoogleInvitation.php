@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\UserInvitation;
 use App\Services\Invitations\UserInvitationService;
 use App\Support\UserName;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class CompleteGoogleInvitation
 {
@@ -16,11 +17,11 @@ class CompleteGoogleInvitation
     public function handle(UserInvitation $invitation, string $token, User $user): User
     {
         if (! $this->userInvitationService->isValid($invitation, $token)) {
-            abort(403, 'La invitacion no es valida o ya expiró.');
+            throw new HttpException(403, 'La invitacion no es valida o ya expiro.');
         }
 
         if (! hash_equals(strtolower($invitation->user->email), strtolower($user->email))) {
-            abort(403, 'La cuenta de Google no coincide con el correo invitado.');
+            throw new HttpException(403, 'La cuenta de Google no coincide con el correo invitado.');
         }
 
         $currentDisplayName = UserName::displayName($user->first_name, $user->last_name);

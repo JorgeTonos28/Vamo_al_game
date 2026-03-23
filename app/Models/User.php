@@ -85,6 +85,18 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasOne(UserInvitation::class);
     }
 
+    public function hasPendingInvitation(): bool
+    {
+        if ($this->relationLoaded('invitation')) {
+            return $this->invitation?->isPending() ?? false;
+        }
+
+        return $this->invitation()
+            ->whereNull('accepted_at')
+            ->where('expires_at', '>', now())
+            ->exists();
+    }
+
     public function isGeneralAdmin(): bool
     {
         return $this->account_role?->isGeneralAdmin() ?? false;

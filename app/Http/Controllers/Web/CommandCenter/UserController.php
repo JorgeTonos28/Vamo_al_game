@@ -17,6 +17,7 @@ class UserController extends Controller
 
         return Inertia::render('command-center/Users', [
             'roleOptions' => $payload['role_options'],
+            'leagueOptions' => $payload['league_options'],
             'users' => $payload['users'],
         ]);
     }

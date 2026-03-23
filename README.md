@@ -241,9 +241,13 @@ Los administradores generales acceden a un shell separado de la app regular. Por
 
 - Los administradores generales crean usuarios desde `Usuarios`.
 - Si el rol no se define, la cuenta se crea como `guest`.
+- Si el rol seleccionado es `league_admin` o `member`, el formulario exige una `Liga inicial`.
+- Esa `Liga inicial` crea de inmediato la primera fila en `league_memberships` y tambien define `users.active_league_id`.
 - El sistema envia un correo con enlace para completar onboarding por password o continuar con Google.
 - Durante el onboarding, el usuario puede completar o corregir los datos basicos precargados.
+- Mientras la invitacion siga pendiente, la cuenta no puede iniciar sesion ni usar recuperacion de contrasena fuera del flujo de aceptacion.
 - Al terminar el onboarding, la cuenta queda habilitada segun su rol global y sus membresias activas.
+- Si el enlace de invitacion con Google falla por token expirado o por elegir otra cuenta, web y movil redirigen de vuelta al login con el error normalizado.
 - Los correos usan el branding configurado por los administradores generales cuando existe un logo personalizado.
 
 ### Cuentas seed locales
@@ -265,6 +269,8 @@ Ademas, el seeder crea ligas de muestra y membresias para probar el contexto mul
 - Acceso web con Google mediante Socialite.
 - Acceso movil con Google mediante handoff OAuth y token Sanctum.
 - Si la cuenta tiene 2FA activa, el login movil por password o por Google devuelve un reto 2FA antes de emitir el token.
+- Si la administracion general desactiva la liga que el usuario tenia seleccionada, el sistema intenta moverlo automaticamente a otra liga activa donde tenga membresia.
+- Si el usuario selecciona manualmente una liga revocada desde el switch, la app mantiene esa seleccion y muestra la pantalla de acceso no disponible hasta que cambie a otra liga valida.
 
 ## Flujo movil minimo
 

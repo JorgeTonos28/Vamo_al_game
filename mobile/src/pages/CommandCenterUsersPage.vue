@@ -12,13 +12,14 @@ import {
   onIonViewWillEnter,
 } from '@ionic/vue'
 import type { AxiosError } from 'axios'
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
 import { fetchCommandCenterUsers, inviteCommandCenterUser } from '@/services/command-center'
 import type {
   CommandCenterUser,
   CommandCenterInviteUserPayload,
   ErrorResponse,
+  LeagueOption,
   RoleOption,
 } from '@/types/api'
 
@@ -30,10 +31,12 @@ const form = reactive<CommandCenterInviteUserPayload>({
   address: null,
   email: '',
   account_role: null,
+  league_id: null,
 })
 
 const users = ref<CommandCenterUser[]>([])
 const roleOptions = ref<RoleOption[]>([])
+const leagueOptions = ref<LeagueOption[]>([])
 const isLoading = ref(false)
 const isSubmitting = ref(false)
 const successMessage = ref<string | null>(null)
@@ -46,10 +49,21 @@ async function loadUsers(): Promise<void> {
     const response = await fetchCommandCenterUsers()
     users.value = response.users
     roleOptions.value = response.role_options
+    leagueOptions.value = response.league_options
   } finally {
     isLoading.value = false
   }
 }
+
+const requiresLeagueAssignment = computed(() =>
+  form.account_role === 'league_admin' || form.account_role === 'member',
+)
+
+watch(() => form.account_role, (role) => {
+  if (role !== 'league_admin' && role !== 'member') {
+    form.league_id = null
+  }
+})
 
 function resetForm(): void {
   form.first_name = ''
@@ -59,6 +73,7 @@ function resetForm(): void {
   form.address = null
   form.email = ''
   form.account_role = null
+  form.league_id = null
 }
 
 async function submit(): Promise<void> {
@@ -161,6 +176,20 @@ onIonViewWillEnter(loadUsers)
                   </IonSelectOption>
                 </IonSelect>
               </IonItem>
+            </div>
+
+            <div v-if="requiresLeagueAssignment" class="field-group">
+              <IonLabel position="stacked">Liga inicial</IonLabel>
+              <IonItem lines="none">
+                <IonSelect v-model="form.league_id" interface="action-sheet" placeholder="Selecciona una liga activa">
+                  <IonSelectOption v-for="league in leagueOptions" :key="league.id" :value="league.id">
+                    {{ league.name }}
+                  </IonSelectOption>
+                </IonSelect>
+              </IonItem>
+              <p class="section-description">
+                Esta seleccion crea la membresia inicial y define la liga activa del usuario invitado.
+              </p>
             </div>
 
             <IonButton :disabled="isSubmitting" expand="block" @click="submit">

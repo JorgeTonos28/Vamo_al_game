@@ -17,9 +17,11 @@ class InviteUserRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $role = $this->input('account_role');
+        $leagueId = $this->input('league_id');
 
         $this->merge([
             'account_role' => $role !== '' ? $role : null,
+            'league_id' => $leagueId !== '' ? $leagueId : null,
         ]);
     }
 
@@ -36,6 +38,15 @@ class InviteUserRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
             'account_role' => ['nullable', Rule::enum(AccountRole::class)],
+            'league_id' => [
+                Rule::requiredIf(fn (): bool => in_array($this->input('account_role'), [
+                    AccountRole::LeagueAdmin->value,
+                    AccountRole::Member->value,
+                ], true)),
+                'nullable',
+                'integer',
+                Rule::exists('leagues', 'id')->where(fn ($query) => $query->where('is_active', true)),
+            ],
         ];
     }
 }

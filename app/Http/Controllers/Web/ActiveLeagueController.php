@@ -20,6 +20,8 @@ class ActiveLeagueController extends Controller
             403,
         );
 
-        return back()->with('status', 'Liga activa actualizada.');
+        return redirect()
+            ->route('dashboard')
+            ->with('status', 'Liga activa actualizada.');
     }
 }

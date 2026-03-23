@@ -38,7 +38,8 @@ class CommandCenterApiTest extends TestCase
         $this->actingAs($generalAdmin, 'sanctum')
             ->getJson('/api/v1/command-center/users')
             ->assertOk()
-            ->assertJsonCount(4, 'data.role_options');
+            ->assertJsonCount(4, 'data.role_options')
+            ->assertJsonCount(1, 'data.league_options');
 
         $this->actingAs($generalAdmin, 'sanctum')
             ->getJson('/api/v1/command-center/leagues')
@@ -51,6 +52,7 @@ class CommandCenterApiTest extends TestCase
         Notification::fake();
 
         $generalAdmin = User::factory()->generalAdmin()->create();
+        $league = League::factory()->create();
 
         $this->actingAs($generalAdmin, 'sanctum')
             ->postJson('/api/v1/command-center/users', [
@@ -60,13 +62,22 @@ class CommandCenterApiTest extends TestCase
                 'phone' => '809-555-1111',
                 'address' => 'Santo Domingo',
                 'email' => 'laura@example.com',
-                'account_role' => AccountRole::Guest->value,
+                'account_role' => AccountRole::LeagueAdmin->value,
+                'league_id' => $league->id,
             ])
             ->assertCreated()
-            ->assertJsonPath('data.user.email', 'laura@example.com');
+            ->assertJsonPath('data.user.email', 'laura@example.com')
+            ->assertJsonPath('data.user.league_memberships_count', 1);
 
         $this->assertDatabaseHas('users', [
             'email' => 'laura@example.com',
+            'active_league_id' => $league->id,
+        ]);
+
+        $this->assertDatabaseHas('league_memberships', [
+            'user_id' => User::query()->where('email', 'laura@example.com')->value('id'),
+            'league_id' => $league->id,
+            'role' => 'admin',
         ]);
     }
 

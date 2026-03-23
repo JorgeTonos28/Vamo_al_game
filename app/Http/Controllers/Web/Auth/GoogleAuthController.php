@@ -65,11 +65,23 @@ class GoogleAuthController extends Controller
         }
 
         $user = $synchronizeGoogleUser->handle($googleUser);
-        $user = $this->completeInvitationIfPresent(
-            $request,
-            $user,
-            $completeGoogleInvitation,
-        );
+
+        try {
+            $user = $this->completeInvitationIfPresent(
+                $request,
+                $user,
+                $completeGoogleInvitation,
+            );
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return $this->googleFailureRedirect(
+                $request,
+                $exception->getMessage() !== ''
+                    ? $exception->getMessage()
+                    : 'No fue posible completar la invitacion con Google.',
+            );
+        }
 
         if (! $user->hasCompletedOnboarding()) {
             return $this->googleFailureRedirect(

@@ -38,7 +38,7 @@ class UserController extends Controller
                     'email' => $user->email,
                     'account_role' => $user->account_role?->value,
                     'account_role_label' => $user->account_role?->label(),
-                    'league_memberships_count' => 0,
+                    'league_memberships_count' => $user->leagueMemberships()->count(),
                     'has_completed_onboarding' => $user->hasCompletedOnboarding(),
                     'invited_at' => $user->invited_at?->toDateTimeString(),
                     'created_at' => $user->created_at?->toDateTimeString(),

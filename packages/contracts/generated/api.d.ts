@@ -410,6 +410,7 @@ export interface components {
             /** Format: email */
             email: string;
             account_role?: components["schemas"]["AccountRole"] | null;
+            league_id?: number | null;
         };
         ActiveLeagueUpdateRequest: {
             league_id: number;
@@ -514,6 +515,11 @@ export interface components {
             value: string;
             label: string;
         };
+        LeagueOption: {
+            id: number;
+            name: string;
+            slug: string;
+        };
         CommandCenterUser: {
             id: number;
             name: string;
@@ -547,6 +553,7 @@ export interface components {
         };
         CommandCenterUsersPayload: {
             role_options: components["schemas"]["RoleOption"][];
+            league_options: components["schemas"]["LeagueOption"][];
             users: components["schemas"]["CommandCenterUser"][];
         };
         CommandCenterInviteUserPayload: {

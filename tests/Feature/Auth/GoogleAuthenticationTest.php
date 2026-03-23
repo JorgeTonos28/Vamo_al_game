@@ -3,6 +3,7 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
+use App\Models\UserInvitation;
 use App\Notifications\VerifyEmailNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -132,5 +133,50 @@ class GoogleAuthenticationTest extends TestCase
                 && str_contains($status, 'openssl.cafile')
                 && str_contains($status, 'localhost o 127.0.0.1');
         });
+    }
+
+    public function test_google_callback_redirects_back_to_login_when_invitation_completion_fails(): void
+    {
+        $invitedUser = User::factory()->create([
+            'email' => 'invitee@example.com',
+            'invited_at' => now(),
+            'onboarded_at' => null,
+        ]);
+
+        $invitation = UserInvitation::query()->create([
+            'user_id' => $invitedUser->id,
+            'token_hash' => hash('sha256', 'valid-token'),
+            'expires_at' => now()->subDay(),
+            'accepted_at' => null,
+            'last_sent_at' => now(),
+        ]);
+
+        $googleUser = Mockery::mock(SocialiteUserContract::class);
+        $googleUser->shouldReceive('getId')->andReturn('google-invitee');
+        $googleUser->shouldReceive('getEmail')->andReturn('invitee@example.com');
+        $googleUser->shouldReceive('getName')->andReturn('Invitee');
+        $googleUser->shouldReceive('getNickname')->andReturn(null);
+        $googleUser->shouldReceive('getAvatar')->andReturn('https://example.com/invitee.png');
+
+        $provider = Mockery::mock(GoogleProvider::class);
+        $provider->shouldReceive('setHttpClient')->once()->andReturnSelf();
+        $provider->shouldReceive('user')->once()->andReturn($googleUser);
+
+        Socialite::shouldReceive('driver')
+            ->once()
+            ->with('google')
+            ->andReturn($provider);
+
+        $response = $this
+            ->withSession([
+                'auth.google.invitation' => [
+                    'invitation_id' => $invitation->id,
+                    'token' => 'valid-token',
+                ],
+            ])
+            ->get(route('auth.google.callback'));
+
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHas('status', 'La invitacion no es valida o ya expiro.');
     }
 }
