@@ -6,6 +6,7 @@ use App\Models\BrandingSetting;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 class AppBrandingService
 {
@@ -17,17 +18,20 @@ class AppBrandingService
             return $this->brandingSetting;
         }
 
-        if (! Schema::hasTable('branding_settings')) {
-            return $this->brandingSetting = new BrandingSetting([
-                'logo_path' => null,
-                'favicon_path' => null,
-            ]);
-        }
+        try {
+            if (! Schema::hasTable('branding_settings')) {
+                return $this->brandingSetting = $this->fallbackSettings();
+            }
 
-        return $this->brandingSetting = BrandingSetting::query()->firstOrCreate(
-            ['id' => 1],
-            [],
-        );
+            return $this->brandingSetting = BrandingSetting::query()->firstOrCreate(
+                ['id' => 1],
+                [],
+            );
+        } catch (Throwable) {
+            // Wayfinder/Vite can boot Laravel before migrations in CI. Fallback to in-memory
+            // defaults so asset/type generation does not depend on a ready database.
+            return $this->brandingSetting = $this->fallbackSettings();
+        }
     }
 
     /**
@@ -136,5 +140,13 @@ class AppBrandingService
             'webp' => 'image/webp',
             default => null,
         };
+    }
+
+    private function fallbackSettings(): BrandingSetting
+    {
+        return new BrandingSetting([
+            'logo_path' => null,
+            'favicon_path' => null,
+        ]);
     }
 }
