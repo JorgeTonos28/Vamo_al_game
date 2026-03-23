@@ -92,31 +92,31 @@ async function handleLogout(): Promise<void> {
         <SettingsLayout>
           <section class="settings-section">
             <div class="section-copy">
-              <p class="app-kicker">Profile information</p>
-              <p class="app-body-copy">Update your name and email address.</p>
+              <p class="app-kicker">Informacion del perfil</p>
+              <p class="app-body-copy">Actualiza tu nombre y correo principal.</p>
             </div>
 
             <div class="field-group">
-              <IonLabel position="stacked">Name</IonLabel>
+              <IonLabel position="stacked">Nombre</IonLabel>
               <IonItem lines="none">
-                <IonInput v-model="profileForm.name" placeholder="Full name" />
+                <IonInput v-model="profileForm.name" placeholder="Nombre completo" />
               </IonItem>
             </div>
 
             <div class="field-group">
-              <IonLabel position="stacked">Email address</IonLabel>
+              <IonLabel position="stacked">Correo</IonLabel>
               <IonItem lines="none">
-                <IonInput v-model="profileForm.email" placeholder="Email address" type="email" />
+                <IonInput v-model="profileForm.email" placeholder="Correo electronico" type="email" />
               </IonItem>
             </div>
 
             <div v-if="!sessionState.user?.email_verified_at" class="verification-box">
               <p class="app-body-copy verification-copy">
-                Your email address is unverified. Tap below to resend the verification email.
+                Tu correo aun no esta verificado. Usa el boton inferior para reenviar el email de verificacion.
               </p>
 
               <IonButton fill="clear" size="small" @click="resendVerification">
-                Resend verification email
+                Reenviar verificacion
               </IonButton>
 
               <p v-if="verificationMessage" class="verification-status">{{ verificationMessage }}</p>
@@ -131,28 +131,25 @@ async function handleLogout(): Promise<void> {
             </IonText>
 
             <IonButton :disabled="isSaving || isLoading" expand="block" @click="submitProfile">
-              {{ isSaving ? 'Guardando...' : 'Save' }}
+              {{ isSaving ? 'Guardando...' : 'Guardar perfil' }}
             </IonButton>
           </section>
 
           <section class="settings-section danger-zone">
             <div class="section-copy">
-              <p class="app-kicker">Delete account</p>
-              <p class="app-body-copy">
-                Once your account is deleted, all of its resources and data will be permanently
-                removed.
-              </p>
+              <p class="app-kicker">Eliminar cuenta</p>
+              <p class="app-body-copy">Esta accion elimina la cuenta y sus datos de forma permanente.</p>
             </div>
 
             <div class="field-group">
-              <IonLabel position="stacked">Current password</IonLabel>
+              <IonLabel position="stacked">Contrasena actual</IonLabel>
               <IonItem lines="none">
-                <IonInput v-model="deleteForm.password" placeholder="Current password" type="password" />
+                <IonInput v-model="deleteForm.password" placeholder="Contrasena actual" type="password" />
               </IonItem>
             </div>
 
             <IonButton color="danger" :disabled="isDeleting" expand="block" @click="handleDeleteAccount">
-              {{ isDeleting ? 'Eliminando...' : 'Delete account' }}
+              {{ isDeleting ? 'Eliminando...' : 'Eliminar cuenta' }}
             </IonButton>
 
             <IonButton color="secondary" expand="block" fill="solid" @click="handleLogout">

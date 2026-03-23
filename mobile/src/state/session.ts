@@ -1,6 +1,6 @@
 import { Preferences } from '@capacitor/preferences'
 import { reactive } from 'vue'
-import type { ApiUser } from '@/types/api'
+import type { ApiUser, TenancyContext } from '@/types/api'
 
 const TOKEN_KEY = 'vamo-al-game.token'
 
@@ -8,10 +8,12 @@ export const sessionState = reactive<{
   ready: boolean
   token: string | null
   user: ApiUser | null
+  tenancy: TenancyContext | null
 }>({
   ready: false,
   token: null,
   user: null,
+  tenancy: null,
 })
 
 let hydrationPromise: Promise<void> | null = null
@@ -41,9 +43,14 @@ export function setSessionUser(user: ApiUser | null): void {
   sessionState.user = user
 }
 
+export function setSessionTenancy(tenancy: TenancyContext | null): void {
+  sessionState.tenancy = tenancy
+}
+
 export async function clearSessionState(): Promise<void> {
   sessionState.ready = true
   sessionState.token = null
   sessionState.user = null
+  sessionState.tenancy = null
   await Preferences.remove({ key: TOKEN_KEY })
 }

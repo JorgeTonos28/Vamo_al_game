@@ -2,6 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Resources\V1\UserResource;
+use App\Services\Branding\AppBrandingService;
+use App\Services\Tenancy\LeagueContextResolver;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,11 +38,20 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        $brandingService = app(AppBrandingService::class);
+        $leagueContextResolver = app(LeagueContextResolver::class);
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            'branding' => $brandingService->branding(),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user ? (new UserResource($user))->resolve($request) : null,
+            ],
+            'tenancy' => $user ? $leagueContextResolver->contextFor($user) : null,
+            'flash' => [
+                'status' => fn () => $request->session()->get('status'),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

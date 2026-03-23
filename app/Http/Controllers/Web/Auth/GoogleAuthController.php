@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Web\Auth;
 
 use App\Actions\Api\Auth\CreateMobileOauthHandoff;
+use App\Actions\Auth\CompleteGoogleInvitation;
 use App\Actions\Auth\SynchronizeGoogleUser;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\UserInvitation;
 use GuzzleHttp\Client;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,6 +20,15 @@ class GoogleAuthController extends Controller
 {
     public function redirect(Request $request): RedirectResponse
     {
+        if ($request->filled('invitation') && $request->filled('token')) {
+            $request->session()->put('auth.google.invitation', [
+                'invitation_id' => (int) $request->input('invitation'),
+                'token' => (string) $request->input('token'),
+            ]);
+        } else {
+            $request->session()->forget('auth.google.invitation');
+        }
+
         if ($request->string('channel')->value() === 'mobile') {
             $request->session()->put('auth.google.channel', 'mobile');
         } else {
@@ -32,6 +43,7 @@ class GoogleAuthController extends Controller
         Request $request,
         SynchronizeGoogleUser $synchronizeGoogleUser,
         CreateMobileOauthHandoff $createMobileOauthHandoff,
+        CompleteGoogleInvitation $completeGoogleInvitation,
     ): RedirectResponse
     {
         try {
@@ -53,6 +65,18 @@ class GoogleAuthController extends Controller
         }
 
         $user = $synchronizeGoogleUser->handle($googleUser);
+        $user = $this->completeInvitationIfPresent(
+            $request,
+            $user,
+            $completeGoogleInvitation,
+        );
+
+        if (! $user->hasCompletedOnboarding()) {
+            return $this->googleFailureRedirect(
+                $request,
+                'Debes completar tu invitacion desde el enlace enviado a tu correo antes de entrar con Google.',
+            );
+        }
 
         if ($this->usesMobileChannel($request)) {
             $request->session()->forget('auth.google.channel');
@@ -74,6 +98,32 @@ class GoogleAuthController extends Controller
         }
 
         return redirect()->intended(route('dashboard'));
+    }
+
+    private function completeInvitationIfPresent(
+        Request $request,
+        User $user,
+        CompleteGoogleInvitation $completeGoogleInvitation,
+    ): User {
+        $context = $request->session()->pull('auth.google.invitation');
+
+        if (! is_array($context)) {
+            return $user;
+        }
+
+        $invitation = UserInvitation::query()
+            ->with('user')
+            ->find($context['invitation_id'] ?? null);
+
+        if (! $invitation) {
+            return $user;
+        }
+
+        return $completeGoogleInvitation->handle(
+            $invitation,
+            (string) ($context['token'] ?? ''),
+            $user,
+        );
     }
 
     private function completeMobileSignIn(

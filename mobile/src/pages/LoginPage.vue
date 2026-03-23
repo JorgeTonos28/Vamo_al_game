@@ -8,16 +8,19 @@ import {
     IonPage,
     IonSpinner,
     IonText,
+    useIonRouter,
 } from '@ionic/vue';
 import type { AxiosError } from 'axios';
-import { computed, reactive, ref } from 'vue';
+import { computed, nextTick, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import BrandLogo from '@/components/BrandLogo.vue';
-import { googleAuthUrl, login } from '@/services/auth';
+import { defaultAuthenticatedRoutePath } from '@/lib/session-routes';
+import { fetchCurrentUser, googleAuthUrl, login } from '@/services/auth';
 import type { ErrorResponse, LoginPayload } from '@/types/api';
 
 const router = useRouter();
 const route = useRoute();
+const ionRouter = useIonRouter();
 
 const form = reactive<LoginPayload>({
     email: '',
@@ -49,17 +52,18 @@ async function submit(): Promise<void> {
         const result = await login(form);
 
         if (result.kind === 'two-factor') {
-            await router.replace({
-                name: 'two-factor-challenge',
-                query: {
-                    challenge: result.response.data.challenge_token,
-                },
-            });
+            ionRouter.navigate(
+                `/two-factor-challenge?challenge=${encodeURIComponent(result.response.data.challenge_token)}`,
+                'root',
+                'replace',
+            );
 
             return;
         }
 
-        await router.replace({ name: 'home' });
+        await fetchCurrentUser();
+        await nextTick();
+        ionRouter.navigate(defaultAuthenticatedRoutePath(), 'root', 'replace');
     } catch (error) {
         const response = (error as AxiosError<ErrorResponse>).response?.data;
 

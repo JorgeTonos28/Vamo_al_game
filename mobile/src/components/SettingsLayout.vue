@@ -1,15 +1,34 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
+
+type SettingsTab = {
+  name: string
+  label: string
+}
 
 const route = useRoute()
 const router = useRouter()
 
-const tabs = [
-  { name: 'settings-profile', label: 'Profile' },
-  { name: 'settings-security', label: 'Security' },
-  { name: 'settings-appearance', label: 'Appearance' },
-]
+const props = withDefaults(
+  defineProps<{
+    tabs?: SettingsTab[]
+    title?: string
+    description?: string
+    commandCenter?: boolean
+  }>(),
+  {
+    tabs: () => [
+      { name: 'settings-profile', label: 'Perfil' },
+      { name: 'settings-security', label: 'Seguridad' },
+      { name: 'settings-appearance', label: 'Apariencia' },
+    ],
+    title: 'Ajustes',
+    description: 'Administra tu cuenta, seguridad y preferencias desde el mismo shell multi-tenant.',
+    commandCenter: false,
+  },
+)
 
 const activeRouteName = computed(() => route.name)
 
@@ -20,17 +39,23 @@ function isActive(name: string): boolean {
 
 <template>
   <div class="mobile-stack">
+    <MobileAppTopbar
+      :title="props.title"
+      :description="props.description"
+      :command-center="props.commandCenter"
+    />
+
     <section class="settings-heading">
       <div class="settings-copy">
         <p class="app-kicker settings-kicker">Ajustes</p>
         <p class="settings-description">
-          Controla tu cuenta, seguridad y preferencias dentro del mismo shell mobile-first.
+          {{ props.description }}
         </p>
       </div>
 
       <nav class="settings-nav" aria-label="Settings">
         <button
-          v-for="item in tabs"
+          v-for="item in props.tabs"
           :key="item.name"
           :class="['app-tab-link settings-link', { 'is-active': isActive(item.name) }]"
           type="button"

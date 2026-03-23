@@ -32,9 +32,14 @@
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
-        <link rel="icon" href="/favicon.ico" sizes="any">
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        @if (($branding['has_custom_favicon'] ?? false) && filled($branding['favicon_url'] ?? null))
+            <link rel="icon" href="{{ $branding['favicon_url'] }}" @if(filled($branding['favicon_type'] ?? null)) type="{{ $branding['favicon_type'] }}" @endif>
+            <link rel="apple-touch-icon" href="{{ $branding['favicon_url'] }}">
+        @else
+            <link rel="icon" href="/favicon.ico" sizes="any">
+            <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+            <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        @endif
 
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

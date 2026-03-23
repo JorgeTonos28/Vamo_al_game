@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\AccountRole;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -24,11 +25,22 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        $firstName = fake()->firstName();
+        $lastName = fake()->lastName();
+
         return [
-            'name' => fake()->name(),
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'name' => trim("{$firstName} {$lastName}"),
+            'document_id' => fake()->unique()->numerify('###########'),
+            'phone' => fake()->phoneNumber(),
+            'address' => fake()->streetAddress(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'account_role' => AccountRole::Guest,
+            'invited_at' => now(),
+            'onboarded_at' => now(),
             'remember_token' => Str::random(10),
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
@@ -55,6 +67,43 @@ class UserFactory extends Factory
             'two_factor_secret' => encrypt('secret'),
             'two_factor_recovery_codes' => encrypt(json_encode(['recovery-code-1'])),
             'two_factor_confirmed_at' => now(),
+        ]);
+    }
+
+    public function generalAdmin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'account_role' => AccountRole::GeneralAdmin,
+        ]);
+    }
+
+    public function leagueAdmin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'account_role' => AccountRole::LeagueAdmin,
+        ]);
+    }
+
+    public function memberRole(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'account_role' => AccountRole::Member,
+        ]);
+    }
+
+    public function guestRole(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'account_role' => AccountRole::Guest,
+        ]);
+    }
+
+    public function pendingInvitation(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'email_verified_at' => null,
+            'invited_at' => now(),
+            'onboarded_at' => null,
         ]);
     }
 }

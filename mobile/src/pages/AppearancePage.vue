@@ -8,9 +8,9 @@ import type { Appearance } from '@/composables/useAppearance'
 const { appearance, updateAppearance } = useAppearance()
 
 const tabs: Array<{ value: Appearance; label: string; icon: typeof Sun }> = [
-  { value: 'light', label: 'Light', icon: Sun },
-  { value: 'dark', label: 'Dark', icon: Moon },
-  { value: 'system', label: 'System', icon: Monitor },
+  { value: 'light', label: 'Claro', icon: Sun },
+  { value: 'dark', label: 'Oscuro', icon: Moon },
+  { value: 'system', label: 'Sistema', icon: Monitor },
 ]
 </script>
 
@@ -21,8 +21,8 @@ const tabs: Array<{ value: Appearance; label: string; icon: typeof Sun }> = [
         <SettingsLayout>
           <section class="appearance-section">
             <div class="appearance-copy">
-              <p class="app-kicker">Appearance settings</p>
-              <p class="app-body-copy">Update your account's appearance settings.</p>
+              <p class="app-kicker">Apariencia</p>
+              <p class="app-body-copy">Ajusta la preferencia visual del shell movil.</p>
             </div>
 
             <div class="appearance-tabs">
