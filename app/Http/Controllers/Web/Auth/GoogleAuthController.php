@@ -100,6 +100,7 @@ class GoogleAuthController extends Controller
         }
 
         Auth::login($user, true);
+        $request->session()->regenerate();
 
         if (! $user->hasVerifiedEmail()) {
             $user->sendEmailVerificationNotification();

@@ -55,6 +55,7 @@ class InvitationAcceptanceController extends Controller
         );
 
         Auth::login($user, true);
+        $request->session()->regenerate();
 
         return redirect()->intended(
             $user->isGeneralAdmin()

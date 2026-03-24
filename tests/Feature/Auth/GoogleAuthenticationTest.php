@@ -54,6 +54,9 @@ class GoogleAuthenticationTest extends TestCase
         $user = User::factory()->create([
             'email' => 'verified@example.com',
         ]);
+        $session = $this->app['session.store'];
+        $session->start();
+        $previousSessionId = $session->getId();
 
         $googleUser = Mockery::mock(SocialiteUserContract::class);
         $googleUser->shouldReceive('getId')->andReturn('google-verified');
@@ -75,6 +78,7 @@ class GoogleAuthenticationTest extends TestCase
 
         $this->assertAuthenticatedAs($user->fresh());
         $this->assertSame('google-verified', $user->fresh()->google_id);
+        $this->assertNotSame($previousSessionId, $this->app['session.store']->getId());
         $response->assertRedirect(route('dashboard'));
     }
 
