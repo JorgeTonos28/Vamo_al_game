@@ -1,100 +1,131 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
 import {
     CircleDollarSign,
     Clock3,
-    RotateCcw,
     ShieldCheck,
     Target,
     Trophy,
     Users,
 } from 'lucide-vue-next';
-import { Button } from '@/components/ui/button';
+import { computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
-import type { BreadcrumbItem } from '@/types';
+import type { BreadcrumbItem, TenancyContext, User } from '@/types';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Dashboard',
+        title: 'Panel',
         href: dashboard(),
     },
 ];
 
-const quickCards = [
-    {
-        title: 'Cola activa',
-        value: '06',
-        description: 'Miembros e invitados ordenados por prioridad de juego.',
-        icon: Clock3,
-    },
-    {
-        title: 'Cobros del corte',
-        value: 'RD$23.4K',
-        description: 'Cuotas e invitados listos para recibos y cierre.',
-        icon: CircleDollarSign,
-    },
-    {
-        title: 'Racha actual',
-        value: '2',
-        description: 'El próximo ganador descansará si mantiene la racha.',
-        icon: Trophy,
-    },
-];
+const page = usePage();
+const user = computed(() => page.props.auth.user as User);
+const tenancy = computed(() => page.props.tenancy as TenancyContext | null);
+const activeLeague = computed(() => tenancy.value?.active_league ?? null);
 
-const dayStats = [
-    {
-        title: 'Miembros listos',
-        value: '18',
-        description: 'Con preferencia activa para entrar.',
-    },
-    {
-        title: 'Invitados hoy',
-        value: '4',
-        description: 'Integrados a la cola sin romper el orden.',
-    },
-    {
-        title: 'Juegos jugados',
-        value: '11',
-        description: 'Historial breve guardado durante la jornada.',
-    },
-    {
-        title: 'Anotadores activos',
-        value: '9',
-        description: 'Estadísticas individuales corriendo en vivo.',
-    },
-];
+const heroTitle = computed(() => {
+    if (activeLeague.value) {
+        return activeLeague.value.name;
+    }
 
-const moduleHighlights = [
+    if (tenancy.value?.guest_mode) {
+        return 'Modo invitado';
+    }
+
+    return 'Panel base';
+});
+
+const heroDescription = computed(() => {
+    if (activeLeague.value) {
+        return `Estas operando en nombre de ${activeLeague.value.name}. Toda la informacion del shell actual ya responde a la liga seleccionada y servira de base para los modulos deportivos.`;
+    }
+
+    if (tenancy.value?.guest_mode) {
+        return 'Tu cuenta no forma parte de una liga activa. Por ahora veras tu panel base y ajustes personales mientras se completa tu acceso a una liga.';
+    }
+
+    return 'Tu cuenta mantiene acceso al panel base y a ajustes mientras se definen los modulos de negocio siguientes.';
+});
+
+const quickCards = computed(() => [
     {
-        title: 'Llegada y cola',
-        description:
-            'Controla llegada, prioridad de miembros, invitados y armado de equipos sin salir del panel.',
+        title: 'Rol visible',
+        value:
+            activeLeague.value?.role_label ??
+            user.value.account_role_label ??
+            'Invitado',
+        description: 'Contexto actual con el que entras al sistema.',
+        icon: ShieldCheck,
+    },
+    {
+        title: 'Ligas activas',
+        value: `${tenancy.value?.available_leagues.length ?? 0}`,
+        description: 'Cantidad de ligas a las que puedes cambiar desde el header.',
         icon: Users,
     },
     {
-        title: 'Contador y rachas',
+        title: 'Estado',
+        value: activeLeague.value ? 'Operativo' : 'Base',
+        description: 'Disponibilidad actual del entorno regular.',
+        icon: Trophy,
+    },
+]);
+
+const dayStats = computed(() => [
+    {
+        title: 'Usuario',
+        value: user.value.name,
+        description: 'Cuenta autenticada en esta sesion.',
+    },
+    {
+        title: 'Liga activa',
+        value: activeLeague.value?.name ?? 'Sin liga',
+        description: 'Tenant que concentra la informacion compartida.',
+    },
+    {
+        title: 'Switch multi-tenant',
+        value: tenancy.value?.can_switch ? 'Disponible' : 'No aplica',
+        description: 'Se habilita cuando la cuenta tiene mas de una liga activa.',
+    },
+    {
+        title: 'Correo verificado',
+        value: user.value.email_verified_at ? 'Si' : 'Pendiente',
+        description: 'La verificacion sigue siendo obligatoria para entrar.',
+    },
+]);
+
+const moduleHighlights = [
+    {
+        title: 'Contexto por liga',
         description:
-            'Registra puntos de 1, 2 y 3, corrige errores y administra rachas y descansos.',
+            'El shell ya se adapta al tenant activo y evita mezclar informacion entre ligas.',
+        icon: Users,
+    },
+    {
+        title: 'Ajustes disponibles',
+        description:
+            'Perfil, seguridad y apariencia siguen disponibles para administradores de ligas, miembros e invitados.',
         icon: Target,
     },
     {
-        title: 'Tabla y temporada',
+        title: 'Roles flexibles',
         description:
-            'Resume el día y conecta lo que pase hoy con la historia completa de la liga.',
+            'Una misma cuenta puede tener rol primario de cuenta y roles distintos segun cada liga.',
         icon: Trophy,
     },
     {
-        title: 'Caja y recibos',
+        title: 'Base compartida',
         description:
-            'Sigue cortes, cobros del día y recibos compartibles con menos pasos en escritorio.',
+            'La resolucion de tenant y la liga activa ya quedan expuestas desde backend para web y movil.',
         icon: CircleDollarSign,
     },
 ];
 </script>
 
 <template>
-    <Head title="Dashboard" />
+    <Head title="Panel" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="app-page-stack">
@@ -110,28 +141,35 @@ const moduleHighlights = [
                         >
                             <div class="max-w-2xl space-y-3">
                                 <p class="app-kicker text-[#E5B849]">
-                                    Jornada en curso
+                                    Contexto activo
                                 </p>
                                 <div class="space-y-3">
                                     <h1
                                         class="app-display text-[54px] leading-[0.9] text-[#F8FAFC] md:text-[72px]"
                                     >
-                                        Liga Aurora
+                                        {{ heroTitle }}
                                     </h1>
                                     <p
                                         class="text-[15px] leading-7 text-[#94A3B8]"
                                     >
-                                        Supervisa marcador, cola activa, cobros,
-                                        rachas y seguimiento del día desde un
-                                        panel amplio, claro y listo para mover
-                                        la jornada con ritmo en escritorio.
+                                        {{ heroDescription }}
                                     </p>
                                 </div>
                             </div>
 
-                            <div class="app-badge-positive">
+                            <div
+                                :class="
+                                    activeLeague
+                                        ? 'app-badge-positive'
+                                        : 'app-badge-negative'
+                                "
+                            >
                                 <ShieldCheck class="size-3.5" />
-                                En juego
+                                {{
+                                    activeLeague
+                                        ? 'Tenant cargado'
+                                        : 'Cuenta base'
+                                }}
                             </div>
                         </div>
 
@@ -146,36 +184,44 @@ const moduleHighlights = [
                                 >
                                     <div class="space-y-2">
                                         <p class="app-kicker text-[#94A3B8]">
-                                            Eq. A
+                                            Tenant
                                         </p>
                                         <p
-                                            class="app-display text-[84px] leading-none text-[#4ADE80] md:text-[108px]"
+                                            class="app-display text-[28px] leading-none text-[#4ADE80] md:text-[34px]"
                                         >
-                                            08
+                                            {{ activeLeague?.slug ?? 'guest' }}
                                         </p>
                                     </div>
                                     <p class="app-kicker pb-4 text-[#94A3B8]">
-                                        VS
+                                        /
                                     </p>
                                     <div class="space-y-2 text-right">
                                         <p class="app-kicker text-[#94A3B8]">
-                                            Eq. B
+                                            Usuario
                                         </p>
                                         <p
-                                            class="app-display text-[84px] leading-none text-[#E5B849] md:text-[108px]"
+                                            class="app-display text-[28px] leading-none text-[#E5B849] md:text-[34px]"
                                         >
-                                            07
+                                            {{ user.first_name ?? user.name }}
                                         </p>
                                     </div>
                                 </div>
 
                                 <div class="grid gap-3 sm:grid-cols-2">
-                                    <Button variant="score-home" size="score">
-                                        +1 Eq. A
-                                    </Button>
-                                    <Button variant="score-away" size="score">
-                                        +1 Eq. B
-                                    </Button>
+                                    <button
+                                        type="button"
+                                        disabled
+                                        class="min-h-[88px] rounded-[12px] border border-[rgba(74,222,128,0.3)] bg-[rgba(74,222,128,0.12)] px-4 text-left text-[15px] font-semibold text-[#4ADE80]"
+                                    >
+                                        Panel base
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled
+                                        class="min-h-[88px] rounded-[12px] border border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] px-4 text-left text-[15px] font-semibold text-[#E5B849]"
+                                    >
+                                        Ajustes listos
+                                    </button>
                                 </div>
                             </div>
 
@@ -184,18 +230,21 @@ const moduleHighlights = [
                                     class="rounded-[24px] border border-white/6 bg-[#0E1628] p-4"
                                 >
                                     <p class="app-kicker text-[#E5B849]">
-                                        Modo activo
+                                        Rol actual
                                     </p>
                                     <p
                                         class="mt-3 text-[18px] font-semibold text-[#F8FAFC]"
                                     >
-                                        Balance automático
+                                        {{
+                                            activeLeague?.role_label ??
+                                            user.account_role_label
+                                        }}
                                     </p>
                                     <p
                                         class="mt-2 text-[13px] leading-6 text-[#94A3B8]"
                                     >
-                                        El criterio de scouting define equipos
-                                        más balanceados para la jornada.
+                                        La interfaz regular ya distingue entre
+                                        rol de cuenta y rol dentro de la liga.
                                     </p>
                                 </div>
 
@@ -203,7 +252,7 @@ const moduleHighlights = [
                                     class="rounded-[24px] border border-white/6 bg-[#0E1628] p-4"
                                 >
                                     <p class="app-kicker text-[#E5B849]">
-                                        Historial breve
+                                        Base lista
                                     </p>
                                     <div class="mt-4 space-y-3">
                                         <div
@@ -212,12 +261,12 @@ const moduleHighlights = [
                                             <span
                                                 class="text-[13px] text-[#94A3B8]"
                                             >
-                                                Juego #09
+                                                Multi-tenant
                                             </span>
                                             <span
                                                 class="text-[13px] font-semibold text-[#F8FAFC]"
                                             >
-                                                08 - 06
+                                                Activo
                                             </span>
                                         </div>
                                         <div
@@ -226,12 +275,12 @@ const moduleHighlights = [
                                             <span
                                                 class="text-[13px] text-[#94A3B8]"
                                             >
-                                                Juego #10
+                                                Roles
                                             </span>
                                             <span
                                                 class="text-[13px] font-semibold text-[#F8FAFC]"
                                             >
-                                                07 - 05
+                                                Activos
                                             </span>
                                         </div>
                                         <div
@@ -240,13 +289,13 @@ const moduleHighlights = [
                                             <span
                                                 class="text-[13px] text-[#94A3B8]"
                                             >
-                                                Deshacer
+                                                Modulos
                                             </span>
                                             <span
                                                 class="inline-flex items-center gap-1 text-[12px] font-semibold text-[#E5B849]"
                                             >
-                                                <RotateCcw class="size-3.5" />
-                                                Disponible
+                                                <Clock3 class="size-3.5" />
+                                                En construccion
                                             </span>
                                         </div>
                                     </div>

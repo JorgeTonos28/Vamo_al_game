@@ -6,6 +6,7 @@ use App\Actions\Api\Auth\CreateMobileOauthHandoff;
 use App\Actions\Api\Auth\IssueMobileToken;
 use App\Models\User;
 use App\Notifications\VerifyEmailNotification;
+use App\Services\Invitations\UserInvitationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Fortify\Actions\ConfirmTwoFactorAuthentication;
@@ -168,6 +169,25 @@ class TokenAuthenticationTest extends TestCase
             ->assertForbidden()
             ->assertJsonPath('success', false)
             ->assertJsonPath('message', 'Debes verificar tu correo antes de usar la app movil.');
+    }
+
+    public function test_pending_invited_users_can_not_get_an_api_token(): void
+    {
+        $user = User::factory()->create([
+            'invited_at' => now(),
+            'onboarded_at' => null,
+        ]);
+
+        app(UserInvitationService::class)->issue($user);
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $response
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('email');
     }
 
     public function test_authenticated_users_can_logout_from_the_api(): void

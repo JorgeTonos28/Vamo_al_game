@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import type { Branding } from '@/types';
 
 withDefaults(
     defineProps<{
@@ -9,10 +12,24 @@ withDefaults(
         compact: false,
     },
 );
+
+const page = usePage();
+const branding = computed(() => page.props.branding as Branding | undefined);
 </script>
 
 <template>
     <div class="flex items-center">
+        <img
+            v-if="branding?.has_custom_logo && branding.logo_url"
+            :src="branding.logo_url"
+            alt="Vamo al Game"
+            :class="
+                compact
+                    ? 'h-9 w-auto max-w-[190px] object-contain'
+                    : 'h-12 w-auto max-w-[260px] object-contain'
+            "
+        />
+        <template v-else>
         <div
             :class="
                 compact
@@ -47,5 +64,6 @@ withDefaults(
                 al game
             </span>
         </div>
+        </template>
     </div>
 </template>

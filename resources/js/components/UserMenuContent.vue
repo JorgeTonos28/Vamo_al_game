@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
 import { LogOut, Settings } from 'lucide-vue-next';
+import { computed } from 'vue';
 import {
     DropdownMenuGroup,
     DropdownMenuItem,
@@ -20,7 +21,10 @@ const handleLogout = () => {
     router.flushAll();
 };
 
-defineProps<Props>();
+const props = defineProps<Props>();
+const settingsHref = computed(() =>
+    props.user.is_general_admin ? '/command-center/settings/profile' : edit(),
+);
 </script>
 
 <template>
@@ -32,9 +36,9 @@ defineProps<Props>();
     <DropdownMenuSeparator />
     <DropdownMenuGroup>
         <DropdownMenuItem :as-child="true">
-            <Link class="block w-full cursor-pointer" :href="edit()" prefetch>
+            <Link class="block w-full cursor-pointer" :href="settingsHref" prefetch>
                 <Settings class="mr-2 h-4 w-4" />
-                Settings
+                Ajustes
             </Link>
         </DropdownMenuItem>
     </DropdownMenuGroup>
@@ -48,7 +52,7 @@ defineProps<Props>();
             data-test="logout-button"
         >
             <LogOut class="mr-2 h-4 w-4" />
-            Log out
+            Cerrar sesion
         </Link>
     </DropdownMenuItem>
 </template>

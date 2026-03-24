@@ -1,6 +1,12 @@
 import { api, backendBaseUrl } from '@/services/api'
-import { clearSessionState, setSessionToken, setSessionUser } from '@/state/session'
+import {
+  clearSessionState,
+  setSessionTenancy,
+  setSessionToken,
+  setSessionUser,
+} from '@/state/session'
 import type {
+  CurrentUserResponse,
   AuthChallengeResponse,
   AuthTokenResponse,
   AuthResultResponse,
@@ -52,6 +58,7 @@ export async function submitTwoFactorChallenge(
 
   await setSessionToken(data.data.token)
   setSessionUser(data.data.user)
+  setSessionTenancy(null)
 
   return data
 }
@@ -64,10 +71,11 @@ export async function logout(): Promise<void> {
   }
 }
 
-export async function fetchCurrentUser(): Promise<UserResponse['data']> {
-  const { data } = await api.get<UserResponse>('/me')
+export async function fetchCurrentUser(): Promise<CurrentUserResponse['data']> {
+  const { data } = await api.get<CurrentUserResponse>('/me')
 
   setSessionUser(data.data)
+  setSessionTenancy(data.meta.tenancy)
 
   return data.data
 }
@@ -91,6 +99,7 @@ async function persistAuthResult(
 
   await setSessionToken(data.data.token)
   setSessionUser(data.data.user)
+  setSessionTenancy(null)
 
   return {
     kind: 'authenticated',

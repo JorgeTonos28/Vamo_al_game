@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { IonButton, IonContent, IonPage, IonSpinner } from '@ionic/vue'
+import { IonButton, IonContent, IonPage, IonSpinner, useIonRouter } from '@ionic/vue'
 import type { AxiosError } from 'axios'
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { exchangeGoogleHandoff } from '@/services/auth'
+import { defaultAuthenticatedRoutePath } from '@/lib/session-routes'
+import { exchangeGoogleHandoff, fetchCurrentUser } from '@/services/auth'
 import type { ErrorResponse } from '@/types/api'
 
 const route = useRoute()
 const router = useRouter()
+const ionRouter = useIonRouter()
 
 const isLoading = ref(true)
 const message = ref('Conectando tu cuenta de Google...')
@@ -25,18 +27,18 @@ async function resolveCallback(): Promise<void> {
       const result = await exchangeGoogleHandoff(handoff)
 
       if (result.kind === 'two-factor') {
-        await router.replace({
-          name: 'two-factor-challenge',
-          query: {
-            challenge: result.response.data.challenge_token,
-            source: 'google',
-          },
-        })
+        ionRouter.navigate(
+          `/two-factor-challenge?challenge=${encodeURIComponent(result.response.data.challenge_token)}&source=google`,
+          'root',
+          'replace',
+        )
 
         return
       }
 
-      await router.replace({ name: 'home' })
+      await fetchCurrentUser()
+      await nextTick()
+      ionRouter.navigate(defaultAuthenticatedRoutePath(), 'root', 'replace')
 
       return
     } catch (error) {

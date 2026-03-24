@@ -3,6 +3,7 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
+use App\Services\Invitations\UserInvitationService;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -91,5 +92,32 @@ class PasswordResetTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors('email');
+    }
+
+    public function test_pending_invited_users_can_not_reset_their_password_before_accepting_the_invitation(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create([
+            'invited_at' => now(),
+            'onboarded_at' => null,
+        ]);
+
+        app(UserInvitationService::class)->issue($user);
+
+        $this->post(route('password.email'), ['email' => $user->email]);
+
+        Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
+            $response = $this->post(route('password.update'), [
+                'token' => $notification->token,
+                'email' => $user->email,
+                'password' => 'new-password-123',
+                'password_confirmation' => 'new-password-123',
+            ]);
+
+            $response->assertSessionHasErrors('email');
+
+            return true;
+        });
     }
 }

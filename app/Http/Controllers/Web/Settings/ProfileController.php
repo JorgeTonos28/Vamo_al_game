@@ -31,7 +31,9 @@ class ProfileController extends Controller
     {
         $updateUserProfile->handle($request->user(), $request->validated());
 
-        return to_route('profile.edit');
+        return $request->user()->isGeneralAdmin()
+            ? to_route('command-center.settings.profile.edit')
+            : to_route('profile.edit');
     }
 
     public function destroy(

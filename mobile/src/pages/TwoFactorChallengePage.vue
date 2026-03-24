@@ -8,15 +8,18 @@ import {
   IonPage,
   IonSpinner,
   IonText,
+  useIonRouter,
 } from '@ionic/vue'
 import type { AxiosError } from 'axios'
-import { computed, reactive, ref } from 'vue'
+import { computed, nextTick, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { submitTwoFactorChallenge } from '@/services/auth'
+import { defaultAuthenticatedRoutePath } from '@/lib/session-routes'
+import { fetchCurrentUser, submitTwoFactorChallenge } from '@/services/auth'
 import type { ErrorResponse, TwoFactorChallengePayload } from '@/types/api'
 
 const route = useRoute()
 const router = useRouter()
+const ionRouter = useIonRouter()
 
 const form = reactive<TwoFactorChallengePayload>({
   challenge_token: '',
@@ -58,7 +61,9 @@ async function submit(): Promise<void> {
       recovery_code: useRecoveryCode.value ? form.recovery_code : undefined,
     })
 
-    await router.replace({ name: 'home' })
+    await fetchCurrentUser()
+    await nextTick()
+    ionRouter.navigate(defaultAuthenticatedRoutePath(), 'root', 'replace')
   } catch (error) {
     const response = (error as AxiosError<ErrorResponse>).response?.data
 

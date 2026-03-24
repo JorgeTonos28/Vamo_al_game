@@ -11,6 +11,8 @@ import {
 } from 'ionicons/icons'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import BrandLogo from '@/components/BrandLogo.vue'
+import { defaultAuthenticatedRouteName } from '@/lib/session-routes'
 import { sessionState } from '@/state/session'
 
 const router = useRouter()
@@ -34,13 +36,29 @@ const highlights = [
 ]
 
 const primaryActionLabel = computed(() => (sessionState.token ? 'Entrar al panel' : 'Iniciar sesion'))
+const secondaryActionLabel = computed(() => {
+  if (!sessionState.token) {
+    return 'Crear cuenta'
+  }
+
+  return sessionState.user?.is_general_admin ? 'Centro de mando' : 'Ver perfil'
+})
 
 async function openPrimaryAction(): Promise<void> {
-  await router.push(sessionState.token ? { name: 'home' } : { name: 'login' })
+  await router.push(sessionState.token ? { name: defaultAuthenticatedRouteName() } : { name: 'login' })
 }
 
 async function openSecondaryAction(): Promise<void> {
-  await router.push(sessionState.token ? { name: 'settings-profile' } : { name: 'register' })
+  if (!sessionState.token) {
+    await router.push({ name: 'register' })
+    return
+  }
+
+  await router.push(
+    sessionState.user?.is_general_admin
+      ? { name: 'command-center-dashboard' }
+      : { name: 'settings-profile' },
+  )
 }
 </script>
 
@@ -50,8 +68,8 @@ async function openSecondaryAction(): Promise<void> {
       <div class="mobile-shell">
         <div class="mobile-stack">
           <header class="landing-topbar">
-            <div>
-              <p class="app-kicker landing-brand">Vamo al Game</p>
+            <div class="landing-branding">
+              <BrandLogo compact />
               <p class="landing-caption">Gestion de ligas deportivas</p>
             </div>
 
@@ -60,7 +78,11 @@ async function openSecondaryAction(): Promise<void> {
               color="light"
               fill="clear"
               size="small"
-              @click="sessionState.token ? router.push({ name: 'home' }) : router.push({ name: 'login' })"
+              @click="
+                sessionState.token
+                  ? router.push({ name: defaultAuthenticatedRouteName() })
+                  : router.push({ name: 'login' })
+              "
             >
               {{ sessionState.token ? 'Panel' : 'Entrar' }}
             </IonButton>
@@ -103,7 +125,7 @@ async function openSecondaryAction(): Promise<void> {
                 @click="openSecondaryAction"
               >
                 <IonIcon :icon="sessionState.token ? peopleOutline : personAddOutline" />
-                <span>{{ sessionState.token ? 'Ver perfil' : 'Crear cuenta' }}</span>
+                <span>{{ secondaryActionLabel }}</span>
               </IonButton>
             </div>
           </section>
@@ -161,8 +183,10 @@ async function openSecondaryAction(): Promise<void> {
   --color: #e5b849;
 }
 
-.landing-brand {
-  color: #e5b849;
+.landing-branding {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .landing-caption {

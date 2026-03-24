@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/branding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Branding publico de la app */
+        get: operations["branding"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/login": {
         parameters: {
             query?: never;
@@ -117,6 +134,110 @@ export interface paths {
         get: operations["me"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/active-league": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Cambia la liga activa del usuario autenticado */
+        patch: operations["updateActiveLeague"];
+        trace?: never;
+    };
+    "/command-center/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Metricas del centro de mando */
+        get: operations["commandCenterDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/command-center/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listado del modulo de usuarios del centro de mando */
+        get: operations["commandCenterUsers"];
+        put?: never;
+        /** Invita un nuevo usuario desde el centro de mando */
+        post: operations["commandCenterInviteUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/command-center/leagues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listado del modulo de ligas del centro de mando */
+        get: operations["commandCenterLeagues"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/command-center/leagues/{league}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Revoca o restaura acceso de una liga */
+        patch: operations["commandCenterToggleLeague"];
+        trace?: never;
+    };
+    "/command-center/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Branding del centro de mando */
+        get: operations["commandCenterSettings"];
+        put?: never;
+        /** Actualiza logo y favicon del centro de mando */
+        post: operations["commandCenterUpdateSettings"];
         delete?: never;
         options?: never;
         head?: never;
@@ -280,6 +401,26 @@ export interface components {
             password: string;
             password_confirmation: string;
         };
+        CommandCenterInviteUserRequest: {
+            first_name: string;
+            last_name: string;
+            document_id?: string | null;
+            phone?: string | null;
+            address?: string | null;
+            /** Format: email */
+            email: string;
+            account_role?: components["schemas"]["AccountRole"] | null;
+            league_id?: number | null;
+        };
+        ActiveLeagueUpdateRequest: {
+            league_id: number;
+        };
+        BrandingUpdateRequest: {
+            /** Format: binary */
+            logo?: string | null;
+            /** Format: binary */
+            favicon?: string | null;
+        };
         GoogleExchangeRequest: {
             handoff: string;
         };
@@ -329,14 +470,129 @@ export interface components {
         RecoveryCodes: {
             codes: string[];
         };
-        User: {
+        /** @enum {string} */
+        AccountRole: "general_admin" | "league_admin" | "member" | "guest";
+        /** @enum {string} */
+        LeagueMembershipRole: "admin" | "member";
+        LeagueContextLeague: {
+            id: number;
+            name: string;
+            slug: string;
+            role: components["schemas"]["LeagueMembershipRole"];
+            role_label: string;
+            is_active: boolean;
+        };
+        Branding: {
+            logo_url: string | null;
+            favicon_url: string | null;
+            favicon_type: string | null;
+            has_custom_logo: boolean;
+            has_custom_favicon: boolean;
+            /** Format: date-time */
+            updated_at: string | null;
+        };
+        TenancyContext: {
+            available_leagues: components["schemas"]["LeagueContextLeague"][];
+            active_league: components["schemas"]["LeagueContextLeague"] | null;
+            can_switch: boolean;
+            has_memberships: boolean;
+            has_blocked_access: boolean;
+            guest_mode: boolean;
+        };
+        TenancyMeta: {
+            tenancy: components["schemas"]["TenancyContext"];
+        };
+        CommandCenterMetrics: {
+            total_users: number;
+            active_leagues: number;
+            inactive_leagues: number;
+            league_admins: number;
+            members: number;
+            guests: number;
+            pending_invitations: number;
+        };
+        RoleOption: {
+            value: string;
+            label: string;
+        };
+        LeagueOption: {
+            id: number;
+            name: string;
+            slug: string;
+        };
+        CommandCenterUser: {
             id: number;
             name: string;
             /** Format: email */
             email: string;
+            account_role: components["schemas"]["AccountRole"] | null;
+            account_role_label: string | null;
+            league_memberships_count: number;
+            has_completed_onboarding: boolean;
+            /** Format: date-time */
+            invited_at: string | null;
+            /** Format: date-time */
+            created_at: string | null;
+        };
+        CommandCenterLeagueAdmin: {
+            id: number | null;
+            name: string | null;
+        };
+        CommandCenterLeague: {
+            id: number;
+            name: string;
+            slug: string;
+            is_active: boolean;
+            admins: components["schemas"]["CommandCenterLeagueAdmin"][];
+            members_count: number;
+            /** Format: date-time */
+            created_at: string | null;
+        };
+        CommandCenterDashboardPayload: {
+            metrics: components["schemas"]["CommandCenterMetrics"];
+        };
+        CommandCenterUsersPayload: {
+            role_options: components["schemas"]["RoleOption"][];
+            league_options: components["schemas"]["LeagueOption"][];
+            users: components["schemas"]["CommandCenterUser"][];
+        };
+        CommandCenterInviteUserPayload: {
+            user: components["schemas"]["CommandCenterUser"];
+        };
+        CommandCenterLeaguesPayload: {
+            leagues: components["schemas"]["CommandCenterLeague"][];
+        };
+        CommandCenterLeaguePayload: {
+            league: components["schemas"]["CommandCenterLeague"];
+        };
+        CommandCenterSettingsPayload: {
+            branding: components["schemas"]["Branding"];
+        };
+        User: {
+            id: number;
+            first_name: string | null;
+            last_name: string | null;
+            name: string;
+            document_id: string | null;
+            phone: string | null;
+            address: string | null;
+            /** Format: email */
+            email: string;
             avatar: string | null;
+            account_role: components["schemas"]["AccountRole"] | null;
+            account_role_label: string | null;
+            is_general_admin: boolean;
+            active_league_id: number | null;
             /** Format: date-time */
             email_verified_at: string | null;
+            /** Format: date-time */
+            invited_at: string | null;
+            /** Format: date-time */
+            onboarded_at: string | null;
+            /** Format: date-time */
+            created_at: string | null;
+            /** Format: date-time */
+            updated_at: string | null;
         };
         Health: {
             status: string;
@@ -365,6 +621,16 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        BrandingResponse: {
+            /** @constant */
+            success: true;
+            message: string;
+            data: components["schemas"]["Branding"];
+            errors: unknown[];
+            meta: {
+                [key: string]: unknown;
+            };
+        };
         UserResponse: {
             /** @constant */
             success: true;
@@ -374,6 +640,74 @@ export interface components {
             meta: {
                 [key: string]: unknown;
             };
+        };
+        CommandCenterDashboardResponse: {
+            /** @constant */
+            success: true;
+            message: string;
+            data: components["schemas"]["CommandCenterDashboardPayload"];
+            errors: unknown[];
+            meta: {
+                [key: string]: unknown;
+            };
+        };
+        CommandCenterUsersResponse: {
+            /** @constant */
+            success: true;
+            message: string;
+            data: components["schemas"]["CommandCenterUsersPayload"];
+            errors: unknown[];
+            meta: {
+                [key: string]: unknown;
+            };
+        };
+        CommandCenterInviteUserResponse: {
+            /** @constant */
+            success: true;
+            message: string;
+            data: components["schemas"]["CommandCenterInviteUserPayload"];
+            errors: unknown[];
+            meta: {
+                [key: string]: unknown;
+            };
+        };
+        CommandCenterLeaguesResponse: {
+            /** @constant */
+            success: true;
+            message: string;
+            data: components["schemas"]["CommandCenterLeaguesPayload"];
+            errors: unknown[];
+            meta: {
+                [key: string]: unknown;
+            };
+        };
+        CommandCenterLeagueResponse: {
+            /** @constant */
+            success: true;
+            message: string;
+            data: components["schemas"]["CommandCenterLeaguePayload"];
+            errors: unknown[];
+            meta: {
+                [key: string]: unknown;
+            };
+        };
+        CommandCenterSettingsResponse: {
+            /** @constant */
+            success: true;
+            message: string;
+            data: components["schemas"]["CommandCenterSettingsPayload"];
+            errors: unknown[];
+            meta: {
+                [key: string]: unknown;
+            };
+        };
+        CurrentUserResponse: {
+            /** @constant */
+            success: true;
+            message: string;
+            data: components["schemas"]["User"];
+            errors: unknown[];
+            meta: components["schemas"]["TenancyMeta"];
         };
         AuthTokenResponse: {
             /** @constant */
@@ -470,6 +804,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    branding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Branding cargado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandingResponse"];
                 };
             };
         };
@@ -677,11 +1031,356 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserResponse"];
+                    "application/json": components["schemas"]["CurrentUserResponse"];
                 };
             };
             /** @description No autenticado */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateActiveLeague: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActiveLeagueUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Liga activa actualizada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentUserResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description La liga no esta disponible para el usuario autenticado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Datos invalidos */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    commandCenterDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Metricas cargadas */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandCenterDashboardResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Sin permisos */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    commandCenterUsers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Usuarios cargados */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandCenterUsersResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Sin permisos */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    commandCenterInviteUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommandCenterInviteUserRequest"];
+            };
+        };
+        responses: {
+            /** @description Invitacion enviada */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandCenterInviteUserResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Sin permisos */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Datos invalidos */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    commandCenterLeagues: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ligas cargadas */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandCenterLeaguesResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Sin permisos */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    commandCenterToggleLeague: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                league: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Liga actualizada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandCenterLeagueResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Sin permisos */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    commandCenterSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Configuracion cargada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandCenterSettingsResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Sin permisos */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    commandCenterUpdateSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["BrandingUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Branding actualizado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandCenterSettingsResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Sin permisos */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Datos invalidos */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

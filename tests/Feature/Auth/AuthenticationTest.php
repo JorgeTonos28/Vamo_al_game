@@ -3,6 +3,7 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
+use App\Services\Invitations\UserInvitationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Fortify\Features;
@@ -83,6 +84,26 @@ class AuthenticationTest extends TestCase
             'password' => 'wrong-password',
         ]);
 
+        $this->assertGuest();
+    }
+
+    public function test_pending_invited_users_must_complete_onboarding_before_login(): void
+    {
+        $user = User::factory()->create([
+            'invited_at' => now(),
+            'onboarded_at' => null,
+        ]);
+
+        app(UserInvitationService::class)->issue($user);
+
+        $response = $this->from(route('login'))
+            ->post(route('login.store'), [
+                'email' => $user->email,
+                'password' => 'password',
+            ]);
+
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHasErrors('email');
         $this->assertGuest();
     }
 

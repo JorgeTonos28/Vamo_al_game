@@ -30,6 +30,24 @@
         }
       }
     },
+    "/branding": {
+      "get": {
+        "operationId": "branding",
+        "summary": "Branding publico de la app",
+        "responses": {
+          "200": {
+            "description": "Branding cargado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrandingResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/login": {
       "post": {
         "operationId": "login",
@@ -260,13 +278,423 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "$ref": "#/components/schemas/CurrentUserResponse"
                 }
               }
             }
           },
           "401": {
             "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/active-league": {
+      "patch": {
+        "operationId": "updateActiveLeague",
+        "summary": "Cambia la liga activa del usuario autenticado",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActiveLeagueUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Liga activa actualizada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUserResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "La liga no esta disponible para el usuario autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Datos invalidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/command-center/dashboard": {
+      "get": {
+        "operationId": "commandCenterDashboard",
+        "summary": "Metricas del centro de mando",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Metricas cargadas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandCenterDashboardResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/command-center/users": {
+      "get": {
+        "operationId": "commandCenterUsers",
+        "summary": "Listado del modulo de usuarios del centro de mando",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usuarios cargados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandCenterUsersResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "commandCenterInviteUser",
+        "summary": "Invita un nuevo usuario desde el centro de mando",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommandCenterInviteUserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Invitacion enviada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandCenterInviteUserResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Datos invalidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/command-center/leagues": {
+      "get": {
+        "operationId": "commandCenterLeagues",
+        "summary": "Listado del modulo de ligas del centro de mando",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ligas cargadas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandCenterLeaguesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/command-center/leagues/{league}": {
+      "patch": {
+        "operationId": "commandCenterToggleLeague",
+        "summary": "Revoca o restaura acceso de una liga",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "league",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liga actualizada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandCenterLeagueResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/command-center/settings": {
+      "get": {
+        "operationId": "commandCenterSettings",
+        "summary": "Branding del centro de mando",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Configuracion cargada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandCenterSettingsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "commandCenterUpdateSettings",
+        "summary": "Actualiza logo y favicon del centro de mando",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/BrandingUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Branding actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandCenterSettingsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Datos invalidos",
             "content": {
               "application/json": {
                 "schema": {
@@ -831,6 +1259,96 @@
           }
         }
       },
+      "CommandCenterInviteUserRequest": {
+        "type": "object",
+        "required": [
+          "first_name",
+          "last_name",
+          "email"
+        ],
+        "properties": {
+          "first_name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "last_name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "document_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 50
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 50
+          },
+          "address": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 255
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255
+          },
+          "account_role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountRole"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "league_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        }
+      },
+      "ActiveLeagueUpdateRequest": {
+        "type": "object",
+        "required": [
+          "league_id"
+        ],
+        "properties": {
+          "league_id": {
+            "type": "integer"
+          }
+        }
+      },
+      "BrandingUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "logo": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "binary"
+          },
+          "favicon": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "binary"
+          }
+        }
+      },
       "GoogleExchangeRequest": {
         "type": "object",
         "required": [
@@ -1025,14 +1543,230 @@
           }
         }
       },
-      "User": {
+      "AccountRole": {
+        "type": "string",
+        "enum": [
+          "general_admin",
+          "league_admin",
+          "member",
+          "guest"
+        ]
+      },
+      "LeagueMembershipRole": {
+        "type": "string",
+        "enum": [
+          "admin",
+          "member"
+        ]
+      },
+      "LeagueContextLeague": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "role",
+          "role_label",
+          "is_active"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/LeagueMembershipRole"
+          },
+          "role_label": {
+            "type": "string"
+          },
+          "is_active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Branding": {
+        "type": "object",
+        "required": [
+          "logo_url",
+          "favicon_url",
+          "favicon_type",
+          "has_custom_logo",
+          "has_custom_favicon",
+          "updated_at"
+        ],
+        "properties": {
+          "logo_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "favicon_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "favicon_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "has_custom_logo": {
+            "type": "boolean"
+          },
+          "has_custom_favicon": {
+            "type": "boolean"
+          },
+          "updated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "TenancyContext": {
+        "type": "object",
+        "required": [
+          "available_leagues",
+          "active_league",
+          "can_switch",
+          "has_memberships",
+          "has_blocked_access",
+          "guest_mode"
+        ],
+        "properties": {
+          "available_leagues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueContextLeague"
+            }
+          },
+          "active_league": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeagueContextLeague"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "can_switch": {
+            "type": "boolean"
+          },
+          "has_memberships": {
+            "type": "boolean"
+          },
+          "has_blocked_access": {
+            "type": "boolean"
+          },
+          "guest_mode": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TenancyMeta": {
+        "type": "object",
+        "required": [
+          "tenancy"
+        ],
+        "properties": {
+          "tenancy": {
+            "$ref": "#/components/schemas/TenancyContext"
+          }
+        }
+      },
+      "CommandCenterMetrics": {
+        "type": "object",
+        "required": [
+          "total_users",
+          "active_leagues",
+          "inactive_leagues",
+          "league_admins",
+          "members",
+          "guests",
+          "pending_invitations"
+        ],
+        "properties": {
+          "total_users": {
+            "type": "integer"
+          },
+          "active_leagues": {
+            "type": "integer"
+          },
+          "inactive_leagues": {
+            "type": "integer"
+          },
+          "league_admins": {
+            "type": "integer"
+          },
+          "members": {
+            "type": "integer"
+          },
+          "guests": {
+            "type": "integer"
+          },
+          "pending_invitations": {
+            "type": "integer"
+          }
+        }
+      },
+      "RoleOption": {
+        "type": "object",
+        "required": [
+          "value",
+          "label"
+        ],
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "LeagueOption": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "slug"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        }
+      },
+      "CommandCenterUser": {
         "type": "object",
         "required": [
           "id",
           "name",
           "email",
-          "avatar",
-          "email_verified_at"
+          "account_role",
+          "account_role_label",
+          "league_memberships_count",
+          "has_completed_onboarding",
+          "invited_at",
+          "created_at"
         ],
         "properties": {
           "id": {
@@ -1045,13 +1779,316 @@
             "type": "string",
             "format": "email"
           },
+          "account_role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountRole"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "account_role_label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "league_memberships_count": {
+            "type": "integer"
+          },
+          "has_completed_onboarding": {
+            "type": "boolean"
+          },
+          "invited_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "CommandCenterLeagueAdmin": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "CommandCenterLeague": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "is_active",
+          "admins",
+          "members_count",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "admins": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommandCenterLeagueAdmin"
+            }
+          },
+          "members_count": {
+            "type": "integer"
+          },
+          "created_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "CommandCenterDashboardPayload": {
+        "type": "object",
+        "required": [
+          "metrics"
+        ],
+        "properties": {
+          "metrics": {
+            "$ref": "#/components/schemas/CommandCenterMetrics"
+          }
+        }
+      },
+      "CommandCenterUsersPayload": {
+        "type": "object",
+        "required": [
+          "role_options",
+          "league_options",
+          "users"
+        ],
+        "properties": {
+          "role_options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleOption"
+            }
+          },
+          "league_options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueOption"
+            }
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommandCenterUser"
+            }
+          }
+        }
+      },
+      "CommandCenterInviteUserPayload": {
+        "type": "object",
+        "required": [
+          "user"
+        ],
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/CommandCenterUser"
+          }
+        }
+      },
+      "CommandCenterLeaguesPayload": {
+        "type": "object",
+        "required": [
+          "leagues"
+        ],
+        "properties": {
+          "leagues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommandCenterLeague"
+            }
+          }
+        }
+      },
+      "CommandCenterLeaguePayload": {
+        "type": "object",
+        "required": [
+          "league"
+        ],
+        "properties": {
+          "league": {
+            "$ref": "#/components/schemas/CommandCenterLeague"
+          }
+        }
+      },
+      "CommandCenterSettingsPayload": {
+        "type": "object",
+        "required": [
+          "branding"
+        ],
+        "properties": {
+          "branding": {
+            "$ref": "#/components/schemas/Branding"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "required": [
+          "id",
+          "first_name",
+          "last_name",
+          "name",
+          "document_id",
+          "phone",
+          "address",
+          "email",
+          "avatar",
+          "account_role",
+          "account_role_label",
+          "is_general_admin",
+          "active_league_id",
+          "email_verified_at",
+          "invited_at",
+          "onboarded_at",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "first_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "last_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "document_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "address": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
           "avatar": {
             "type": [
               "string",
               "null"
             ]
           },
+          "account_role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccountRole"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "account_role_label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "is_general_admin": {
+            "type": "boolean"
+          },
+          "active_league_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
           "email_verified_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "invited_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "onboarded_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "updated_at": {
             "type": [
               "string",
               "null"
@@ -1150,6 +2187,36 @@
           }
         }
       },
+      "BrandingResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Branding"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
       "UserResponse": {
         "type": "object",
         "required": [
@@ -1177,6 +2244,215 @@
           "meta": {
             "type": "object",
             "additionalProperties": true
+          }
+        }
+      },
+      "CommandCenterDashboardResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CommandCenterDashboardPayload"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "CommandCenterUsersResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CommandCenterUsersPayload"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "CommandCenterInviteUserResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CommandCenterInviteUserPayload"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "CommandCenterLeaguesResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CommandCenterLeaguesPayload"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "CommandCenterLeagueResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CommandCenterLeaguePayload"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "CommandCenterSettingsResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CommandCenterSettingsPayload"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "CurrentUserResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/User"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "$ref": "#/components/schemas/TenancyMeta"
           }
         }
       },

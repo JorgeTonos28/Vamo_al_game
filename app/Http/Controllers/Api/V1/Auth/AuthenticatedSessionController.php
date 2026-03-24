@@ -33,6 +33,12 @@ class AuthenticatedSessionController extends Controller
             ]);
         }
 
+        if ($user->hasPendingInvitation() && ! $user->hasCompletedOnboarding()) {
+            throw ValidationException::withMessages([
+                'email' => ['Debes completar la invitacion enviada a tu correo antes de iniciar sesion.'],
+            ]);
+        }
+
         if (! $user->hasVerifiedEmail()) {
             return ApiResponse::error(
                 'Debes verificar tu correo antes de usar la app movil.',

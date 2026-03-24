@@ -1,0 +1,52 @@
+<?php
+
+namespace App\Http\Requests\Api\V1\CommandCenter;
+
+use App\Enums\AccountRole;
+use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class InviteUserRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return $this->user()?->can('access-command-center') ?? false;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $role = $this->input('account_role');
+        $leagueId = $this->input('league_id');
+
+        $this->merge([
+            'account_role' => $role !== '' ? $role : null,
+            'league_id' => $leagueId !== '' ? $leagueId : null,
+        ]);
+    }
+
+    /**
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'document_id' => ['nullable', 'string', 'max:50', Rule::unique('users', 'document_id')],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
+            'account_role' => ['nullable', Rule::enum(AccountRole::class)],
+            'league_id' => [
+                Rule::requiredIf(fn (): bool => in_array($this->input('account_role'), [
+                    AccountRole::LeagueAdmin->value,
+                    AccountRole::Member->value,
+                ], true)),
+                'nullable',
+                'integer',
+                Rule::exists('leagues', 'id')->where(fn ($query) => $query->where('is_active', true)),
+            ],
+        ];
+    }
+}

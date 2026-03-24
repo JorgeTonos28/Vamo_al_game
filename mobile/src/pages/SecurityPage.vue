@@ -196,32 +196,30 @@ function extractStatus(setup: TwoFactorSetupData): TwoFactorStatusData {
         <SettingsLayout>
           <section class="settings-section">
             <div class="section-copy">
-              <p class="app-kicker">Update password</p>
-              <p class="app-body-copy">
-                Ensure your account is using a long, random password to stay secure.
-              </p>
+              <p class="app-kicker">Actualizar contrasena</p>
+              <p class="app-body-copy">Manten una contrasena robusta para proteger el acceso a tu cuenta.</p>
             </div>
 
             <div class="field-group">
-              <IonLabel position="stacked">Current password</IonLabel>
+              <IonLabel position="stacked">Contrasena actual</IonLabel>
               <IonItem lines="none">
-                <IonInput v-model="form.current_password" placeholder="Current password" type="password" />
+                <IonInput v-model="form.current_password" placeholder="Contrasena actual" type="password" />
               </IonItem>
             </div>
 
             <div class="field-group">
-              <IonLabel position="stacked">New password</IonLabel>
+              <IonLabel position="stacked">Nueva contrasena</IonLabel>
               <IonItem lines="none">
-                <IonInput v-model="form.password" placeholder="New password" type="password" />
+                <IonInput v-model="form.password" placeholder="Nueva contrasena" type="password" />
               </IonItem>
             </div>
 
             <div class="field-group">
-              <IonLabel position="stacked">Confirm password</IonLabel>
+              <IonLabel position="stacked">Confirmar contrasena</IonLabel>
               <IonItem lines="none">
                 <IonInput
                   v-model="form.password_confirmation"
-                  placeholder="Confirm password"
+                  placeholder="Confirmar contrasena"
                   type="password"
                 />
               </IonItem>
@@ -236,7 +234,7 @@ function extractStatus(setup: TwoFactorSetupData): TwoFactorStatusData {
             </IonText>
 
             <IonButton :disabled="isSubmitting" expand="block" @click="submit">
-              {{ isSubmitting ? 'Guardando...' : 'Save password' }}
+              {{ isSubmitting ? 'Guardando...' : 'Guardar contrasena' }}
             </IonButton>
           </section>
 

@@ -1,27 +1,30 @@
 # Vamo al Game
 
-Aplicacion web y movil para la gestion de ligas deportivas. El proyecto parte de una base Laravel 13 con Inertia.js, Vue 3 y TypeScript, y ya quedo preparado para crecer con una arquitectura dual: web + API + shell movil Ionic Vue.
+Aplicacion web y movil para la gestion de ligas deportivas. El proyecto parte de una base Laravel 13 con Inertia.js, Vue 3 y TypeScript, y ahora ya incluye una base real para operar cuentas, ligas y acceso multi-tenant.
 
 ## Estado actual
 
-El repositorio sigue en una fase inicial, pero ahora ya incluye la base tecnica para trabajar web y movil en paralelo:
+El repositorio ya incluye:
 
 - Backend con Laravel 13 y PHP 8.3.
 - Frontend web con Vue 3, Inertia.js, TypeScript y Vite.
 - API versionada en `routes/api.php` bajo `/api/v1`.
 - Autenticacion web con Fortify y autenticacion movil por token con Sanctum.
+- Modelo de cuentas con roles globales y membresias por liga.
+- Arquitectura multi-tenant para administradores y miembros de ligas.
+- Centro de mando exclusivo para administradores generales.
+- Flujo de invitaciones por correo con onboarding por password o Google.
 - Shell movil en [`mobile/`](./mobile) con Ionic Vue + Capacitor.
-- Shell movil con starter animado, login, registro, reto 2FA, panel, ajustes y health, consumiendo la API.
 - Contrato OpenAPI en [`packages/contracts/openapi.json`](./packages/contracts/openapi.json) y tipos TypeScript generados en [`packages/contracts/generated/api.d.ts`](./packages/contracts/generated/api.d.ts).
 - Tokens visuales compartidos en [`packages/design-tokens/theme.css`](./packages/design-tokens/theme.css).
 - Base de datos SQLite por defecto para desarrollo local.
 - Suite de pruebas con Pest.
 
-La web actual separa el landing promocional del shell operativo, adapta dashboard/settings a pantallas grandes y deja el flujo móvil enfocado en starter + acceso + panel operativo.
+La web actual separa el landing promocional del shell operativo. En esta etapa, los usuarios regulares ven `Panel` y `Ajustes`, mientras que los administradores generales ven un Centro de mando independiente.
 
 ## Arquitectura dual web + movil
 
-La base de trabajo a partir de ahora queda definida asi:
+La base de trabajo queda definida asi:
 
 - La web vive en `routes/web.php` y `resources/js`.
 - La API vive en `routes/api.php` y expone endpoints bajo `/api/v1`.
@@ -29,18 +32,26 @@ La base de trabajo a partir de ahora queda definida asi:
 - Los controladores API viven en `app/Http/Controllers/Api/V1`.
 - La validacion va por `FormRequest` en `app/Http/Requests/Web` y `app/Http/Requests/Api`.
 - La salida JSON de la API se normaliza con `API Resources` y un envelope consistente: `success`, `message`, `data`, `errors`, `meta`.
-- La logica reutilizable para auth movil se mueve a `app/Actions/Api`.
+- La logica reusable de negocio se concentra en `app/Actions` y `app/Services`.
 - La app movil en `mobile/` es cliente de la API. No replica reglas de negocio.
 - El contrato compartido vive en `packages/contracts`.
 
 ### Endpoints base disponibles
 
 - `GET /api/v1/health`
+- `GET /api/v1/branding`
 - `POST /api/v1/auth/register`
 - `POST /api/v1/auth/login`
+- `POST /api/v1/auth/google/exchange`
 - `POST /api/v1/auth/two-factor-challenge`
 - `POST /api/v1/auth/logout`
 - `GET /api/v1/me`
+- `PATCH /api/v1/me/active-league`
+- `GET /api/v1/command-center/dashboard`
+- `GET|POST /api/v1/command-center/users`
+- `GET /api/v1/command-center/leagues`
+- `PATCH /api/v1/command-center/leagues/{league}`
+- `GET|POST /api/v1/command-center/settings`
 - `PATCH|DELETE /api/v1/settings/profile`
 - `PUT /api/v1/settings/password`
 - `POST /api/v1/settings/email/verification-notification`
@@ -130,6 +141,13 @@ npm run contracts:generate
 php artisan migrate --seed
 ```
 
+Para actualizaciones locales sin resetear la base:
+
+```bash
+php artisan migrate
+php artisan db:seed
+```
+
 9. Inicia backend + web:
 
 ```bash
@@ -144,41 +162,133 @@ npm run mobile:dev
 
 El comando `composer run dev` levanta el servidor Laravel, el listener de colas y Vite del frontend web. La app movil corre por separado desde `mobile/`.
 
-## Autenticacion y cuentas
+## Seeders seguros y despliegue
+
+El proyecto ya no mezcla datos estructurales con datos demo dentro de `DatabaseSeeder`.
+
+- `DatabaseSeeder` ahora solo ejecuta seeders seguros para actualizaciones, como defaults estructurales requeridos por la app.
+- Los usuarios demo y las ligas starter viven en `LocalStarterDataSeeder`.
+- El switch se controla con `APP_ENABLE_STARTER_DATA`.
+- En local, `APP_ENABLE_STARTER_DATA=true` permite mantener cuentas y ligas de prueba al correr `php artisan migrate --seed`.
+- En produccion, deja `APP_ENABLE_STARTER_DATA=false` para evitar insertar demos en cada despliegue.
+
+Flujo recomendado en terminal:
+
+- Desarrollo local con starter data:
+
+```bash
+php artisan migrate
+php artisan db:seed
+```
+
+- Cargar solo los datos demo de forma explicita:
+
+```bash
+php artisan db:seed --class=LocalStarterDataSeeder
+```
+
+- Actualizacion segura en produccion:
+
+```bash
+php artisan migrate --force
+php artisan db:seed --force
+```
+
+Notas operativas:
+
+- No uses `migrate:fresh --seed` para actualizar una base con datos reales; ese comando elimina todas las tablas y recrea la base desde cero.
+- Los comentarios operativos del approach viven en `config/starter-data.php` y `database/seeders/DatabaseSeeder.php`.
+
+## Cuentas, roles y tenancy
 
 La autenticacion queda separada por canal:
 
-- Web: sesion con Fortify en las rutas tradicionales del starter.
+- Web: sesion con Fortify en las rutas tradicionales.
 - Movil/API: Bearer token con Sanctum en `/api/v1/auth/*`.
 
-Reglas actuales:
+### Roles globales
+
+- `general_admin`: entra solo al Centro de mando y no usa la app operativa regular.
+- `league_admin`: entra a la app regular y puede cambiar entre las ligas activas que administra.
+- `member`: entra a la app regular y puede cambiar entre las ligas activas donde es miembro.
+- `guest`: entra a la app regular en modo invitado si no pertenece a ninguna liga; puede luego convertirse en miembro o administrador dentro de una liga especifica.
+
+### Modelo multi-tenant
+
+- El rol global vive en `users.account_role` y define el acceso base al sistema.
+- Los roles por liga viven en `league_memberships.role`.
+- Una misma cuenta puede ser administrador en una liga y miembro en otra.
+- La liga activa vive en `users.active_league_id`.
+- `GET /api/v1/me` y `PATCH /api/v1/me/active-league` exponen el contexto tenant para web y movil.
+- Los invitados sin membresias no hacen switch de liga y operan en modo personal.
+- El switch de ligas muestra tambien ligas con acceso revocado para que el usuario entienda su estado actual.
+- Si un usuario tiene membresias pero todas sus ligas estan inactivas, la app regular muestra:
+
+```text
+Ups! Lo sentimos, ha ocurrido un problema accediendo a la app. Comuniquese con la administracion para mas detalles.
+```
+
+### Centro de mando para administradores generales
+
+Los administradores generales acceden a un shell separado de la app regular. Por ahora incluye:
+
+- `Panel`: metricas basicas del sistema como usuarios totales, ligas activas, administradores de ligas, miembros, invitados y ligas inactivas.
+- `Usuarios`: formulario para invitar nuevos usuarios con nombre, apellido, cedula, telefono, direccion, correo y rol.
+- `Ligas`: listado de ligas, administradores, cantidad de miembros, fecha de creacion y toggle de acceso.
+- `Ajustes`: misma estructura de cuenta del shell regular (`Perfil`, `Seguridad` y `Apariencia`), con el branding global de logo y favicon integrado dentro de `Apariencia`.
+
+### Invitaciones y onboarding
+
+- Los administradores generales crean usuarios desde `Usuarios`.
+- Si el rol no se define, la cuenta se crea como `guest`.
+- Si el rol seleccionado es `league_admin` o `member`, el formulario exige una `Liga inicial`.
+- Esa `Liga inicial` crea de inmediato la primera fila en `league_memberships` y tambien define `users.active_league_id`.
+- El sistema envia un correo con enlace para completar onboarding por password o continuar con Google.
+- Durante el onboarding, el usuario puede completar o corregir los datos basicos precargados.
+- Mientras la invitacion siga pendiente, la cuenta no puede iniciar sesion ni usar recuperacion de contrasena fuera del flujo de aceptacion.
+- Al terminar el onboarding, la cuenta queda habilitada segun su rol global y sus membresias activas.
+- Si el enlace de invitacion con Google falla por token expirado o por elegir otra cuenta, web y movil redirigen de vuelta al login con el error normalizado.
+- Los correos usan el branding configurado por los administradores generales cuando existe un logo personalizado.
+
+### Cuentas seed locales
+
+Cuando `APP_ENABLE_STARTER_DATA=true`, `LocalStarterDataSeeder` crea o actualiza estas cuentas de prueba ya verificadas:
+
+- `admingentest@vamoalgame.com` / `TestUSER12345678`
+- `adminleaguetest@vamoalgame.com` / `TestUSER12345678`
+- `membertest@vamoalgame.com` / `TestUSER12345678`
+- `guestest@vamoalgame.com` / `TestUSER12345678`
+
+Ademas, el seeder crea ligas de muestra y membresias para probar el contexto multi-tenant localmente.
+
+### Reglas de acceso vigentes
 
 - Registro tradicional con email y password.
-- Registro movil por API con verificacion obligatoria antes del primer login.
+- Registro movil por API con verificacion de correo obligatoria antes del primer login.
 - Verificacion obligatoria de correo antes de usar la app web o de recibir token movil.
 - Acceso web con Google mediante Socialite.
-- Acceso movil con Google mediante handoff OAuth y token Sanctum, iniciando desde las pantallas mobile de login/registro.
+- Acceso movil con Google mediante handoff OAuth y token Sanctum.
 - Si la cuenta tiene 2FA activa, el login movil por password o por Google devuelve un reto 2FA antes de emitir el token.
+- Si la administracion general desactiva la liga que el usuario tenia seleccionada, el sistema intenta moverlo automaticamente a otra liga activa donde tenga membresia.
+- Si el usuario selecciona manualmente una liga revocada desde el switch, la app mantiene esa seleccion y muestra la pantalla de acceso no disponible hasta que cambie a otra liga valida.
 
-El `DatabaseSeeder` crea o actualiza un usuario demo ya verificado:
+## Flujo movil minimo
 
-- Email: `demo@vamoalgame.test`
-- Password: `password`
+1. `POST /api/v1/auth/register` si la cuenta aun no existe.
+2. Verificar correo desde el enlace enviado por Laravel.
+3. `POST /api/v1/auth/login`.
+4. Si la cuenta usa 2FA, completar `POST /api/v1/auth/two-factor-challenge`.
+5. Guardar `data.token`.
+6. Enviar `Authorization: Bearer <token>`.
+7. Consultar `GET /api/v1/me` para obtener perfil y contexto tenant.
+8. Cambiar de liga con `PATCH /api/v1/me/active-league` cuando aplique.
+9. Si la cuenta es `general_admin`, consumir el shell mobile del Centro de mando con `GET /api/v1/command-center/*`.
+10. Si la liga activa fue revocada, la app movil muestra la misma pantalla de acceso no disponible que web y conserva el switch de ligas.
+11. Cerrar sesion con `POST /api/v1/auth/logout`.
 
-### Flujo movil minimo
+Al abrir la app movil, el flujo visible arranca con un starter breve de marca y luego entra directo a `Login` o al shell autenticado segun exista sesion. Los administradores generales ven el Centro de mando mobile con `Panel`, `Usuarios`, `Ligas` y `Ajustes`. Los administradores de ligas, miembros e invitados ven el shell regular con `Panel` y `Ajustes`, branding compartido, hamburger menu y switch multi-tenant de ligas.
 
-1. `POST /api/v1/auth/register` si la cuenta aun no existe
-2. verificar correo desde el enlace enviado por Laravel
-3. `POST /api/v1/auth/login`
-4. si la cuenta usa 2FA, completar `POST /api/v1/auth/two-factor-challenge`
-5. guardar `data.token`
-6. enviar `Authorization: Bearer <token>`
-7. consultar `GET /api/v1/me`
-8. cerrar sesion con `POST /api/v1/auth/logout`
-
-Al abrir la app móvil, el flujo visible arranca con un starter animado con marca y luego redirige al login. Si ya existe sesión, el guard de rutas envía al panel autenticado.
-
-Variables relevantes para web/movil:
+Variables relevantes para web y movil:
 
 - `WEB_APP_URL`
 - `MOBILE_APP_URL`
@@ -190,20 +300,13 @@ Variables relevantes para web/movil:
 - `GOOGLE_CLIENT_SECRET`
 - `GOOGLE_REDIRECT_URI`
 
-Nota para Google en movil:
-
-- `MOBILE_APP_URL` debe coincidir con la URL real desde la que corres el shell movil.
-- En desarrollo, el proyecto movil ahora usa el puerto `8100` para mantener estable el callback de Google.
-- El flujo movil de Google vuelve a `MOBILE_APP_URL/auth/google/callback` y desde ahi intercambia un handoff por token Sanctum.
-- Si la cuenta que vuelve desde Google tiene 2FA activa, el exchange devuelve un reto y el shell movil lo resuelve antes de entrar.
-
 ## Correos en local
 
-En local, la configuracion recomendada del proyecto queda orientada a:
+En local, la configuracion recomendada queda orientada a:
 
 - `MAIL_MAILER=failover`
 - SMTP local en `127.0.0.1:1025`
-- fallback automatico a `log` si no hay servidor SMTP disponible
+- Fallback automatico a `log` si no hay servidor SMTP disponible
 
 Con esto, si tienes un capturador local como Mailpit levantado, veras los correos en una bandeja web. Si no esta levantado, Laravel no rompe el flujo y deja el mensaje en:
 
@@ -211,15 +314,13 @@ Con esto, si tienes un capturador local como Mailpit levantado, veras los correo
 
 ### Opcion recomendada: Mailpit
 
-Mailpit es una bandeja local para desarrollo. Si tienes Docker, puedes levantarlo asi:
+Si tienes Docker, puedes levantar Mailpit asi:
 
 ```bash
 docker run --rm -d --name vamo-mailpit -p 1025:1025 -p 8025:8025 axllent/mailpit
 ```
 
-Luego abre:
-
-- [http://127.0.0.1:8025](http://127.0.0.1:8025)
+Luego abre [http://127.0.0.1:8025](http://127.0.0.1:8025).
 
 Y en tu `.env` local usa:
 
@@ -241,29 +342,20 @@ php artisan config:clear
 
 Si no vas a usar Mailpit todavia, puedes dejar `MAIL_MAILER=log` y revisar el enlace en `storage/logs/laravel.log`.
 
-### Checklist rapido para Mailpit
-
-1. Levanta Mailpit.
-2. Usa `MAIL_MAILER=failover` en tu `.env` local.
-3. Verifica que `MAIL_HOST=127.0.0.1` y `MAIL_PORT=1025`.
-4. Ejecuta `php artisan config:clear`.
-5. Abre [http://127.0.0.1:8025](http://127.0.0.1:8025) y prueba el flujo de registro o reenvio de verificacion.
-
 ## Correos en servidor con cPanel
 
-Si vas a desplegar la app en un hosting con cPanel, lo normal es usar una cuenta SMTP creada dentro del mismo panel, por ejemplo `no-reply@tu-dominio.com`.
+Si despliegas la app en un hosting con cPanel, lo normal es usar una cuenta SMTP creada dentro del mismo panel, por ejemplo `no-reply@tu-dominio.com`.
 
 ### Paso 1: Crear la cuenta de correo en cPanel
 
 1. Entra a cPanel.
 2. Ve a `Email Accounts`.
-3. Crea la cuenta que usara la app, por ejemplo:
-    - `no-reply@tu-dominio.com`
-4. Guarda la contrasena del buzón.
+3. Crea la cuenta que usara la app, por ejemplo `no-reply@tu-dominio.com`.
+4. Guarda la contrasena del buzon.
 
 ### Paso 2: Consultar los datos SMTP en cPanel
 
-En la cuenta creada, abre `Connect Devices` o la seccion equivalente. Ahi cPanel suele mostrar:
+En la cuenta creada, abre `Connect Devices` o la seccion equivalente. cPanel suele mostrar:
 
 - Servidor SMTP
 - Puerto SMTP
@@ -274,7 +366,7 @@ Valores habituales:
 
 - Host SMTP: `mail.tu-dominio.com`
 - Puerto `465` con `ssl`
-- o puerto `587` con `tls`
+- O puerto `587` con `tls`
 - Usuario: el correo completo, por ejemplo `no-reply@tu-dominio.com`
 
 ### Paso 3: Configurar las variables en el servidor
@@ -312,20 +404,21 @@ php artisan config:cache
 
 Prueba uno de estos flujos:
 
-- registro de usuario nuevo
-- reenvio de verificacion de correo
-- recuperacion de contrasena
+- Registro de usuario nuevo
+- Invitacion de usuario desde el Centro de mando
+- Reenvio de verificacion de correo
+- Recuperacion de contrasena
 
 Si falla, revisa:
 
 - `storage/logs/laravel.log`
-- que el puerto SMTP este permitido por el hosting
-- que usuario y password del buzón sean correctos
-- que `MAIL_FROM_ADDRESS` coincida con una cuenta valida del dominio
+- Que el puerto SMTP este permitido por el hosting
+- Que usuario y password del buzon sean correctos
+- Que `MAIL_FROM_ADDRESS` coincida con una cuenta valida del dominio
 
 ### Recomendaciones de entregabilidad en cPanel
 
-Para reducir que los correos caigan en spam, revisa tambien en el dominio:
+Para reducir que los correos caigan en spam, revisa tambien:
 
 - SPF configurado
 - DKIM configurado
@@ -335,7 +428,7 @@ En muchos hostings con cPanel, SPF y DKIM se activan desde `Email Deliverability
 
 ## Configurar acceso con Google
 
-Si quieres que el login con Google funcione, hay configuracion externa obligatoria que debes hacer. El codigo ya quedo listo en el proyecto, pero Google exige credenciales OAuth validas.
+Si quieres que el login con Google funcione, hay configuracion externa obligatoria. El codigo ya queda listo en el proyecto, pero Google exige credenciales OAuth validas.
 
 Para este flujo basico con `openid`, `email` y `profile`, normalmente no necesitas habilitar una API extra en Google Cloud. Lo importante es tener bien configurados la pantalla de consentimiento OAuth, el cliente OAuth y las redirect URIs exactas.
 
@@ -345,20 +438,20 @@ Paso a paso:
 2. Crea un proyecto nuevo o usa uno existente para `Vamo al Game`.
 3. Ve a `APIs y servicios` -> `Pantalla de consentimiento OAuth`.
 4. Configura la app:
-    - Tipo: `External` si la usaran cuentas personales de Google.
-    - Nombre de la app, correo de soporte y dominio si aplica.
-    - Agrega tu correo como usuario de prueba mientras la app no este publicada.
+   - Tipo: `External` si la usaran cuentas personales de Google.
+   - Nombre de la app, correo de soporte y dominio si aplica.
+   - Agrega tu correo como usuario de prueba mientras la app no este publicada.
 5. Luego ve a `APIs y servicios` -> `Credenciales`.
 6. Crea una credencial de tipo `ID de cliente OAuth`.
 7. Elige `Aplicacion web`.
 8. En `URIs de redireccion autorizados` agrega:
-    - `http://localhost:8000/auth/google/callback` si ese es tu `APP_URL`
-    - `http://127.0.0.1:8000/auth/google/callback` si abres la app asi
-    - y en produccion, la URL real de tu app: `https://tu-dominio.com/auth/google/callback`
+   - `http://localhost:8000/auth/google/callback` si ese es tu `APP_URL`
+   - `http://127.0.0.1:8000/auth/google/callback` si abres la app asi
+   - La URL real de tu app en produccion, por ejemplo `https://tu-dominio.com/auth/google/callback`
 9. En `Origenes autorizados de JavaScript` agrega los origenes base equivalentes:
-    - `http://localhost:8000`
-    - `http://127.0.0.1:8000`
-    - y tu dominio real en produccion si aplica
+   - `http://localhost:8000`
+   - `http://127.0.0.1:8000`
+   - Tu dominio real en produccion si aplica
 10. Copia el `Client ID` y el `Client Secret`.
 11. Pegalos en tu `.env`:
 
@@ -382,14 +475,14 @@ Notas importantes:
 
 - Si la URI de callback no coincide exactamente con la configurada en Google, el login fallara.
 - Si el host cambia entre `localhost` y `127.0.0.1`, puedes romper el `state` de OAuth o la sesion del navegador.
-- Si quieres probar Google desde el shell movil en local, `MOBILE_APP_URL` debe apuntar al host/puerto reales del frontend movil, por defecto `http://localhost:8100`.
+- Si quieres probar Google desde el shell movil en local, `MOBILE_APP_URL` debe apuntar al host y puerto reales del frontend movil, por defecto `http://localhost:8100`.
 - Si la app esta en modo testing en Google, solo podran entrar usuarios agregados como testers.
 - Las cuentas creadas con Google tambien quedan obligadas a verificar email antes de entrar al sistema.
 
 ## Scripts utiles
 
 - `composer run dev`: servidor Laravel + queue listener + Vite web
-- `php artisan test`: suite de pruebas backend/web/API
+- `php artisan test`: suite de pruebas backend, web y API
 - `npm run build`: build de frontend web
 - `npm run contracts:generate`: regenera tipos TypeScript desde `packages/contracts/openapi.json`
 - `npm run mobile:dev`: levanta el shell movil Ionic en desarrollo
@@ -400,7 +493,7 @@ Notas importantes:
 - `npm run mobile:typecheck`: validacion de tipos del shell movil
 - `npm run lint`: corrige problemas ESLint cuando es posible
 - `npm run format`: formatea `resources/` con Prettier
-- `npm run types:check`: validacion de tipos Vue/TypeScript del frontend web
+- `npm run types:check`: validacion de tipos Vue y TypeScript del frontend web
 
 ## Estructura base
 
@@ -413,7 +506,7 @@ Notas importantes:
 - `app/Policies`: autorizacion
 - `database/migrations`: esquema de base de datos
 - `database/seeders`: datos iniciales
-- `resources/js/pages`: paginas Inertia/Vue de la web
+- `resources/js/pages`: paginas Inertia y Vue de la web
 - `resources/js/components`: componentes compartidos web
 - `mobile/`: app Ionic Vue + Capacitor
 - `packages/contracts`: contrato OpenAPI y tipos generados
@@ -431,7 +524,7 @@ La meta de `Vamo al Game` es evolucionar hacia una app para:
 - Registrar equipos, jugadores y staff
 - Crear calendarios y jornadas
 - Registrar resultados, estadisticas y standings
-- Asignar roles operativos a administradores y organizadores
+- Administrar roles operativos por liga y a nivel sistema
 - Centralizar configuraciones, comunicacion y reportes
 
 ## Calidad y convenciones
@@ -447,6 +540,7 @@ La meta de `Vamo al Game` es evolucionar hacia una app para:
 - Si falla la base de datos, confirma que `database/database.sqlite` exista y que la conexion en `.env` siga apuntando a SQLite.
 - Si los assets no cargan, reinicia `npm run dev` o ejecuta `npm run build`.
 - Si una migracion nueva falla, prueba `php artisan migrate:fresh --seed` solo en entornos locales descartables.
+- Si un usuario regular ve la pantalla de indisponibilidad, revisa si sus ligas activas fueron deshabilitadas desde el Centro de mando.
 - Si Google OAuth falla en Windows con errores SSL, descarga un `cacert.pem` confiable, guardalo por ejemplo en `C:\php\extras\ssl\cacert.pem` y configura en `C:\php\php.ini`:
 
 ```ini

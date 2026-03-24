@@ -1,26 +1,29 @@
 <script setup lang="ts">
 import { IonContent, IonPage } from '@ionic/vue';
-import { onBeforeUnmount, onMounted } from 'vue';
+import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import BrandLogo from '@/components/BrandLogo.vue';
+import { defaultAuthenticatedRouteName } from '@/lib/session-routes';
+import { fetchCurrentUser } from '@/services/auth';
 import { hydrateSessionState } from '@/state/session';
+import { sessionState } from '@/state/session';
 
 const router = useRouter();
-
-let starterTimeout: ReturnType<typeof setTimeout> | null = null;
 
 onMounted(async () => {
     await hydrateSessionState();
 
-    starterTimeout = setTimeout(async () => {
-        await router.replace({ name: 'login' });
-    }, 1500);
-});
-
-onBeforeUnmount(() => {
-    if (starterTimeout) {
-        clearTimeout(starterTimeout);
+    if (sessionState.token && !sessionState.user) {
+        try {
+            await fetchCurrentUser();
+        } catch {
+            // El guard redirigira a login si la sesion ya no es valida.
+        }
     }
+
+    await router.replace({
+        name: sessionState.token ? defaultAuthenticatedRouteName() : 'login',
+    });
 });
 </script>
 
