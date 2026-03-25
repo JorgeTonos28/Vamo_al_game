@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web\CommandCenter;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Web\CommandCenter\StoreLeagueRequest;
 use App\Models\League;
 use App\Services\CommandCenter\CommandCenterLeagueDirectoryService;
 use Illuminate\Http\RedirectResponse;
@@ -18,11 +19,24 @@ class LeagueController extends Controller
         ]);
     }
 
+    public function store(
+        StoreLeagueRequest $request,
+        CommandCenterLeagueDirectoryService $directoryService,
+    ): RedirectResponse {
+        $directoryService->create(
+            $request->user(),
+            $request->string('name')->value(),
+            $request->input('emoji'),
+        );
+
+        return to_route('command-center.leagues.index')
+            ->with('status', 'Liga creada correctamente.');
+    }
+
     public function update(
         League $league,
         CommandCenterLeagueDirectoryService $directoryService,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $directoryService->toggle($league);
 
         return to_route('command-center.leagues.index')

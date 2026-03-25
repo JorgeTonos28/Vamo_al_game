@@ -6,6 +6,4 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
 #[Fillable(['logo_path', 'favicon_path'])]
-class BrandingSetting extends Model
-{
-}
+class BrandingSetting extends Model {}

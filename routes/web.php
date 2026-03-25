@@ -12,6 +12,10 @@ use App\Http\Controllers\Web\CommandCenter\SettingsController as CommandCenterSe
 use App\Http\Controllers\Web\CommandCenter\UserController as CommandCenterUserController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\InvitationAcceptanceController;
+use App\Http\Controllers\Web\League\ArrivalController as LeagueArrivalController;
+use App\Http\Controllers\Web\League\ManagementController as LeagueManagementController;
+use App\Http\Controllers\Web\League\ModulePlaceholderController as LeagueModulePlaceholderController;
+use App\Http\Controllers\Web\League\PanelController as LeaguePanelController;
 use App\Http\Middleware\EnsureGeneralAdmin;
 use App\Http\Middleware\EnsureRegularAppAccess;
 use Illuminate\Support\Facades\Route;
@@ -52,8 +56,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->name('users.index');
             Route::post('users', [CommandCenterUserController::class, 'store'])
                 ->name('users.store');
+            Route::post('users/{user}/leagues', [CommandCenterUserController::class, 'assignLeague'])
+                ->name('users.leagues.store');
             Route::get('leagues', [CommandCenterLeagueController::class, 'index'])
                 ->name('leagues.index');
+            Route::post('leagues', [CommandCenterLeagueController::class, 'store'])
+                ->name('leagues.store');
             Route::patch('leagues/{league}', [CommandCenterLeagueController::class, 'update'])
                 ->name('leagues.update');
             Route::get('settings', [CommandCenterSettingsController::class, 'index'])
@@ -76,6 +84,55 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware(EnsureRegularAppAccess::class)->group(function (): void {
         Route::get('dashboard', DashboardController::class)->name('dashboard');
+
+        Route::prefix('liga')
+            ->as('league.')
+            ->group(function (): void {
+                Route::get('panel', [LeaguePanelController::class, 'index'])
+                    ->name('panel.index');
+                Route::get('llegada', [LeagueArrivalController::class, 'index'])
+                    ->name('arrival.index');
+                Route::post('llegada/players/{player}/toggle', [LeagueArrivalController::class, 'togglePlayer'])
+                    ->name('arrival.players.toggle');
+                Route::post('llegada/guests', [LeagueArrivalController::class, 'storeGuest'])
+                    ->name('arrival.guests.store');
+                Route::patch('llegada/guests/{entry}', [LeagueArrivalController::class, 'updateGuest'])
+                    ->name('arrival.guests.update');
+                Route::delete('llegada/guests/{entry}', [LeagueArrivalController::class, 'destroyGuest'])
+                    ->name('arrival.guests.destroy');
+                Route::post('llegada/prepare', [LeagueArrivalController::class, 'prepare'])
+                    ->name('arrival.prepare');
+                Route::post('llegada/reset', [LeagueArrivalController::class, 'reset'])
+                    ->name('arrival.reset');
+
+                Route::get('gestion', [LeagueManagementController::class, 'index'])
+                    ->name('management.index');
+                Route::post('gestion/payments/{player}', [LeagueManagementController::class, 'storePayment'])
+                    ->name('management.payments.store');
+                Route::delete('gestion/payments/{player}', [LeagueManagementController::class, 'destroyPayment'])
+                    ->name('management.payments.destroy');
+                Route::post('gestion/expenses', [LeagueManagementController::class, 'storeExpense'])
+                    ->name('management.expenses.store');
+                Route::delete('gestion/expenses/{expense}', [LeagueManagementController::class, 'destroyExpense'])
+                    ->name('management.expenses.destroy');
+                Route::post('gestion/settings', [LeagueManagementController::class, 'updateSettings'])
+                    ->name('management.settings.update');
+                Route::get('gestion/report', [LeagueManagementController::class, 'report'])
+                    ->name('management.report');
+                Route::post('gestion/referrals', [LeagueManagementController::class, 'storeReferral'])
+                    ->name('management.referrals.store');
+                Route::delete('gestion/referrals/{referral}', [LeagueManagementController::class, 'destroyReferral'])
+                    ->name('management.referrals.destroy');
+                Route::post('gestion/players', [LeagueManagementController::class, 'storePlayer'])
+                    ->name('management.players.store');
+                Route::patch('gestion/players/{player}', [LeagueManagementController::class, 'updatePlayer'])
+                    ->name('management.players.update');
+                Route::patch('gestion/players/{player}/status', [LeagueManagementController::class, 'updatePlayerStatus'])
+                    ->name('management.players.status.update');
+
+                Route::get('modulos/{module}', [LeagueModulePlaceholderController::class, 'show'])
+                    ->name('modules.show');
+            });
     });
 });
 

@@ -29,7 +29,8 @@ const initials = computed(() => {
 
 const tenantLabel = computed(() => {
   if (sessionState.tenancy?.active_league) {
-    return sessionState.tenancy.active_league.name
+    const league = sessionState.tenancy.active_league
+    return league.emoji ? `${league.emoji} ${league.name}` : league.name
   }
 
   return sessionState.tenancy?.guest_mode ? 'Modo invitado' : 'Sin liga activa'

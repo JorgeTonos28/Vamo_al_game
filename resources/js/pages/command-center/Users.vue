@@ -1,14 +1,18 @@
 <script setup lang="ts">
-import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { computed, watch } from 'vue';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { computed, reactive, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import CommandCenterLayout from '@/layouts/CommandCenterLayout.vue';
 
-defineProps<{
+const props = defineProps<{
     roleOptions: Array<{
+        value: string;
+        label: string;
+    }>;
+    leagueRoleOptions: Array<{
         value: string;
         label: string;
     }>;
@@ -24,6 +28,17 @@ defineProps<{
         account_role: string;
         account_role_label: string;
         league_memberships_count: number;
+        active_league_id: number | null;
+        memberships: Array<{
+            id: number;
+            league_id: number;
+            league_name: string;
+            league_slug: string;
+            role: string;
+            role_label: string;
+            is_active: boolean;
+        }>;
+        can_assign_leagues: boolean;
         has_completed_onboarding: boolean;
         invited_at: string | null;
         created_at: string | null;
@@ -46,6 +61,7 @@ const form = useForm({
     account_role: '',
     league_id: '',
 });
+const assignmentForms = reactive<Record<number, { league_id: string; role: string }>>({});
 
 const requiresLeagueAssignment = computed(() =>
     ['league_admin', 'member'].includes(form.account_role),
@@ -69,6 +85,32 @@ const submit = () => {
         },
     });
 };
+
+function assignmentFormFor(userId: number) {
+    if (!assignmentForms[userId]) {
+        const user = props.users.find((entry) => entry.id === userId);
+        const assignedLeagueIds = new Set(user?.memberships.map((membership) => membership.league_id) ?? []);
+        const suggestedLeague = props.leagueOptions.find((league) => !assignedLeagueIds.has(league.id)) ?? props.leagueOptions[0];
+
+        assignmentForms[userId] = {
+            league_id: suggestedLeague ? String(suggestedLeague.id) : '',
+            role: props.leagueRoleOptions[0]?.value ?? 'member',
+        };
+    }
+
+    return assignmentForms[userId];
+}
+
+function assignLeague(userId: number): void {
+    const assignment = assignmentFormFor(userId);
+
+    router.post(`/command-center/users/${userId}/leagues`, {
+        league_id: assignment.league_id,
+        role: assignment.role,
+    }, {
+        preserveScroll: true,
+    });
+}
 </script>
 
 <template>
@@ -152,13 +194,13 @@ const submit = () => {
                     </div>
 
                     <div v-if="requiresLeagueAssignment" class="grid gap-2 md:col-span-2">
-                        <Label for="league_id">Liga inicial</Label>
+                        <Label for="league_id">Liga inicial opcional</Label>
                         <select
                             id="league_id"
                             v-model="form.league_id"
                             class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-3 text-sm text-[#F8FAFC] outline-none transition focus:border-[rgba(229,184,73,0.28)]"
                         >
-                            <option value="">Selecciona una liga activa</option>
+                            <option value="">Dejar sin liga por ahora</option>
                             <option
                                 v-for="league in leagueOptions"
                                 :key="league.id"
@@ -168,7 +210,7 @@ const submit = () => {
                             </option>
                         </select>
                         <p class="text-[13px] text-[#94A3B8]">
-                            Esta seleccion crea la membresia inicial y define la liga activa del usuario invitado.
+                            Si seleccionas una liga activa, se crea la membresia inicial. Si no, podras asignarla mas tarde.
                         </p>
                         <InputError :message="form.errors.league_id" />
                     </div>
@@ -229,6 +271,69 @@ const submit = () => {
                                         : 'Pendiente'
                                 }}
                             </span>
+                        </div>
+
+                        <div class="flex flex-col gap-3 rounded-[14px] border border-white/6 bg-[#0E1628] p-4">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span
+                                    v-for="membership in user.memberships"
+                                    :key="membership.id"
+                                    class="rounded-full border px-3 py-1.5 text-[12px]"
+                                    :class="
+                                        membership.is_active
+                                            ? 'border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] text-[#F8FAFC]'
+                                            : 'border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] text-[#FCA5A5]'
+                                    "
+                                >
+                                    {{ membership.league_name }} · {{ membership.role_label }}{{
+                                        user.active_league_id === membership.league_id ? ' · Activa' : ''
+                                    }}
+                                </span>
+                                <span
+                                    v-if="user.memberships.length === 0"
+                                    class="text-[12px] text-[#94A3B8]"
+                                >
+                                    Sin ligas asignadas.
+                                </span>
+                            </div>
+
+                            <div
+                                v-if="user.can_assign_leagues"
+                                class="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto]"
+                            >
+                                <select
+                                    v-model="assignmentFormFor(user.id).league_id"
+                                    class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-3 text-sm text-[#F8FAFC] outline-none transition focus:border-[rgba(229,184,73,0.28)]"
+                                >
+                                    <option value="">Selecciona una liga activa</option>
+                                    <option
+                                        v-for="league in leagueOptions"
+                                        :key="league.id"
+                                        :value="league.id"
+                                    >
+                                        {{ league.name }}
+                                    </option>
+                                </select>
+                                <select
+                                    v-model="assignmentFormFor(user.id).role"
+                                    class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-3 text-sm text-[#F8FAFC] outline-none transition focus:border-[rgba(229,184,73,0.28)]"
+                                >
+                                    <option
+                                        v-for="role in leagueRoleOptions"
+                                        :key="role.value"
+                                        :value="role.value"
+                                    >
+                                        {{ role.label }}
+                                    </option>
+                                </select>
+                                <Button
+                                    class="min-h-12"
+                                    :disabled="!assignmentFormFor(user.id).league_id"
+                                    @click="assignLeague(user.id)"
+                                >
+                                    Guardar liga
+                                </Button>
+                            </div>
                         </div>
                     </article>
                 </div>

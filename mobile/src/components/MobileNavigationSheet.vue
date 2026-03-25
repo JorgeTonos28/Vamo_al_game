@@ -3,8 +3,10 @@ import { IonIcon, useIonRouter } from '@ionic/vue'
 import { logOutOutline, settingsOutline, shieldOutline, speedometerOutline, peopleOutline, menuOutline } from 'ionicons/icons'
 import { computed, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { leagueNavItems } from '@/lib/league-navigation'
 import { regularAppRouteName } from '@/lib/session-routes'
 import { logout } from '@/services/auth'
+import type { LeagueOperationalContext } from '@/services/league'
 import { sessionState } from '@/state/session'
 
 const props = defineProps<{
@@ -19,6 +21,16 @@ const emit = defineEmits<{
 const route = useRoute()
 const router = useRouter()
 const ionRouter = useIonRouter()
+const tenancy = computed(() => sessionState.tenancy as (typeof sessionState.tenancy & LeagueOperationalContext) | null)
+const activeLeagueLabel = computed(() => {
+  const league = tenancy.value?.active_league
+
+  if (!league) {
+    return sessionState.user?.name ?? 'Usuario'
+  }
+
+  return league.emoji ? `${league.emoji} ${league.name}` : league.name
+})
 
 const navItems = computed(() => {
   if (props.commandCenter) {
@@ -30,10 +42,14 @@ const navItems = computed(() => {
     ]
   }
 
-  return [
-    { label: 'Panel', routeName: regularAppRouteName(), href: regularAppRouteName() === 'app-unavailable' ? '/app/unavailable' : '/app/home', icon: speedometerOutline },
-    { label: 'Ajustes', routeName: 'settings-profile', href: '/app/settings/profile', icon: settingsOutline },
-  ]
+  if (regularAppRouteName() === 'app-unavailable') {
+    return [
+      { label: 'Panel', routeName: 'app-unavailable', href: '/app/unavailable', icon: speedometerOutline },
+      { label: 'Ajustes', routeName: 'settings-profile', href: '/app/settings/profile', icon: settingsOutline },
+    ]
+  }
+
+  return leagueNavItems(tenancy.value)
 })
 
 function close(): void {
@@ -53,8 +69,8 @@ async function handleLogout(): Promise<void> {
   ionRouter.navigate('/login', 'root', 'replace')
 }
 
-function isActive(routeName: string): boolean {
-  return route.name === routeName
+function isActive(routeName: string, href: string): boolean {
+  return route.name === routeName || route.path === href || route.path.startsWith(`${href}/`)
 }
 </script>
 
@@ -66,9 +82,9 @@ function isActive(routeName: string): boolean {
 
         <div class="menu-header">
           <p class="app-kicker menu-kicker">{{ props.commandCenter ? 'Centro de mando' : 'Navegacion' }}</p>
-          <h2 class="menu-title">{{ sessionState.user?.name ?? 'Usuario' }}</h2>
+          <h2 class="menu-title">{{ props.commandCenter ? sessionState.user?.name ?? 'Usuario' : activeLeagueLabel }}</h2>
           <p class="menu-description">
-            {{ sessionState.user?.email }}
+            {{ props.commandCenter ? sessionState.user?.email : tenancy?.active_league?.role_label ?? sessionState.user?.email }}
           </p>
         </div>
 
@@ -76,7 +92,7 @@ function isActive(routeName: string): boolean {
           <button
             v-for="item in navItems"
             :key="item.routeName"
-            :class="['menu-option', { 'is-active': isActive(item.routeName) }]"
+            :class="['menu-option', { 'is-active': isActive(item.routeName, item.href) }]"
             type="button"
             @click="goTo(item.href)"
           >

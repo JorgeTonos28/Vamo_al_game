@@ -13,6 +13,10 @@ import GoogleAuthCallbackPage from '@/pages/GoogleAuthCallbackPage.vue'
 import HealthPage from '@/pages/HealthPage.vue'
 import HomePage from '@/pages/HomePage.vue'
 import LandingPage from '@/pages/LandingPage.vue'
+import LeagueArrivalPage from '@/pages/LeagueArrivalPage.vue'
+import LeagueManagementPage from '@/pages/LeagueManagementPage.vue'
+import LeagueModulePlaceholderPage from '@/pages/LeagueModulePlaceholderPage.vue'
+import LeaguePanelPage from '@/pages/LeaguePanelPage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
 import ProfilePage from '@/pages/ProfilePage.vue'
 import RegisterPage from '@/pages/RegisterPage.vue'
@@ -87,6 +91,42 @@ const routes: RouteRecordRaw[] = [
         path: 'home',
         name: 'app-home',
         component: HomePage,
+        meta: {
+          requiresAuth: true,
+          regularAppOnly: true,
+        },
+      },
+      {
+        path: 'league/panel',
+        name: 'league-panel',
+        component: LeaguePanelPage,
+        meta: {
+          requiresAuth: true,
+          regularAppOnly: true,
+        },
+      },
+      {
+        path: 'league/arrival',
+        name: 'league-arrival',
+        component: LeagueArrivalPage,
+        meta: {
+          requiresAuth: true,
+          regularAppOnly: true,
+        },
+      },
+      {
+        path: 'league/management',
+        name: 'league-management',
+        component: LeagueManagementPage,
+        meta: {
+          requiresAuth: true,
+          regularAppOnly: true,
+        },
+      },
+      {
+        path: 'league/modules/:module',
+        name: 'league-placeholder',
+        component: LeagueModulePlaceholderPage,
         meta: {
           requiresAuth: true,
           regularAppOnly: true,

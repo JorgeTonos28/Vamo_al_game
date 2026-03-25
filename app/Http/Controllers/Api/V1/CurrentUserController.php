@@ -14,8 +14,7 @@ class CurrentUserController extends Controller
     public function __invoke(
         Request $request,
         LeagueContextResolver $leagueContextResolver,
-    ): JsonResponse
-    {
+    ): JsonResponse {
         return ApiResponse::success(
             $request,
             new UserResource($request->user()),

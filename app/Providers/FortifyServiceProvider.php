@@ -52,7 +52,7 @@ class FortifyServiceProvider extends ServiceProvider
                 return null;
             }
 
-            if ($user->hasPendingInvitation() && ! $user->hasCompletedOnboarding()) {
+            if ($user->mustCompleteInvitationOnboarding()) {
                 throw ValidationException::withMessages([
                     Fortify::username() => ['Debes completar la invitacion enviada a tu correo antes de iniciar sesion.'],
                 ]);

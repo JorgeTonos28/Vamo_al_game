@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import CommandCenterLayout from '@/layouts/CommandCenterLayout.vue';
 
 type LeagueAdmin = {
@@ -12,6 +15,7 @@ type LeagueAdmin = {
 type LeagueRow = {
     id: number;
     name: string;
+    emoji: string | null;
     slug: string;
     is_active: boolean;
     admins: LeagueAdmin[];
@@ -28,6 +32,20 @@ const status = computed(
     () =>
         (page.props.flash as { status?: string } | undefined)?.status,
 );
+const form = useForm({
+    name: '',
+    emoji: '',
+});
+
+const submit = () => {
+    form.post('/command-center/leagues', {
+        preserveScroll: true,
+        onSuccess: () => {
+            form.reset();
+            form.clearErrors();
+        },
+    });
+};
 
 const toggleLeague = (league: LeagueRow) => {
     router.patch(`/command-center/leagues/${league.id}`, undefined, {
@@ -59,6 +77,55 @@ const toggleLeague = (league: LeagueRow) => {
                 </p>
             </section>
 
+            <section class="app-surface space-y-5">
+                <div class="space-y-2">
+                    <p class="app-kicker text-[#E5B849]">Nueva liga</p>
+                    <h2 class="text-[22px] font-semibold text-[#F8FAFC]">
+                        Crear liga activa
+                    </h2>
+                    <p class="app-body-copy">
+                        El nombre debe ser unico de forma exacta. La liga se crea activa y disponible para asignaciones.
+                    </p>
+                </div>
+
+                <form
+                    class="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]"
+                    @submit.prevent="submit"
+                >
+                    <div class="grid gap-2">
+                        <Label for="league_name">Nombre de la liga</Label>
+                        <Input
+                            id="league_name"
+                            v-model="form.name"
+                            required
+                            maxlength="120"
+                            placeholder="Liga Aurora"
+                        />
+                        <InputError :message="form.errors.name" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="league_emoji">Emoji</Label>
+                        <Input
+                            id="league_emoji"
+                            v-model="form.emoji"
+                            maxlength="16"
+                            placeholder="⚽"
+                        />
+                        <p class="text-[13px] text-[#94A3B8]">
+                            Opcional. Se mostrara junto al nombre de la liga en el shell.
+                        </p>
+                        <InputError :message="form.errors.emoji" />
+                    </div>
+
+                    <div class="md:col-span-2 md:self-end">
+                        <Button :disabled="form.processing" class="w-full md:w-auto">
+                            {{ form.processing ? 'Creando...' : 'Crear liga' }}
+                        </Button>
+                    </div>
+                </form>
+            </section>
+
             <section class="app-surface">
                 <div class="app-divider-list">
                     <article
@@ -76,7 +143,7 @@ const toggleLeague = (league: LeagueRow) => {
                                     <p
                                         class="text-[18px] font-semibold text-[#F8FAFC]"
                                     >
-                                        {{ league.name }}
+                                        {{ league.emoji ? `${league.emoji} ${league.name}` : league.name }}
                                     </p>
                                     <span
                                         :class="

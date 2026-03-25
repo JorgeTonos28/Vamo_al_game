@@ -10,7 +10,7 @@ use Illuminate\Support\Collection;
 class LeagueContextResolver
 {
     /**
-     * @return Collection<int, array{id: int, name: string, slug: string, role: string, role_label: string, is_active: bool}>
+     * @return Collection<int, array{id: int, name: string, emoji: string|null, slug: string, role: string, role_label: string, is_active: bool}>
      */
     public function leaguesFor(User $user): Collection
     {
@@ -22,6 +22,7 @@ class LeagueContextResolver
             ->select([
                 'leagues.id',
                 'leagues.name',
+                'leagues.emoji',
                 'leagues.slug',
                 'leagues.is_active',
                 'league_memberships.role',
@@ -29,8 +30,12 @@ class LeagueContextResolver
             ->join('league_memberships', 'league_memberships.league_id', '=', 'leagues.id')
             ->where('league_memberships.user_id', $user->id)
             ->orderByRaw(
-                'case when league_memberships.role = ? then 0 else 1 end',
-                [LeagueMembershipRole::Admin->value],
+                'case
+                    when league_memberships.role = ? then 0
+                    when league_memberships.role = ? then 1
+                    else 2
+                end',
+                [LeagueMembershipRole::Admin->value, LeagueMembershipRole::Member->value],
             )
             ->orderByDesc('leagues.is_active')
             ->orderBy('leagues.name')
@@ -38,6 +43,7 @@ class LeagueContextResolver
             ->map(fn (League $league): array => [
                 'id' => $league->id,
                 'name' => $league->name,
+                'emoji' => $league->emoji,
                 'slug' => $league->slug,
                 'role' => (string) $league->getAttribute('role'),
                 'role_label' => LeagueMembershipRole::from((string) $league->getAttribute('role'))->label(),
@@ -46,7 +52,7 @@ class LeagueContextResolver
     }
 
     /**
-     * @return array{id: int, name: string, slug: string, role: string, role_label: string, is_active: bool}|null
+     * @return array{id: int, name: string, emoji: string|null, slug: string, role: string, role_label: string, is_active: bool}|null
      */
     public function activeLeagueFor(User $user): ?array
     {
@@ -93,12 +99,15 @@ class LeagueContextResolver
 
     /**
      * @return array{
-     *     available_leagues: array<int, array{id: int, name: string, slug: string, role: string, role_label: string, is_active: bool}>,
-     *     active_league: array{id: int, name: string, slug: string, role: string, role_label: string, is_active: bool}|null,
+     *     available_leagues: array<int, array{id: int, name: string, emoji: string|null, slug: string, role: string, role_label: string, is_active: bool}>,
+     *     active_league: array{id: int, name: string, emoji: string|null, slug: string, role: string, role_label: string, is_active: bool}|null,
      *     can_switch: bool,
      *     has_memberships: bool,
      *     has_blocked_access: bool,
-     *     guest_mode: bool
+     *     guest_mode: bool,
+     *     can_access_modules: bool,
+     *     can_manage_league: bool,
+     *     is_guest_role: bool
      * }
      */
     public function contextFor(User $user): array
@@ -106,6 +115,9 @@ class LeagueContextResolver
         $availableLeagues = $this->leaguesFor($user)->values()->all();
         $hasMemberships = $user->leagueMemberships()->exists();
         $activeLeague = $this->activeLeagueFor($user);
+        $activeRole = $activeLeague !== null
+            ? LeagueMembershipRole::from($activeLeague['role'])
+            : null;
 
         return [
             'available_leagues' => $availableLeagues,
@@ -114,6 +126,9 @@ class LeagueContextResolver
             'has_memberships' => $hasMemberships,
             'has_blocked_access' => $hasMemberships && $activeLeague !== null && ! $activeLeague['is_active'],
             'guest_mode' => ! $hasMemberships,
+            'can_access_modules' => $activeRole?->canAccessOperationalModules() ?? false,
+            'can_manage_league' => $activeRole?->canManageLeague() ?? false,
+            'is_guest_role' => $activeRole === LeagueMembershipRole::Guest,
         ];
     }
 }

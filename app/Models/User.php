@@ -3,14 +3,14 @@
 namespace App\Models;
 
 use App\Enums\AccountRole;
-use App\Policies\UserPolicy;
 use App\Notifications\VerifyEmailNotification;
+use App\Policies\UserPolicy;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -95,6 +95,11 @@ class User extends Authenticatable implements MustVerifyEmail
             ->whereNull('accepted_at')
             ->where('expires_at', '>', now())
             ->exists();
+    }
+
+    public function mustCompleteInvitationOnboarding(): bool
+    {
+        return $this->invited_at !== null && ! $this->hasCompletedOnboarding();
     }
 
     public function isGeneralAdmin(): bool

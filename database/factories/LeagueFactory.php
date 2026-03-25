@@ -23,6 +23,7 @@ class LeagueFactory extends Factory
 
         return [
             'name' => $name,
+            'emoji' => fake()->randomElement(['⚽', '🏀', '🏐', '🥎']),
             'slug' => Str::slug($name).'-'.fake()->unique()->numberBetween(100, 999),
             'is_active' => true,
             'created_by_user_id' => User::factory(),

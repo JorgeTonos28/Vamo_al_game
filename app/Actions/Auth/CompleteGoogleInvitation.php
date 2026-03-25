@@ -36,9 +36,9 @@ class CompleteGoogleInvitation
                 $parsedName['first_name'] ?: $invitation->user->first_name,
                 $parsedName['last_name'] ?: $invitation->user->last_name,
             ),
-            'document_id' => $user->document_id ?: $invitation->user->document_id,
-            'phone' => $user->phone ?: $invitation->user->phone,
-            'address' => $user->address ?: $invitation->user->address,
+            'document_id' => blank($user->document_id ?: $invitation->user->document_id) ? null : ($user->document_id ?: $invitation->user->document_id),
+            'phone' => blank($user->phone ?: $invitation->user->phone) ? null : ($user->phone ?: $invitation->user->phone),
+            'address' => blank($user->address ?: $invitation->user->address) ? null : ($user->address ?: $invitation->user->address),
             'email_verified_at' => $user->email_verified_at ?? now(),
             'onboarded_at' => now(),
         ])->save();

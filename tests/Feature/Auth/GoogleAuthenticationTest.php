@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Actions\Auth\CompleteGoogleInvitation;
 use App\Models\User;
 use App\Models\UserInvitation;
 use App\Notifications\VerifyEmailNotification;
@@ -182,5 +183,56 @@ class GoogleAuthenticationTest extends TestCase
 
         $response->assertRedirect(route('login'));
         $response->assertSessionHas('status', 'La invitacion no es valida o ya expiro.');
+    }
+
+    public function test_google_callback_returns_a_generic_message_for_unexpected_invitation_completion_errors(): void
+    {
+        $invitedUser = User::factory()->create([
+            'email' => 'invitee@example.com',
+            'invited_at' => now(),
+            'onboarded_at' => null,
+        ]);
+
+        $invitation = UserInvitation::query()->create([
+            'user_id' => $invitedUser->id,
+            'token_hash' => hash('sha256', 'valid-token'),
+            'expires_at' => now()->addDay(),
+            'accepted_at' => null,
+            'last_sent_at' => now(),
+        ]);
+
+        $googleUser = Mockery::mock(SocialiteUserContract::class);
+        $googleUser->shouldReceive('getId')->andReturn('google-invitee');
+        $googleUser->shouldReceive('getEmail')->andReturn('invitee@example.com');
+        $googleUser->shouldReceive('getName')->andReturn('Invitee');
+        $googleUser->shouldReceive('getNickname')->andReturn(null);
+        $googleUser->shouldReceive('getAvatar')->andReturn('https://example.com/invitee.png');
+
+        $provider = Mockery::mock(GoogleProvider::class);
+        $provider->shouldReceive('setHttpClient')->once()->andReturnSelf();
+        $provider->shouldReceive('user')->once()->andReturn($googleUser);
+
+        Socialite::shouldReceive('driver')
+            ->once()
+            ->with('google')
+            ->andReturn($provider);
+
+        $action = Mockery::mock(CompleteGoogleInvitation::class);
+        $action->shouldReceive('handle')
+            ->once()
+            ->andThrow(new RuntimeException('SQLSTATE[HY000] simulated failure'));
+        $this->app->instance(CompleteGoogleInvitation::class, $action);
+
+        $response = $this
+            ->withSession([
+                'auth.google.invitation' => [
+                    'invitation_id' => $invitation->id,
+                    'token' => 'valid-token',
+                ],
+            ])
+            ->get(route('auth.google.callback'));
+
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHas('status', 'No fue posible completar la invitacion con Google.');
     }
 }

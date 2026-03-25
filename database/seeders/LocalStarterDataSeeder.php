@@ -64,7 +64,7 @@ class LocalStarterDataSeeder extends Seeder
             'onboarded_at' => now(),
         ]);
 
-        User::updateOrCreate([
+        $guest = User::updateOrCreate([
             'email' => 'guestest@vamoalgame.com',
         ], [
             'first_name' => 'Invitado',
@@ -84,6 +84,7 @@ class LocalStarterDataSeeder extends Seeder
             'slug' => 'liga-aurora',
         ], [
             'name' => 'Liga Aurora',
+            'emoji' => '⚽',
             'is_active' => true,
             'created_by_user_id' => $leagueAdmin->id,
         ]);
@@ -92,6 +93,7 @@ class LocalStarterDataSeeder extends Seeder
             'slug' => 'liga-titanes',
         ], [
             'name' => 'Liga Titanes',
+            'emoji' => '🏀',
             'is_active' => true,
             'created_by_user_id' => $leagueAdmin->id,
         ]);
@@ -100,6 +102,7 @@ class LocalStarterDataSeeder extends Seeder
             'slug' => 'liga-barrio-central',
         ], [
             'name' => 'Liga Barrio Central',
+            'emoji' => '🏐',
             'is_active' => false,
             'created_by_user_id' => $leagueAdmin->id,
         ]);
@@ -108,6 +111,7 @@ class LocalStarterDataSeeder extends Seeder
             [$aurora->id, $leagueAdmin->id, LeagueMembershipRole::Admin],
             [$titanes->id, $leagueAdmin->id, LeagueMembershipRole::Admin],
             [$aurora->id, $member->id, LeagueMembershipRole::Member],
+            [$aurora->id, $guest->id, LeagueMembershipRole::Guest],
             [$barrio->id, $member->id, LeagueMembershipRole::Admin],
         ];
 
@@ -127,5 +131,13 @@ class LocalStarterDataSeeder extends Seeder
         $member->forceFill([
             'active_league_id' => $aurora->id,
         ])->save();
+
+        $guest->forceFill([
+            'active_league_id' => $aurora->id,
+        ])->save();
+
+        $this->call([
+            LeagueOperationsStarterSeeder::class,
+        ]);
     }
 }
