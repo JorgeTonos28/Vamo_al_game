@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Enums\LeagueMembershipRole;
 use App\Http\Controllers\Controller;
 use App\Services\Tenancy\LeagueContextResolver;
 use Illuminate\Http\RedirectResponse;
@@ -20,8 +21,18 @@ class ActiveLeagueController extends Controller
             403,
         );
 
-        return redirect()
-            ->route('dashboard')
-            ->with('status', 'Liga activa actualizada.');
+        $context = $leagueContextResolver->contextFor($request->user()->fresh());
+        $activeLeague = $context['active_league'];
+        $activeRole = $activeLeague !== null
+            ? LeagueMembershipRole::from($activeLeague['role'])
+            : null;
+
+        $route = $activeLeague !== null
+            && $activeLeague['is_active']
+            && $activeRole?->canAccessOperationalModules()
+                ? 'league.panel.index'
+                : 'dashboard';
+
+        return redirect()->route($route)->with('status', 'Liga activa actualizada.');
     }
 }

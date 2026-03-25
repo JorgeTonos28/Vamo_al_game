@@ -192,6 +192,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/command-center/users/{user}/leagues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Asigna una liga activa a un usuario existente */
+        post: operations["commandCenterAssignUserLeague"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/command-center/leagues": {
         parameters: {
             query?: never;
@@ -384,6 +401,314 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/league/home": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Panel operativo de la liga activa */
+        get: operations["leagueHome"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/arrival": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Carga el m?dulo Llegada */
+        get: operations["leagueArrival"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/arrival/guests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Agrega un invitado a llegada */
+        post: operations["storeLeagueArrivalGuest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/arrival/guests/{entry}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Elimina un invitado de llegada */
+        delete: operations["deleteLeagueArrivalGuest"];
+        options?: never;
+        head?: never;
+        /** Confirma o revierte pago de invitado */
+        patch: operations["updateLeagueArrivalGuest"];
+        trace?: never;
+    };
+    "/league/arrival/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Prepara la jornada y genera cola inicial */
+        post: operations["prepareLeagueArrival"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/arrival/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reinicia la lista de llegada */
+        post: operations["resetLeagueArrival"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/management": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Carga el m?dulo Gesti?n */
+        get: operations["leagueManagement"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/management/payments/{player}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Registra o agrega pago de un miembro */
+        post: operations["storeLeagueManagementPayment"];
+        /** Elimina la cuota del corte */
+        delete: operations["deleteLeagueManagementPayment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/management/expenses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Agrega gasto al corte */
+        post: operations["storeLeagueManagementExpense"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/management/expenses/{expense}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Elimina gasto manual del corte */
+        delete: operations["deleteLeagueManagementExpense"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/management/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Actualiza configuraci?n de jornadas y cuotas */
+        post: operations["updateLeagueManagementSettings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/management/referrals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Registra un referido */
+        post: operations["storeLeagueManagementReferral"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/management/referrals/{referral}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Elimina un referido */
+        delete: operations["deleteLeagueManagementReferral"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/management/players": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Agrega un miembro al roster */
+        post: operations["storeLeagueManagementPlayer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/management/players/{player}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edita un miembro del roster */
+        patch: operations["updateLeagueManagementPlayer"];
+        trace?: never;
+    };
+    "/league/management/players/{player}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Activa o da de baja un miembro */
+        patch: operations["updateLeagueManagementPlayerStatus"];
+        trace?: never;
+    };
+    "/league/management/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Descarga reporte PDF del corte */
+        get: operations["downloadLeagueManagementReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/arrival/players/{player}/toggle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Marca o desmarca llegada de un miembro */
+        post: operations["toggleLeagueArrivalPlayer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -411,6 +736,11 @@ export interface components {
             email: string;
             account_role?: components["schemas"]["AccountRole"] | null;
             league_id?: number | null;
+        };
+        CommandCenterAssignLeagueMembershipRequest: {
+            league_id: number;
+            /** @enum {string} */
+            role: "league_admin" | "member";
         };
         ActiveLeagueUpdateRequest: {
             league_id: number;
@@ -473,7 +803,7 @@ export interface components {
         /** @enum {string} */
         AccountRole: "general_admin" | "league_admin" | "member" | "guest";
         /** @enum {string} */
-        LeagueMembershipRole: "admin" | "member";
+        LeagueMembershipRole: "admin" | "member" | "guest";
         LeagueContextLeague: {
             id: number;
             name: string;
@@ -498,6 +828,9 @@ export interface components {
             has_memberships: boolean;
             has_blocked_access: boolean;
             guest_mode: boolean;
+            can_access_modules: boolean;
+            can_manage_league: boolean;
+            is_guest_role: boolean;
         };
         TenancyMeta: {
             tenancy: components["schemas"]["TenancyContext"];
@@ -520,6 +853,15 @@ export interface components {
             name: string;
             slug: string;
         };
+        CommandCenterMembership: {
+            id: number;
+            league_id: number;
+            league_name: string;
+            league_slug: string;
+            role: components["schemas"]["LeagueMembershipRole"];
+            role_label: string;
+            is_active: boolean;
+        };
         CommandCenterUser: {
             id: number;
             name: string;
@@ -528,6 +870,9 @@ export interface components {
             account_role: components["schemas"]["AccountRole"] | null;
             account_role_label: string | null;
             league_memberships_count: number;
+            active_league_id: number | null;
+            memberships: components["schemas"]["CommandCenterMembership"][];
+            can_assign_leagues: boolean;
             has_completed_onboarding: boolean;
             /** Format: date-time */
             invited_at: string | null;
@@ -553,10 +898,14 @@ export interface components {
         };
         CommandCenterUsersPayload: {
             role_options: components["schemas"]["RoleOption"][];
+            league_role_options: components["schemas"]["RoleOption"][];
             league_options: components["schemas"]["LeagueOption"][];
             users: components["schemas"]["CommandCenterUser"][];
         };
         CommandCenterInviteUserPayload: {
+            user: components["schemas"]["CommandCenterUser"];
+        };
+        CommandCenterAssignLeagueMembershipPayload: {
             user: components["schemas"]["CommandCenterUser"];
         };
         CommandCenterLeaguesPayload: {
@@ -671,6 +1020,16 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        CommandCenterAssignLeagueMembershipResponse: {
+            /** @constant */
+            success: true;
+            message: string;
+            data: components["schemas"]["CommandCenterAssignLeagueMembershipPayload"];
+            errors: unknown[];
+            meta: {
+                [key: string]: unknown;
+            };
+        };
         CommandCenterLeaguesResponse: {
             /** @constant */
             success: true;
@@ -778,6 +1137,285 @@ export interface components {
             meta: {
                 [key: string]: unknown;
             };
+        };
+        LeagueHomePayload: {
+            /** @enum {string} */
+            mode: "operational" | "guest" | "no_league";
+            league: components["schemas"]["LeagueHomeLeague"] | null;
+            role: components["schemas"]["LeagueHomeRole"] | null;
+            requires_league_selection: boolean;
+            summary: components["schemas"]["LeagueHomeSummary"] | null;
+        };
+        LeagueHomeLeague: {
+            id: number;
+            name: string;
+            slug: string;
+        };
+        LeagueHomeRole: {
+            value: components["schemas"]["LeagueMembershipRole"];
+            label: string;
+            can_manage: boolean;
+        };
+        LeagueHomeSummary: {
+            cut_label: string;
+            is_past_due: boolean;
+            players_count: number;
+            paid_players_count: number;
+            pending_players_count: number;
+            today_arrivals_count: number;
+            today_guests_count: number;
+            session_status: string;
+        };
+        LeagueRosterManagement: {
+            can_manage: boolean;
+            active_players: components["schemas"]["LeagueRosterPlayer"][];
+            inactive_players: components["schemas"]["LeagueRosterPlayer"][];
+            referral_options: components["schemas"]["LeagueReferralOption"][];
+            referral_credit_amount_cents: number;
+        };
+        LeagueRosterPlayer: {
+            id: number;
+            name: string;
+            jersey_number: number | null;
+        };
+        LeagueReferralOption: {
+            id: number;
+            name: string;
+        };
+        LeagueArrivalPayload: {
+            league: components["schemas"]["LeagueHomeLeague"];
+            role: components["schemas"]["LeagueHomeRole"];
+            cut: components["schemas"]["LeagueArrivalCut"];
+            session: components["schemas"]["LeagueArrivalSession"];
+            players: components["schemas"]["LeagueArrivalPlayer"][];
+            guests: components["schemas"]["LeagueArrivalGuest"][];
+            roster_management: components["schemas"]["LeagueRosterManagement"];
+        };
+        LeagueArrivalCut: {
+            id: number;
+            label: string;
+            starts_on: string;
+            ends_on: string;
+            due_on: string;
+            is_past_due: boolean;
+            member_fee_amount_cents: number;
+            guest_fee_amount_cents: number;
+        };
+        LeagueArrivalSession: {
+            id: number | null;
+            status: string;
+            session_date: string | null;
+            started_at: string | null;
+            prepared_at: string | null;
+            counts: components["schemas"]["LeagueArrivalCounts"];
+            prepared_pool: components["schemas"]["LeagueQueueEntry"][];
+            prepared_queue: components["schemas"]["LeagueQueueEntry"][];
+        };
+        LeagueArrivalCounts: {
+            arrived_members: number;
+            total_members: number;
+            guests: number;
+        };
+        LeagueQueueEntry: {
+            id: number;
+            name: string;
+            entry_type: string;
+        };
+        LeagueArrivalPlayer: {
+            id: number;
+            name: string;
+            jersey_number: number | null;
+            attendance_count: number;
+            arrival_order: number | null;
+            has_arrived: boolean;
+            current_cut_paid: boolean;
+            status_tone: string;
+            status_message: string;
+        };
+        LeagueArrivalGuest: {
+            id: number;
+            name: string;
+            arrival_order: number;
+            guest_fee_paid: boolean;
+        };
+        LeagueManagementPayload: {
+            league: components["schemas"]["LeagueHomeLeague"];
+            role: {
+                value: components["schemas"]["LeagueMembershipRole"];
+                label: string;
+            };
+            cut_selector: components["schemas"]["LeagueManagementCutSelector"];
+            summary: components["schemas"]["LeagueManagementSummary"];
+            payments: components["schemas"]["LeagueManagementPaymentRow"][];
+            expenses: components["schemas"]["LeagueManagementExpense"][];
+            board: components["schemas"]["LeagueManagementBoard"];
+            settings: components["schemas"]["LeagueManagementSettings"];
+            referrals: components["schemas"]["LeagueManagementReferralGroup"][];
+            roster_management: components["schemas"]["LeagueRosterManagement"];
+        };
+        LeagueManagementCutSelector: {
+            selected_cut_id: number;
+            cuts: components["schemas"]["LeagueManagementCutOption"][];
+        };
+        LeagueManagementCutOption: {
+            id: number;
+            label: string;
+            starts_on: string;
+            ends_on: string;
+            is_active: boolean;
+        };
+        LeagueManagementSummary: {
+            selected_cut: components["schemas"]["LeagueManagementSelectedCut"];
+            income: components["schemas"]["LeagueManagementIncome"];
+            expenses: {
+                total_cents: number;
+            };
+            balance_cents: number;
+        };
+        LeagueManagementSelectedCut: {
+            id: number;
+            label: string;
+            starts_on: string;
+            ends_on: string;
+            due_on: string;
+            is_past_due: boolean;
+        };
+        LeagueManagementIncome: {
+            cash_payments_cents: number;
+            guest_income_cents: number;
+            total_cents: number;
+        };
+        LeagueManagementPaymentRow: {
+            player: components["schemas"]["LeagueRosterPlayer"];
+            balance: components["schemas"]["LeagueManagementBalance"];
+        };
+        LeagueManagementBalance: {
+            status: string;
+            amount_due_cents: number;
+            amount_paid_cents: number;
+            carry_in_cents: number;
+            extra_credit_cents: number;
+            referral_credit_applied_cents: number;
+            available_referral_credit_cents: number;
+            previous_debt_cents: number;
+            settlement_due_cents: number;
+            status_tone: string;
+            status_message: string;
+        };
+        LeagueManagementExpense: {
+            id: number;
+            name: string;
+            expense_type: string;
+            amount_cents: number;
+            is_system_generated: boolean;
+            is_fixed: boolean;
+        };
+        LeagueManagementBoard: {
+            share_cents: number;
+            members: {
+                id: number;
+                name: string;
+                share_cents: number;
+            }[];
+        };
+        LeagueManagementSettings: {
+            sessions_limit: number;
+            game_days: string[];
+            cut_day: number;
+            member_fee_amount_cents: number;
+            guest_fee_amount_cents: number;
+            referral_credit_amount_cents: number;
+        };
+        LeagueManagementReferralGroup: {
+            referrer: components["schemas"]["LeagueReferralOption"];
+            available_credit_cents: number;
+            members: components["schemas"]["LeagueReferralOption"][];
+        };
+        LeagueHomeResponse: {
+            /** @constant */
+            success: true;
+            message: string;
+            data: components["schemas"]["LeagueHomePayload"];
+            errors: unknown[];
+            meta: {
+                [key: string]: unknown;
+            };
+        };
+        LeagueArrivalResponse: {
+            /** @constant */
+            success: true;
+            message: string;
+            data: components["schemas"]["LeagueArrivalPayload"];
+            errors: unknown[];
+            meta: {
+                [key: string]: unknown;
+            };
+        };
+        LeagueManagementResponse: {
+            /** @constant */
+            success: true;
+            message: string;
+            data: components["schemas"]["LeagueManagementPayload"];
+            errors: unknown[];
+            meta: {
+                [key: string]: unknown;
+            };
+        };
+        LeagueArrivalPlayerToggleRequest: {
+            paid?: boolean | null;
+        };
+        LeagueArrivalGuestStoreRequest: {
+            guest_name: string;
+        };
+        LeagueArrivalGuestUpdateRequest: {
+            guest_fee_paid: boolean;
+        };
+        LeagueArrivalPrepareRequest: {
+            guest_payments?: {
+                id: number;
+                paid: boolean;
+            }[];
+        };
+        LeagueManagementPaymentRequest: {
+            cut_id?: number | null;
+            amount_cents: number;
+            apply_referral_credit?: boolean;
+        };
+        LeagueManagementExpenseRequest: {
+            cut_id?: number | null;
+            name: string;
+            amount_cents: number;
+            is_fixed?: boolean;
+        };
+        LeagueManagementSettingsRequest: {
+            sessions_limit: number;
+            game_days: string[];
+            cut_day: number;
+            member_fee_amount_cents: number;
+            guest_fee_amount_cents: number;
+            referral_credit_amount_cents: number;
+        };
+        LeagueManagementReferralRequest: {
+            referrer_player_id: number;
+            referred_player_id: number;
+        };
+        LeagueManagementPlayerStoreRequest: {
+            first_name: string;
+            last_name: string;
+            document_id?: string | null;
+            phone?: string | null;
+            address?: string | null;
+            /** Format: email */
+            email: string;
+            /** @enum {string} */
+            account_role: "league_admin" | "member";
+        };
+        LeagueManagementPlayerUpdateRequest: {
+            display_name: string;
+            jersey_number?: number | null;
+        };
+        LeagueManagementPlayerStatusRequest: {
+            active: boolean;
         };
     };
     responses: never;
@@ -1192,6 +1830,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CommandCenterInviteUserResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Sin permisos */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Datos invalidos */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    commandCenterAssignUserLeague: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommandCenterAssignLeagueMembershipRequest"];
+            };
+        };
+        responses: {
+            /** @description Liga asignada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandCenterAssignLeagueMembershipResponse"];
                 };
             };
             /** @description No autenticado */
@@ -1801,6 +2492,1045 @@ export interface operations {
             };
             /** @description Sin permisos */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    leagueHome: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueHomeResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validaci?n fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    leagueArrival: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueArrivalResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validaci?n fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    storeLeagueArrivalGuest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeagueArrivalGuestStoreRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueArrivalResponse"];
+                };
+            };
+            /** @description Recurso actualizado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueArrivalResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validaci?n fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteLeagueArrivalGuest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueArrivalResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validaci?n fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateLeagueArrivalGuest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeagueArrivalGuestUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueArrivalResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validaci?n fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    prepareLeagueArrival: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["LeagueArrivalPrepareRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueArrivalResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validaci?n fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    resetLeagueArrival: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueArrivalResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validaci?n fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    leagueManagement: {
+        parameters: {
+            query?: {
+                cut_id?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueManagementResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validaci?n fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    storeLeagueManagementPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                player: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeagueManagementPaymentRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueManagementResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validaci?n fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteLeagueManagementPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                player: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    cut_id?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueManagementResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validaci?n fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    storeLeagueManagementExpense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeagueManagementExpenseRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueManagementResponse"];
+                };
+            };
+            /** @description Recurso actualizado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueManagementResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validaci?n fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteLeagueManagementExpense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                expense: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueManagementResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validaci?n fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateLeagueManagementSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeagueManagementSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueManagementResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validaci?n fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    storeLeagueManagementReferral: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeagueManagementReferralRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueManagementResponse"];
+                };
+            };
+            /** @description Recurso actualizado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueManagementResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validaci?n fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteLeagueManagementReferral: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                referral: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueManagementResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validaci?n fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    storeLeagueManagementPlayer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeagueManagementPlayerStoreRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueManagementResponse"];
+                };
+            };
+            /** @description Recurso actualizado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueManagementResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validaci?n fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateLeagueManagementPlayer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                player: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeagueManagementPlayerUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueManagementResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validaci?n fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateLeagueManagementPlayerStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                player: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeagueManagementPlayerStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueManagementResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validaci?n fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    downloadLeagueManagementReport: {
+        parameters: {
+            query?: {
+                cut_id?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reporte PDF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    toggleLeagueArrivalPlayer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                player: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["LeagueArrivalPlayerToggleRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueArrivalResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validaci?n fallida */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

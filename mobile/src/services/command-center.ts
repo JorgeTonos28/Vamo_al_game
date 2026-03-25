@@ -2,6 +2,8 @@ import { api } from '@/services/api'
 import { setBranding } from '@/state/branding'
 import type {
   Branding,
+  CommandCenterAssignLeagueMembershipPayload,
+  CommandCenterAssignLeagueMembershipResponse,
   CommandCenterDashboardResponse,
   CommandCenterInviteUserPayload,
   CommandCenterInviteUserResponse,
@@ -27,6 +29,15 @@ export async function inviteCommandCenterUser(
   payload: CommandCenterInviteUserPayload,
 ): Promise<CommandCenterInviteUserResponse['data']> {
   const { data } = await api.post<CommandCenterInviteUserResponse>('/command-center/users', payload)
+
+  return data.data
+}
+
+export async function assignCommandCenterUserLeague(
+  userId: number,
+  payload: CommandCenterAssignLeagueMembershipPayload,
+): Promise<CommandCenterAssignLeagueMembershipResponse['data']> {
+  const { data } = await api.post<CommandCenterAssignLeagueMembershipResponse>(`/command-center/users/${userId}/leagues`, payload)
 
   return data.data
 }

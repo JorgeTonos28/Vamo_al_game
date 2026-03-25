@@ -20,7 +20,7 @@ El repositorio ya incluye:
 - Base de datos SQLite por defecto para desarrollo local.
 - Suite de pruebas con Pest.
 
-La web actual separa el landing promocional del shell operativo. En esta etapa, los usuarios regulares ven `Panel` y `Ajustes`, mientras que los administradores generales ven un Centro de mando independiente.
+La web actual separa el landing promocional del shell operativo. Los usuarios regulares entran primero a un portal de acceso por liga y, una vez dentro, operan un shell por liga con sidebar propio en web y menu hamburguesa en movil. Los administradores generales siguen viendo un Centro de mando independiente.
 
 ## Arquitectura dual web + movil
 
@@ -47,8 +47,27 @@ La base de trabajo queda definida asi:
 - `POST /api/v1/auth/logout`
 - `GET /api/v1/me`
 - `PATCH /api/v1/me/active-league`
+- `GET /api/v1/league/home`
+- `GET /api/v1/league/arrival`
+- `POST /api/v1/league/arrival/players/{player}/toggle`
+- `POST /api/v1/league/arrival/guests`
+- `PATCH|DELETE /api/v1/league/arrival/guests/{entry}`
+- `POST /api/v1/league/arrival/prepare`
+- `POST /api/v1/league/arrival/reset`
+- `GET /api/v1/league/management`
+- `POST|DELETE /api/v1/league/management/payments/{player}`
+- `POST /api/v1/league/management/expenses`
+- `DELETE /api/v1/league/management/expenses/{expense}`
+- `POST /api/v1/league/management/settings`
+- `POST /api/v1/league/management/referrals`
+- `DELETE /api/v1/league/management/referrals/{referral}`
+- `POST /api/v1/league/management/players`
+- `PATCH /api/v1/league/management/players/{player}`
+- `PATCH /api/v1/league/management/players/{player}/status`
+- `GET /api/v1/league/management/report`
 - `GET /api/v1/command-center/dashboard`
 - `GET|POST /api/v1/command-center/users`
+- `POST /api/v1/command-center/users/{user}/leagues`
 - `GET /api/v1/command-center/leagues`
 - `PATCH /api/v1/command-center/leagues/{league}`
 - `GET|POST /api/v1/command-center/settings`
@@ -171,6 +190,7 @@ El proyecto ya no mezcla datos estructurales con datos demo dentro de `DatabaseS
 - El switch se controla con `APP_ENABLE_STARTER_DATA`.
 - En local, `APP_ENABLE_STARTER_DATA=true` permite mantener cuentas y ligas de prueba al correr `php artisan migrate --seed`.
 - En produccion, deja `APP_ENABLE_STARTER_DATA=false` para evitar insertar demos en cada despliegue.
+- Cuando el starter data esta activo, `Liga Aurora` tambien recibe roster, cortes, pagos, referidos y una jornada abierta de ejemplo para probar `Panel`, `Llegada` y `Gestion` sin pasos manuales adicionales.
 
 Flujo recomendado en terminal:
 
@@ -217,9 +237,10 @@ La autenticacion queda separada por canal:
 
 - El rol global vive en `users.account_role` y define el acceso base al sistema.
 - Los roles por liga viven en `league_memberships.role`.
-- Una misma cuenta puede ser administrador en una liga y miembro en otra.
+- Una misma cuenta puede ser administrador en una liga, miembro en otra e invitado en otra distinta.
 - La liga activa vive en `users.active_league_id`.
 - `GET /api/v1/me` y `PATCH /api/v1/me/active-league` exponen el contexto tenant para web y movil.
+- El contexto tenant tambien expone `can_access_modules`, `can_manage_league` e `is_guest_role` para definir la experiencia operativa por liga.
 - Los invitados sin membresias no hacen switch de liga y operan en modo personal.
 - El switch de ligas muestra tambien ligas con acceso revocado para que el usuario entienda su estado actual.
 - Si un usuario tiene membresias pero todas sus ligas estan inactivas, la app regular muestra:
@@ -228,21 +249,57 @@ La autenticacion queda separada por canal:
 Ups! Lo sentimos, ha ocurrido un problema accediendo a la app. Comuniquese con la administracion para mas detalles.
 ```
 
+## Modulos de liga disponibles
+
+### Portal de entrada
+
+- Si un administrador o miembro solo tiene una liga operativa, entra directo al `Panel` de esa liga.
+- Si tiene varias ligas operativas, primero ve un selector visual para elegir a cual entrar.
+- Si su rol dentro de la liga activa es `guest`, solo ve informacion general y no entra a los modulos operativos.
+
+### Shell por liga
+
+- Web: `Panel`, `Llegada`, placeholders del resto de modulos y `Gestion` viven bajo `routes/web.php` con un sidebar fijo a la izquierda.
+- Movil: el mismo orden de modulos vive dentro del hamburger menu existente.
+- Los placeholders del resto de modulos muestran `Modulo aun en construccion... vuelva mas tarde`.
+
+### Llegada
+
+- Acceso visible para administradores de liga y miembros.
+- Mantiene `Corte activo`, `Miembros`, `Invitados`, `Iniciar jornada` y `Reiniciar lista de llegada`.
+- Antes del vencimiento del corte, todos los miembros conservan prioridad por llegada.
+- Al vencer el corte, solo mantienen prioridad quienes estan al dia; los demas pasan detras de los que pagaron y quedan alineados con la cola que luego consumira `Juego`.
+- Los invitados sin pago confirmado salen automaticamente cuando se prepara la jornada.
+- Los miembros quedan en modo solo lectura: pueden ver cola, estados y lista de invitados, pero no pueden registrar llegadas ni ejecutar acciones operativas.
+- La gestion de miembros se puede abrir desde Llegada, pero solo para administradores.
+
+### Gestion
+
+- Acceso solo para administradores de liga.
+- Todo se visualiza por corte y el corte activo se muestra por defecto.
+- Incluye balance de la liga, registro de pagos, gastos del corte, ingresos del corte, directiva, configuracion de jornadas, referidos y reporte PDF por corte.
+- El registro de pagos soporta filtro por pendientes, saldo a favor, deuda previa, aplicacion de creditos por referidos y eliminacion de cuota.
+- Los gastos manuales o fijos se registran por corte.
+- Las cuotas de miembros, invitados y el credito por referido quedan versionados para mantener trazabilidad si cambian en el futuro.
+
 ### Centro de mando para administradores generales
 
 Los administradores generales acceden a un shell separado de la app regular. Por ahora incluye:
 
 - `Panel`: metricas basicas del sistema como usuarios totales, ligas activas, administradores de ligas, miembros, invitados y ligas inactivas.
-- `Usuarios`: formulario para invitar nuevos usuarios con nombre, apellido, cedula, telefono, direccion, correo y rol.
-- `Ligas`: listado de ligas, administradores, cantidad de miembros, fecha de creacion y toggle de acceso.
+- `Usuarios`: formulario para invitar nuevos usuarios con nombre, apellido, cedula, telefono, direccion, correo y rol, con liga inicial opcional si el rol es operativo.
+- `Usuarios`: cada fila tambien muestra las membresias actuales del usuario y permite asignarle nuevas ligas activas con rol `league_admin` o `member`.
+- `Ligas`: listado de ligas, administradores, cantidad de miembros operativos, fecha de creacion y toggle de acceso.
 - `Ajustes`: misma estructura de cuenta del shell regular (`Perfil`, `Seguridad` y `Apariencia`), con el branding global de logo y favicon integrado dentro de `Apariencia`.
 
 ### Invitaciones y onboarding
 
 - Los administradores generales crean usuarios desde `Usuarios`.
 - Si el rol no se define, la cuenta se crea como `guest`.
-- Si el rol seleccionado es `league_admin` o `member`, el formulario exige una `Liga inicial`.
-- Esa `Liga inicial` crea de inmediato la primera fila en `league_memberships` y tambien define `users.active_league_id`.
+- Si el rol seleccionado es `league_admin` o `member`, la `Liga inicial` es opcional.
+- Si se selecciona una `Liga inicial`, esa asignacion crea de inmediato la primera fila en `league_memberships` y tambien define `users.active_league_id`.
+- Si no se selecciona liga, la cuenta puede quedar sin membresias hasta que un administrador general le asigne una liga activa desde el mismo Centro de mando.
+- Desde `Gestion de miembros` dentro del perfil de una liga, los administradores de liga usan el mismo flujo de invitacion por correo del Centro de mando, limitado a roles `league_admin` y `member`.
 - El sistema envia un correo con enlace para completar onboarding por password o continuar con Google.
 - Durante el onboarding, el usuario puede completar o corregir los datos basicos precargados.
 - Mientras la invitacion siga pendiente, la cuenta no puede iniciar sesion ni usar recuperacion de contrasena fuera del flujo de aceptacion.
@@ -286,7 +343,7 @@ Ademas, el seeder crea ligas de muestra y membresias para probar el contexto mul
 10. Si la liga activa fue revocada, la app movil muestra la misma pantalla de acceso no disponible que web y conserva el switch de ligas.
 11. Cerrar sesion con `POST /api/v1/auth/logout`.
 
-Al abrir la app movil, el flujo visible arranca con un starter breve de marca y luego entra directo a `Login` o al shell autenticado segun exista sesion. Los administradores generales ven el Centro de mando mobile con `Panel`, `Usuarios`, `Ligas` y `Ajustes`. Los administradores de ligas, miembros e invitados ven el shell regular con `Panel` y `Ajustes`, branding compartido, hamburger menu y switch multi-tenant de ligas.
+Al abrir la app movil, el flujo visible arranca con un starter breve de marca y luego entra directo a `Login` o al shell autenticado segun exista sesion. Los administradores generales ven el Centro de mando mobile con `Panel`, `Usuarios`, `Ligas` y `Ajustes`. Los administradores de ligas, miembros e invitados ven el shell regular con branding compartido, hamburger menu, switch multi-tenant de ligas y los modulos `Panel`, `Llegada`, placeholders del resto y `Gestion` solo cuando el rol activo puede administrar la liga.
 
 Variables relevantes para web y movil:
 

@@ -1,17 +1,20 @@
 <?php
 
 use App\Http\Controllers\Api\V1\ActiveLeagueController;
-use App\Http\Controllers\Api\V1\BrandingController;
 use App\Http\Controllers\Api\V1\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Api\V1\Auth\GoogleExchangeController;
 use App\Http\Controllers\Api\V1\Auth\RegisteredUserController;
 use App\Http\Controllers\Api\V1\Auth\TwoFactorChallengeController;
+use App\Http\Controllers\Api\V1\BrandingController;
 use App\Http\Controllers\Api\V1\CommandCenter\DashboardController as CommandCenterDashboardController;
 use App\Http\Controllers\Api\V1\CommandCenter\LeagueController as CommandCenterLeagueController;
 use App\Http\Controllers\Api\V1\CommandCenter\SettingsController as CommandCenterSettingsController;
 use App\Http\Controllers\Api\V1\CommandCenter\UserController as CommandCenterUserController;
 use App\Http\Controllers\Api\V1\CurrentUserController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\League\ArrivalController as LeagueArrivalController;
+use App\Http\Controllers\Api\V1\League\HomeController as LeagueHomeController;
+use App\Http\Controllers\Api\V1\League\ManagementController as LeagueManagementController;
 use App\Http\Controllers\Api\V1\Settings\EmailVerificationNotificationController;
 use App\Http\Controllers\Api\V1\Settings\PasswordController;
 use App\Http\Controllers\Api\V1\Settings\ProfileController as SettingsProfileController;
@@ -60,6 +63,51 @@ Route::middleware([ForceJsonResponse::class])
             Route::get('users/{user}', UserController::class)
                 ->middleware('can:view,user')
                 ->name('users.show');
+            Route::prefix('league')
+                ->name('league.')
+                ->group(function (): void {
+                    Route::get('home', [LeagueHomeController::class, 'show'])
+                        ->name('home.show');
+                    Route::get('arrival', [LeagueArrivalController::class, 'show'])
+                        ->name('arrival.show');
+                    Route::post('arrival/players/{player}/toggle', [LeagueArrivalController::class, 'togglePlayer'])
+                        ->name('arrival.players.toggle');
+                    Route::post('arrival/guests', [LeagueArrivalController::class, 'storeGuest'])
+                        ->name('arrival.guests.store');
+                    Route::patch('arrival/guests/{entry}', [LeagueArrivalController::class, 'updateGuest'])
+                        ->name('arrival.guests.update');
+                    Route::delete('arrival/guests/{entry}', [LeagueArrivalController::class, 'destroyGuest'])
+                        ->name('arrival.guests.destroy');
+                    Route::post('arrival/prepare', [LeagueArrivalController::class, 'prepare'])
+                        ->name('arrival.prepare');
+                    Route::post('arrival/reset', [LeagueArrivalController::class, 'reset'])
+                        ->name('arrival.reset');
+
+                    Route::get('management', [LeagueManagementController::class, 'show'])
+                        ->name('management.show');
+                    Route::post('management/payments/{player}', [LeagueManagementController::class, 'storePayment'])
+                        ->name('management.payments.store');
+                    Route::delete('management/payments/{player}', [LeagueManagementController::class, 'destroyPayment'])
+                        ->name('management.payments.destroy');
+                    Route::post('management/expenses', [LeagueManagementController::class, 'storeExpense'])
+                        ->name('management.expenses.store');
+                    Route::delete('management/expenses/{expense}', [LeagueManagementController::class, 'destroyExpense'])
+                        ->name('management.expenses.destroy');
+                    Route::post('management/settings', [LeagueManagementController::class, 'updateSettings'])
+                        ->name('management.settings.update');
+                    Route::get('management/report', [LeagueManagementController::class, 'report'])
+                        ->name('management.report');
+                    Route::post('management/referrals', [LeagueManagementController::class, 'storeReferral'])
+                        ->name('management.referrals.store');
+                    Route::delete('management/referrals/{referral}', [LeagueManagementController::class, 'destroyReferral'])
+                        ->name('management.referrals.destroy');
+                    Route::post('management/players', [LeagueManagementController::class, 'storePlayer'])
+                        ->name('management.players.store');
+                    Route::patch('management/players/{player}', [LeagueManagementController::class, 'updatePlayer'])
+                        ->name('management.players.update');
+                    Route::patch('management/players/{player}/status', [LeagueManagementController::class, 'updatePlayerStatus'])
+                        ->name('management.players.status.update');
+                });
 
             Route::prefix('settings')
                 ->name('settings.')
@@ -98,6 +146,8 @@ Route::middleware([ForceJsonResponse::class])
                         ->name('users.index');
                     Route::post('users', [CommandCenterUserController::class, 'store'])
                         ->name('users.store');
+                    Route::post('users/{user}/leagues', [CommandCenterUserController::class, 'assignLeague'])
+                        ->name('users.leagues.store');
                     Route::get('leagues', [CommandCenterLeagueController::class, 'index'])
                         ->name('leagues.index');
                     Route::patch('leagues/{league}', [CommandCenterLeagueController::class, 'update'])

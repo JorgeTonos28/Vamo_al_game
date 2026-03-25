@@ -29,8 +29,12 @@ class LeagueContextResolver
             ->join('league_memberships', 'league_memberships.league_id', '=', 'leagues.id')
             ->where('league_memberships.user_id', $user->id)
             ->orderByRaw(
-                'case when league_memberships.role = ? then 0 else 1 end',
-                [LeagueMembershipRole::Admin->value],
+                'case
+                    when league_memberships.role = ? then 0
+                    when league_memberships.role = ? then 1
+                    else 2
+                end',
+                [LeagueMembershipRole::Admin->value, LeagueMembershipRole::Member->value],
             )
             ->orderByDesc('leagues.is_active')
             ->orderBy('leagues.name')
@@ -98,7 +102,10 @@ class LeagueContextResolver
      *     can_switch: bool,
      *     has_memberships: bool,
      *     has_blocked_access: bool,
-     *     guest_mode: bool
+     *     guest_mode: bool,
+     *     can_access_modules: bool,
+     *     can_manage_league: bool,
+     *     is_guest_role: bool
      * }
      */
     public function contextFor(User $user): array
@@ -106,6 +113,9 @@ class LeagueContextResolver
         $availableLeagues = $this->leaguesFor($user)->values()->all();
         $hasMemberships = $user->leagueMemberships()->exists();
         $activeLeague = $this->activeLeagueFor($user);
+        $activeRole = $activeLeague !== null
+            ? LeagueMembershipRole::from($activeLeague['role'])
+            : null;
 
         return [
             'available_leagues' => $availableLeagues,
@@ -114,6 +124,9 @@ class LeagueContextResolver
             'has_memberships' => $hasMemberships,
             'has_blocked_access' => $hasMemberships && $activeLeague !== null && ! $activeLeague['is_active'],
             'guest_mode' => ! $hasMemberships,
+            'can_access_modules' => $activeRole?->canAccessOperationalModules() ?? false,
+            'can_manage_league' => $activeRole?->canManageLeague() ?? false,
+            'is_guest_role' => $activeRole === LeagueMembershipRole::Guest,
         ];
     }
 }

@@ -4,10 +4,11 @@ namespace App\Actions\Admin;
 
 use App\Enums\AccountRole;
 use App\Enums\LeagueMembershipRole;
-use App\Models\LeagueMembership;
+use App\Models\League;
 use App\Models\User;
 use App\Notifications\AppInvitationNotification;
 use App\Services\Invitations\UserInvitationService;
+use App\Services\LeagueMemberships\LeagueMembershipManager;
 use App\Support\UserName;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -16,6 +17,7 @@ class InviteUser
 {
     public function __construct(
         private readonly UserInvitationService $userInvitationService,
+        private readonly LeagueMembershipManager $membershipManager,
     ) {}
 
     /**
@@ -60,15 +62,15 @@ class InviteUser
                     ? LeagueMembershipRole::Admin
                     : LeagueMembershipRole::Member;
 
-                LeagueMembership::query()->create([
-                    'league_id' => (int) $validated['league_id'],
-                    'user_id' => $user->id,
-                    'role' => $membershipRole,
-                ]);
+                /** @var League $league */
+                $league = League::query()->findOrFail((int) $validated['league_id']);
 
-                $user->forceFill([
-                    'active_league_id' => (int) $validated['league_id'],
-                ])->save();
+                $this->membershipManager->assign(
+                    $user,
+                    $league,
+                    $membershipRole,
+                    $inviter,
+                );
             }
 
             $issuedInvitation = $this->userInvitationService->issue($user);

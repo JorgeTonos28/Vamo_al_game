@@ -44,7 +44,8 @@ class CommandCenterApiTest extends TestCase
         $this->actingAs($generalAdmin, 'sanctum')
             ->getJson('/api/v1/command-center/leagues')
             ->assertOk()
-            ->assertJsonCount(1, 'data.leagues');
+            ->assertJsonCount(1, 'data.leagues')
+            ->assertJsonPath('data.leagues.0.members_count', 1);
     }
 
     public function test_general_admin_can_invite_users_from_api(): void
@@ -92,6 +93,40 @@ class CommandCenterApiTest extends TestCase
             ->patchJson("/api/v1/command-center/leagues/{$league->id}")
             ->assertOk()
             ->assertJsonPath('data.league.is_active', false);
+    }
+
+    public function test_general_admin_can_assign_an_existing_user_to_an_active_league(): void
+    {
+        $generalAdmin = User::factory()->generalAdmin()->create();
+        $league = League::factory()->create([
+            'is_active' => true,
+        ]);
+        $user = User::factory()->memberRole()->create([
+            'active_league_id' => null,
+        ]);
+
+        $this->actingAs($generalAdmin, 'sanctum')
+            ->postJson("/api/v1/command-center/users/{$user->id}/leagues", [
+                'league_id' => $league->id,
+                'role' => 'admin',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.user.league_memberships_count', 1)
+            ->assertJsonPath('data.user.memberships.0.role', 'admin');
+
+        $this->assertDatabaseHas('league_memberships', [
+            'league_id' => $league->id,
+            'user_id' => $user->id,
+            'role' => 'admin',
+        ]);
+
+        $this->assertDatabaseHas('league_players', [
+            'league_id' => $league->id,
+            'user_id' => $user->id,
+            'status' => 'active',
+        ]);
+
+        $this->assertSame($league->id, $user->fresh()->active_league_id);
     }
 
     public function test_general_admin_can_update_branding_from_api(): void

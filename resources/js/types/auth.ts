@@ -49,6 +49,9 @@ export type TenancyContext = {
     has_memberships: boolean;
     has_blocked_access: boolean;
     guest_mode: boolean;
+    can_access_modules: boolean;
+    can_manage_league: boolean;
+    is_guest_role: boolean;
 };
 
 export type TwoFactorConfigContent = {

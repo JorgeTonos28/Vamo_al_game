@@ -506,6 +506,79 @@
         }
       }
     },
+    "/command-center/users/{user}/leagues": {
+      "post": {
+        "operationId": "commandCenterAssignUserLeague",
+        "summary": "Asigna una liga activa a un usuario existente",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommandCenterAssignLeagueMembershipRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Liga asignada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandCenterAssignLeagueMembershipResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Datos invalidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/command-center/leagues": {
       "get": {
         "operationId": "commandCenterLeagues",
@@ -1203,6 +1276,1328 @@
           }
         }
       }
+    },
+    "/league/home": {
+      "get": {
+        "operationId": "leagueHome",
+        "summary": "Panel operativo de la liga activa",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueHomeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validaci?n fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/arrival": {
+      "get": {
+        "operationId": "leagueArrival",
+        "summary": "Carga el m?dulo Llegada",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueArrivalResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validaci?n fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/arrival/guests": {
+      "post": {
+        "operationId": "storeLeagueArrivalGuest",
+        "summary": "Agrega un invitado a llegada",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueArrivalGuestStoreRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueArrivalResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Recurso actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueArrivalResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validaci?n fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/arrival/guests/{entry}": {
+      "patch": {
+        "operationId": "updateLeagueArrivalGuest",
+        "summary": "Confirma o revierte pago de invitado",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "entry",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueArrivalGuestUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueArrivalResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validaci?n fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteLeagueArrivalGuest",
+        "summary": "Elimina un invitado de llegada",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "entry",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueArrivalResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validaci?n fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/arrival/prepare": {
+      "post": {
+        "operationId": "prepareLeagueArrival",
+        "summary": "Prepara la jornada y genera cola inicial",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueArrivalPrepareRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueArrivalResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validaci?n fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/arrival/reset": {
+      "post": {
+        "operationId": "resetLeagueArrival",
+        "summary": "Reinicia la lista de llegada",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueArrivalResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validaci?n fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/management": {
+      "get": {
+        "operationId": "leagueManagement",
+        "summary": "Carga el m?dulo Gesti?n",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cut_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueManagementResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validaci?n fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/management/payments/{player}": {
+      "post": {
+        "operationId": "storeLeagueManagementPayment",
+        "summary": "Registra o agrega pago de un miembro",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "player",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueManagementPaymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueManagementResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validaci?n fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteLeagueManagementPayment",
+        "summary": "Elimina la cuota del corte",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "player",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cut_id": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueManagementResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validaci?n fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/management/expenses": {
+      "post": {
+        "operationId": "storeLeagueManagementExpense",
+        "summary": "Agrega gasto al corte",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueManagementExpenseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueManagementResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Recurso actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueManagementResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validaci?n fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/management/expenses/{expense}": {
+      "delete": {
+        "operationId": "deleteLeagueManagementExpense",
+        "summary": "Elimina gasto manual del corte",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "expense",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueManagementResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validaci?n fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/management/settings": {
+      "post": {
+        "operationId": "updateLeagueManagementSettings",
+        "summary": "Actualiza configuraci?n de jornadas y cuotas",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueManagementSettingsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueManagementResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validaci?n fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/management/referrals": {
+      "post": {
+        "operationId": "storeLeagueManagementReferral",
+        "summary": "Registra un referido",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueManagementReferralRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueManagementResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Recurso actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueManagementResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validaci?n fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/management/referrals/{referral}": {
+      "delete": {
+        "operationId": "deleteLeagueManagementReferral",
+        "summary": "Elimina un referido",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "referral",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueManagementResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validaci?n fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/management/players": {
+      "post": {
+        "operationId": "storeLeagueManagementPlayer",
+        "summary": "Agrega un miembro al roster",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueManagementPlayerStoreRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueManagementResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Recurso actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueManagementResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validaci?n fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/management/players/{player}": {
+      "patch": {
+        "operationId": "updateLeagueManagementPlayer",
+        "summary": "Edita un miembro del roster",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "player",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueManagementPlayerUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueManagementResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validaci?n fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/management/players/{player}/status": {
+      "patch": {
+        "operationId": "updateLeagueManagementPlayerStatus",
+        "summary": "Activa o da de baja un miembro",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "player",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueManagementPlayerStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueManagementResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validaci?n fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/management/report": {
+      "get": {
+        "operationId": "downloadLeagueManagementReport",
+        "summary": "Descarga reporte PDF del corte",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cut_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reporte PDF",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/arrival/players/{player}/toggle": {
+      "post": {
+        "operationId": "toggleLeagueArrivalPlayer",
+        "summary": "Marca o desmarca llegada de un miembro",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "player",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueArrivalPlayerToggleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueArrivalResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validaci?n fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1315,6 +2710,25 @@
             "type": [
               "integer",
               "null"
+            ]
+          }
+        }
+      },
+      "CommandCenterAssignLeagueMembershipRequest": {
+        "type": "object",
+        "required": [
+          "league_id",
+          "role"
+        ],
+        "properties": {
+          "league_id": {
+            "type": "integer"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "league_admin",
+              "member"
             ]
           }
         }
@@ -1556,7 +2970,8 @@
         "type": "string",
         "enum": [
           "admin",
-          "member"
+          "member",
+          "guest"
         ]
       },
       "LeagueContextLeague": {
@@ -1642,7 +3057,10 @@
           "can_switch",
           "has_memberships",
           "has_blocked_access",
-          "guest_mode"
+          "guest_mode",
+          "can_access_modules",
+          "can_manage_league",
+          "is_guest_role"
         ],
         "properties": {
           "available_leagues": {
@@ -1671,6 +3089,15 @@
             "type": "boolean"
           },
           "guest_mode": {
+            "type": "boolean"
+          },
+          "can_access_modules": {
+            "type": "boolean"
+          },
+          "can_manage_league": {
+            "type": "boolean"
+          },
+          "is_guest_role": {
             "type": "boolean"
           }
         }
@@ -1755,6 +3182,41 @@
           }
         }
       },
+      "CommandCenterMembership": {
+        "type": "object",
+        "required": [
+          "id",
+          "league_id",
+          "league_name",
+          "league_slug",
+          "role",
+          "role_label",
+          "is_active"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "league_id": {
+            "type": "integer"
+          },
+          "league_name": {
+            "type": "string"
+          },
+          "league_slug": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/LeagueMembershipRole"
+          },
+          "role_label": {
+            "type": "string"
+          },
+          "is_active": {
+            "type": "boolean"
+          }
+        }
+      },
       "CommandCenterUser": {
         "type": "object",
         "required": [
@@ -1764,6 +3226,9 @@
           "account_role",
           "account_role_label",
           "league_memberships_count",
+          "active_league_id",
+          "memberships",
+          "can_assign_leagues",
           "has_completed_onboarding",
           "invited_at",
           "created_at"
@@ -1797,6 +3262,21 @@
           },
           "league_memberships_count": {
             "type": "integer"
+          },
+          "active_league_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "memberships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommandCenterMembership"
+            }
+          },
+          "can_assign_leagues": {
+            "type": "boolean"
           },
           "has_completed_onboarding": {
             "type": "boolean"
@@ -1895,11 +3375,18 @@
         "type": "object",
         "required": [
           "role_options",
+          "league_role_options",
           "league_options",
           "users"
         ],
         "properties": {
           "role_options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleOption"
+            }
+          },
+          "league_role_options": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/RoleOption"
@@ -1920,6 +3407,17 @@
         }
       },
       "CommandCenterInviteUserPayload": {
+        "type": "object",
+        "required": [
+          "user"
+        ],
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/CommandCenterUser"
+          }
+        }
+      },
+      "CommandCenterAssignLeagueMembershipPayload": {
         "type": "object",
         "required": [
           "user"
@@ -2337,6 +3835,36 @@
           }
         }
       },
+      "CommandCenterAssignLeagueMembershipResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CommandCenterAssignLeagueMembershipPayload"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
       "CommandCenterLeaguesResponse": {
         "type": "object",
         "required": [
@@ -2662,6 +4190,1156 @@
           "meta": {
             "type": "object",
             "additionalProperties": true
+          }
+        }
+      },
+      "LeagueHomePayload": {
+        "type": "object",
+        "required": [
+          "mode",
+          "league",
+          "role",
+          "requires_league_selection",
+          "summary"
+        ],
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "operational",
+              "guest",
+              "no_league"
+            ]
+          },
+          "league": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeagueHomeLeague"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "role": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeagueHomeRole"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requires_league_selection": {
+            "type": "boolean"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeagueHomeSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "LeagueHomeLeague": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "slug"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        }
+      },
+      "LeagueHomeRole": {
+        "type": "object",
+        "required": [
+          "value",
+          "label",
+          "can_manage"
+        ],
+        "properties": {
+          "value": {
+            "$ref": "#/components/schemas/LeagueMembershipRole"
+          },
+          "label": {
+            "type": "string"
+          },
+          "can_manage": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LeagueHomeSummary": {
+        "type": "object",
+        "required": [
+          "cut_label",
+          "is_past_due",
+          "players_count",
+          "paid_players_count",
+          "pending_players_count",
+          "today_arrivals_count",
+          "today_guests_count",
+          "session_status"
+        ],
+        "properties": {
+          "cut_label": {
+            "type": "string"
+          },
+          "is_past_due": {
+            "type": "boolean"
+          },
+          "players_count": {
+            "type": "integer"
+          },
+          "paid_players_count": {
+            "type": "integer"
+          },
+          "pending_players_count": {
+            "type": "integer"
+          },
+          "today_arrivals_count": {
+            "type": "integer"
+          },
+          "today_guests_count": {
+            "type": "integer"
+          },
+          "session_status": {
+            "type": "string"
+          }
+        }
+      },
+      "LeagueRosterManagement": {
+        "type": "object",
+        "required": [
+          "can_manage",
+          "active_players",
+          "inactive_players",
+          "referral_options",
+          "referral_credit_amount_cents"
+        ],
+        "properties": {
+          "can_manage": {
+            "type": "boolean"
+          },
+          "active_players": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueRosterPlayer"
+            }
+          },
+          "inactive_players": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueRosterPlayer"
+            }
+          },
+          "referral_options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueReferralOption"
+            }
+          },
+          "referral_credit_amount_cents": {
+            "type": "integer"
+          }
+        }
+      },
+      "LeagueRosterPlayer": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "jersey_number"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "jersey_number": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        }
+      },
+      "LeagueReferralOption": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "LeagueArrivalPayload": {
+        "type": "object",
+        "required": [
+          "league",
+          "role",
+          "cut",
+          "session",
+          "players",
+          "guests",
+          "roster_management"
+        ],
+        "properties": {
+          "league": {
+            "$ref": "#/components/schemas/LeagueHomeLeague"
+          },
+          "role": {
+            "$ref": "#/components/schemas/LeagueHomeRole"
+          },
+          "cut": {
+            "$ref": "#/components/schemas/LeagueArrivalCut"
+          },
+          "session": {
+            "$ref": "#/components/schemas/LeagueArrivalSession"
+          },
+          "players": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueArrivalPlayer"
+            }
+          },
+          "guests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueArrivalGuest"
+            }
+          },
+          "roster_management": {
+            "$ref": "#/components/schemas/LeagueRosterManagement"
+          }
+        }
+      },
+      "LeagueArrivalCut": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "starts_on",
+          "ends_on",
+          "due_on",
+          "is_past_due",
+          "member_fee_amount_cents",
+          "guest_fee_amount_cents"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "type": "string"
+          },
+          "starts_on": {
+            "type": "string"
+          },
+          "ends_on": {
+            "type": "string"
+          },
+          "due_on": {
+            "type": "string"
+          },
+          "is_past_due": {
+            "type": "boolean"
+          },
+          "member_fee_amount_cents": {
+            "type": "integer"
+          },
+          "guest_fee_amount_cents": {
+            "type": "integer"
+          }
+        }
+      },
+      "LeagueArrivalSession": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "session_date",
+          "started_at",
+          "prepared_at",
+          "counts",
+          "prepared_pool",
+          "prepared_queue"
+        ],
+        "properties": {
+          "id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "session_date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "started_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "prepared_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "counts": {
+            "$ref": "#/components/schemas/LeagueArrivalCounts"
+          },
+          "prepared_pool": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueQueueEntry"
+            }
+          },
+          "prepared_queue": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueQueueEntry"
+            }
+          }
+        }
+      },
+      "LeagueArrivalCounts": {
+        "type": "object",
+        "required": [
+          "arrived_members",
+          "total_members",
+          "guests"
+        ],
+        "properties": {
+          "arrived_members": {
+            "type": "integer"
+          },
+          "total_members": {
+            "type": "integer"
+          },
+          "guests": {
+            "type": "integer"
+          }
+        }
+      },
+      "LeagueQueueEntry": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "entry_type"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "entry_type": {
+            "type": "string"
+          }
+        }
+      },
+      "LeagueArrivalPlayer": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "jersey_number",
+          "attendance_count",
+          "arrival_order",
+          "has_arrived",
+          "current_cut_paid",
+          "status_tone",
+          "status_message"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "jersey_number": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "attendance_count": {
+            "type": "integer"
+          },
+          "arrival_order": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "has_arrived": {
+            "type": "boolean"
+          },
+          "current_cut_paid": {
+            "type": "boolean"
+          },
+          "status_tone": {
+            "type": "string"
+          },
+          "status_message": {
+            "type": "string"
+          }
+        }
+      },
+      "LeagueArrivalGuest": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "arrival_order",
+          "guest_fee_paid"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "arrival_order": {
+            "type": "integer"
+          },
+          "guest_fee_paid": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LeagueManagementPayload": {
+        "type": "object",
+        "required": [
+          "league",
+          "role",
+          "cut_selector",
+          "summary",
+          "payments",
+          "expenses",
+          "board",
+          "settings",
+          "referrals",
+          "roster_management"
+        ],
+        "properties": {
+          "league": {
+            "$ref": "#/components/schemas/LeagueHomeLeague"
+          },
+          "role": {
+            "type": "object",
+            "required": [
+              "value",
+              "label"
+            ],
+            "properties": {
+              "value": {
+                "$ref": "#/components/schemas/LeagueMembershipRole"
+              },
+              "label": {
+                "type": "string"
+              }
+            }
+          },
+          "cut_selector": {
+            "$ref": "#/components/schemas/LeagueManagementCutSelector"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/LeagueManagementSummary"
+          },
+          "payments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueManagementPaymentRow"
+            }
+          },
+          "expenses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueManagementExpense"
+            }
+          },
+          "board": {
+            "$ref": "#/components/schemas/LeagueManagementBoard"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/LeagueManagementSettings"
+          },
+          "referrals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueManagementReferralGroup"
+            }
+          },
+          "roster_management": {
+            "$ref": "#/components/schemas/LeagueRosterManagement"
+          }
+        }
+      },
+      "LeagueManagementCutSelector": {
+        "type": "object",
+        "required": [
+          "selected_cut_id",
+          "cuts"
+        ],
+        "properties": {
+          "selected_cut_id": {
+            "type": "integer"
+          },
+          "cuts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueManagementCutOption"
+            }
+          }
+        }
+      },
+      "LeagueManagementCutOption": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "starts_on",
+          "ends_on",
+          "is_active"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "type": "string"
+          },
+          "starts_on": {
+            "type": "string"
+          },
+          "ends_on": {
+            "type": "string"
+          },
+          "is_active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LeagueManagementSummary": {
+        "type": "object",
+        "required": [
+          "selected_cut",
+          "income",
+          "expenses",
+          "balance_cents"
+        ],
+        "properties": {
+          "selected_cut": {
+            "$ref": "#/components/schemas/LeagueManagementSelectedCut"
+          },
+          "income": {
+            "$ref": "#/components/schemas/LeagueManagementIncome"
+          },
+          "expenses": {
+            "type": "object",
+            "required": [
+              "total_cents"
+            ],
+            "properties": {
+              "total_cents": {
+                "type": "integer"
+              }
+            }
+          },
+          "balance_cents": {
+            "type": "integer"
+          }
+        }
+      },
+      "LeagueManagementSelectedCut": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "starts_on",
+          "ends_on",
+          "due_on",
+          "is_past_due"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "type": "string"
+          },
+          "starts_on": {
+            "type": "string"
+          },
+          "ends_on": {
+            "type": "string"
+          },
+          "due_on": {
+            "type": "string"
+          },
+          "is_past_due": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LeagueManagementIncome": {
+        "type": "object",
+        "required": [
+          "cash_payments_cents",
+          "guest_income_cents",
+          "total_cents"
+        ],
+        "properties": {
+          "cash_payments_cents": {
+            "type": "integer"
+          },
+          "guest_income_cents": {
+            "type": "integer"
+          },
+          "total_cents": {
+            "type": "integer"
+          }
+        }
+      },
+      "LeagueManagementPaymentRow": {
+        "type": "object",
+        "required": [
+          "player",
+          "balance"
+        ],
+        "properties": {
+          "player": {
+            "$ref": "#/components/schemas/LeagueRosterPlayer"
+          },
+          "balance": {
+            "$ref": "#/components/schemas/LeagueManagementBalance"
+          }
+        }
+      },
+      "LeagueManagementBalance": {
+        "type": "object",
+        "required": [
+          "status",
+          "amount_due_cents",
+          "amount_paid_cents",
+          "carry_in_cents",
+          "extra_credit_cents",
+          "referral_credit_applied_cents",
+          "available_referral_credit_cents",
+          "previous_debt_cents",
+          "settlement_due_cents",
+          "status_tone",
+          "status_message"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "amount_due_cents": {
+            "type": "integer"
+          },
+          "amount_paid_cents": {
+            "type": "integer"
+          },
+          "carry_in_cents": {
+            "type": "integer"
+          },
+          "extra_credit_cents": {
+            "type": "integer"
+          },
+          "referral_credit_applied_cents": {
+            "type": "integer"
+          },
+          "available_referral_credit_cents": {
+            "type": "integer"
+          },
+          "previous_debt_cents": {
+            "type": "integer"
+          },
+          "settlement_due_cents": {
+            "type": "integer"
+          },
+          "status_tone": {
+            "type": "string"
+          },
+          "status_message": {
+            "type": "string"
+          }
+        }
+      },
+      "LeagueManagementExpense": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "expense_type",
+          "amount_cents",
+          "is_system_generated",
+          "is_fixed"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "expense_type": {
+            "type": "string"
+          },
+          "amount_cents": {
+            "type": "integer"
+          },
+          "is_system_generated": {
+            "type": "boolean"
+          },
+          "is_fixed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LeagueManagementBoard": {
+        "type": "object",
+        "required": [
+          "members",
+          "share_cents"
+        ],
+        "properties": {
+          "share_cents": {
+            "type": "integer"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "name",
+                "share_cents"
+              ],
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "share_cents": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "LeagueManagementSettings": {
+        "type": "object",
+        "required": [
+          "sessions_limit",
+          "game_days",
+          "cut_day",
+          "member_fee_amount_cents",
+          "guest_fee_amount_cents",
+          "referral_credit_amount_cents"
+        ],
+        "properties": {
+          "sessions_limit": {
+            "type": "integer"
+          },
+          "game_days": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cut_day": {
+            "type": "integer"
+          },
+          "member_fee_amount_cents": {
+            "type": "integer"
+          },
+          "guest_fee_amount_cents": {
+            "type": "integer"
+          },
+          "referral_credit_amount_cents": {
+            "type": "integer"
+          }
+        }
+      },
+      "LeagueManagementReferralGroup": {
+        "type": "object",
+        "required": [
+          "referrer",
+          "available_credit_cents",
+          "members"
+        ],
+        "properties": {
+          "referrer": {
+            "$ref": "#/components/schemas/LeagueReferralOption"
+          },
+          "available_credit_cents": {
+            "type": "integer"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueReferralOption"
+            }
+          }
+        }
+      },
+      "LeagueHomeResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LeagueHomePayload"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "LeagueArrivalResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LeagueArrivalPayload"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "LeagueManagementResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LeagueManagementPayload"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "LeagueArrivalPlayerToggleRequest": {
+        "type": "object",
+        "properties": {
+          "paid": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          }
+        }
+      },
+      "LeagueArrivalGuestStoreRequest": {
+        "type": "object",
+        "required": [
+          "guest_name"
+        ],
+        "properties": {
+          "guest_name": {
+            "type": "string"
+          }
+        }
+      },
+      "LeagueArrivalGuestUpdateRequest": {
+        "type": "object",
+        "required": [
+          "guest_fee_paid"
+        ],
+        "properties": {
+          "guest_fee_paid": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LeagueArrivalPrepareRequest": {
+        "type": "object",
+        "properties": {
+          "guest_payments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "paid"
+              ],
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "paid": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      },
+      "LeagueManagementPaymentRequest": {
+        "type": "object",
+        "required": [
+          "amount_cents"
+        ],
+        "properties": {
+          "cut_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "amount_cents": {
+            "type": "integer"
+          },
+          "apply_referral_credit": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LeagueManagementExpenseRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "amount_cents"
+        ],
+        "properties": {
+          "cut_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "amount_cents": {
+            "type": "integer"
+          },
+          "is_fixed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LeagueManagementSettingsRequest": {
+        "type": "object",
+        "required": [
+          "sessions_limit",
+          "game_days",
+          "cut_day",
+          "member_fee_amount_cents",
+          "guest_fee_amount_cents",
+          "referral_credit_amount_cents"
+        ],
+        "properties": {
+          "sessions_limit": {
+            "type": "integer"
+          },
+          "game_days": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cut_day": {
+            "type": "integer"
+          },
+          "member_fee_amount_cents": {
+            "type": "integer"
+          },
+          "guest_fee_amount_cents": {
+            "type": "integer"
+          },
+          "referral_credit_amount_cents": {
+            "type": "integer"
+          }
+        }
+      },
+      "LeagueManagementReferralRequest": {
+        "type": "object",
+        "required": [
+          "referrer_player_id",
+          "referred_player_id"
+        ],
+        "properties": {
+          "referrer_player_id": {
+            "type": "integer"
+          },
+          "referred_player_id": {
+            "type": "integer"
+          }
+        }
+      },
+      "LeagueManagementPlayerStoreRequest": {
+        "type": "object",
+        "required": [
+          "first_name",
+          "last_name",
+          "email",
+          "account_role"
+        ],
+        "properties": {
+          "first_name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "last_name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "document_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 50
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 50
+          },
+          "address": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 255
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 255
+          },
+          "account_role": {
+            "type": "string",
+            "enum": [
+              "league_admin",
+              "member"
+            ]
+          }
+        }
+      },
+      "LeagueManagementPlayerUpdateRequest": {
+        "type": "object",
+        "required": [
+          "display_name"
+        ],
+        "properties": {
+          "display_name": {
+            "type": "string"
+          },
+          "jersey_number": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        }
+      },
+      "LeagueManagementPlayerStatusRequest": {
+        "type": "object",
+        "required": [
+          "active"
+        ],
+        "properties": {
+          "active": {
+            "type": "boolean"
           }
         }
       }

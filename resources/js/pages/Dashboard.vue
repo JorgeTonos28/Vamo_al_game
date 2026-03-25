@@ -1,17 +1,33 @@
 <script setup lang="ts">
-import { Head, usePage } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import {
-    CircleDollarSign,
-    Clock3,
+    ArrowRight,
+    Lock,
     ShieldCheck,
-    Target,
-    Trophy,
+    Sparkles,
     Users,
 } from 'lucide-vue-next';
 import { computed } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem, TenancyContext, User } from '@/types';
+
+type LeagueHomePayload = {
+    mode: 'operational' | 'guest' | 'no_league';
+    league: { id: number; name: string; slug: string } | null;
+    role: { value: string; label: string; can_manage: boolean } | null;
+    requires_league_selection: boolean;
+    summary: {
+        cut_label: string;
+        is_past_due: boolean;
+        players_count: number;
+        paid_players_count: number;
+        pending_players_count: number;
+        today_arrivals_count: number;
+        today_guests_count: number;
+        session_status: string;
+    } | null;
+};
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -23,105 +39,73 @@ const breadcrumbs: BreadcrumbItem[] = [
 const page = usePage();
 const user = computed(() => page.props.auth.user as User);
 const tenancy = computed(() => page.props.tenancy as TenancyContext | null);
-const activeLeague = computed(() => tenancy.value?.active_league ?? null);
+const leagueHome = computed(() => page.props.leagueHome as LeagueHomePayload);
 
-const heroTitle = computed(() => {
-    if (activeLeague.value) {
-        return activeLeague.value.name;
+const selectorMode = computed(
+    () =>
+        leagueHome.value.mode === 'operational' &&
+        leagueHome.value.requires_league_selection,
+);
+
+const firstName = computed(
+    () => user.value.first_name ?? user.value.name.split(' ')[0] ?? 'Jugador',
+);
+
+const genericCards = computed(() => {
+    if (leagueHome.value.mode === 'guest' && leagueHome.value.league) {
+        return [
+            {
+                title: 'Liga activa',
+                value: leagueHome.value.league.name,
+                description:
+                    'Tu acceso actual es informativo. Los modulos operativos siguen reservados para miembros y administracion.',
+            },
+            {
+                title: 'Rol visible',
+                value: leagueHome.value.role?.label ?? 'Invitado',
+                description:
+                    'Seguimos separando claramente el rol de cuenta y el rol dentro de la liga.',
+            },
+            {
+                title: 'Switch de ligas',
+                value: tenancy.value?.can_switch ? 'Disponible' : 'No aplica',
+                description:
+                    'Puedes cambiar de liga desde el header o volver aqui para revisar tu contexto.',
+            },
+        ];
     }
 
-    if (tenancy.value?.guest_mode) {
-        return 'Modo invitado';
-    }
-
-    return 'Panel base';
+    return [
+        {
+            title: 'Cuenta activa',
+            value: user.value.name,
+            description:
+                'Tu perfil ya puede completar ajustes personales mientras se asigna una liga.',
+        },
+        {
+            title: 'Ligas visibles',
+            value: `${tenancy.value?.available_leagues.length ?? 0}`,
+            description:
+                'Cuando tu usuario forme parte de una liga, este portal te llevara directo al contexto operativo.',
+        },
+        {
+            title: 'Estado',
+            value: 'Pendiente',
+            description:
+                'Todavia no hay una liga activa con modulos habilitados para esta cuenta.',
+        },
+    ];
 });
 
-const heroDescription = computed(() => {
-    if (activeLeague.value) {
-        return `Estas operando en nombre de ${activeLeague.value.name}. Toda la informacion del shell actual ya responde a la liga seleccionada y servira de base para los modulos deportivos.`;
-    }
-
-    if (tenancy.value?.guest_mode) {
-        return 'Tu cuenta no forma parte de una liga activa. Por ahora veras tu panel base y ajustes personales mientras se completa tu acceso a una liga.';
-    }
-
-    return 'Tu cuenta mantiene acceso al panel base y a ajustes mientras se definen los modulos de negocio siguientes.';
-});
-
-const quickCards = computed(() => [
-    {
-        title: 'Rol visible',
-        value:
-            activeLeague.value?.role_label ??
-            user.value.account_role_label ??
-            'Invitado',
-        description: 'Contexto actual con el que entras al sistema.',
-        icon: ShieldCheck,
-    },
-    {
-        title: 'Ligas activas',
-        value: `${tenancy.value?.available_leagues.length ?? 0}`,
-        description: 'Cantidad de ligas a las que puedes cambiar desde el header.',
-        icon: Users,
-    },
-    {
-        title: 'Estado',
-        value: activeLeague.value ? 'Operativo' : 'Base',
-        description: 'Disponibilidad actual del entorno regular.',
-        icon: Trophy,
-    },
-]);
-
-const dayStats = computed(() => [
-    {
-        title: 'Usuario',
-        value: user.value.name,
-        description: 'Cuenta autenticada en esta sesion.',
-    },
-    {
-        title: 'Liga activa',
-        value: activeLeague.value?.name ?? 'Sin liga',
-        description: 'Tenant que concentra la informacion compartida.',
-    },
-    {
-        title: 'Switch multi-tenant',
-        value: tenancy.value?.can_switch ? 'Disponible' : 'No aplica',
-        description: 'Se habilita cuando la cuenta tiene mas de una liga activa.',
-    },
-    {
-        title: 'Correo verificado',
-        value: user.value.email_verified_at ? 'Si' : 'Pendiente',
-        description: 'La verificacion sigue siendo obligatoria para entrar.',
-    },
-]);
-
-const moduleHighlights = [
-    {
-        title: 'Contexto por liga',
-        description:
-            'El shell ya se adapta al tenant activo y evita mezclar informacion entre ligas.',
-        icon: Users,
-    },
-    {
-        title: 'Ajustes disponibles',
-        description:
-            'Perfil, seguridad y apariencia siguen disponibles para administradores de ligas, miembros e invitados.',
-        icon: Target,
-    },
-    {
-        title: 'Roles flexibles',
-        description:
-            'Una misma cuenta puede tener rol primario de cuenta y roles distintos segun cada liga.',
-        icon: Trophy,
-    },
-    {
-        title: 'Base compartida',
-        description:
-            'La resolucion de tenant y la liga activa ya quedan expuestas desde backend para web y movil.',
-        icon: CircleDollarSign,
-    },
-];
+function enterLeague(leagueId: number): void {
+    router.post(
+        '/active-league',
+        { league_id: leagueId },
+        {
+            preserveScroll: true,
+        },
+    );
+}
 </script>
 
 <template>
@@ -129,252 +113,189 @@ const moduleHighlights = [
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="app-page-stack">
-            <section class="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_340px]">
-                <article class="app-surface relative overflow-hidden">
-                    <div
-                        class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(229,184,73,0.12),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(74,222,128,0.12),transparent_32%)]"
-                    />
-
-                    <div class="relative space-y-6">
-                        <div
-                            class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"
-                        >
-                            <div class="max-w-2xl space-y-3">
-                                <p class="app-kicker text-[#E5B849]">
-                                    Contexto activo
-                                </p>
-                                <div class="space-y-3">
-                                    <h1
-                                        class="app-display text-[54px] leading-[0.9] text-[#F8FAFC] md:text-[72px]"
-                                    >
-                                        {{ heroTitle }}
-                                    </h1>
-                                    <p
-                                        class="text-[15px] leading-7 text-[#94A3B8]"
-                                    >
-                                        {{ heroDescription }}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div
-                                :class="
-                                    activeLeague
-                                        ? 'app-badge-positive'
-                                        : 'app-badge-negative'
-                                "
+            <section
+                v-if="selectorMode"
+                class="mx-auto w-full max-w-[960px] rounded-[28px] border border-white/6 bg-[linear-gradient(180deg,rgba(26,36,58,0.96),rgba(14,22,40,0.94))] p-6 md:p-8"
+            >
+                <div
+                    class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start"
+                >
+                    <div class="space-y-5">
+                        <p class="app-kicker text-[#E5B849]">
+                            Acceso a liga
+                        </p>
+                        <div class="space-y-3">
+                            <h1
+                                class="app-display text-[46px] leading-[0.9] text-[#F8FAFC] md:text-[68px]"
                             >
-                                <ShieldCheck class="size-3.5" />
-                                {{
-                                    activeLeague
-                                        ? 'Tenant cargado'
-                                        : 'Cuenta base'
-                                }}
-                            </div>
+                                Hola, {{ firstName }}.
+                            </h1>
+                            <p class="text-[16px] leading-8 text-[#94A3B8]">
+                                ¿A que liga quieres acceder? Selecciona una y
+                                entra directo al panel operativo con todos sus
+                                modulos disponibles.
+                            </p>
                         </div>
 
-                        <div
-                            class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]"
-                        >
-                            <div
-                                class="space-y-4 rounded-[24px] border border-white/6 bg-[#0E1628] p-5"
+                        <div class="grid gap-3">
+                            <button
+                                v-for="league in tenancy?.available_leagues ?? []"
+                                :key="league.id"
+                                type="button"
+                                class="group flex min-h-[92px] items-center justify-between gap-4 rounded-[18px] border border-white/6 bg-[#131B2F] px-5 text-left transition hover:border-[rgba(229,184,73,0.24)] hover:bg-[#162038]"
+                                @click="enterLeague(league.id)"
                             >
-                                <div
-                                    class="grid grid-cols-[1fr_auto_1fr] items-end gap-3"
-                                >
-                                    <div class="space-y-2">
-                                        <p class="app-kicker text-[#94A3B8]">
-                                            Tenant
-                                        </p>
+                                <div class="space-y-2">
+                                    <div
+                                        class="flex flex-wrap items-center gap-2"
+                                    >
                                         <p
-                                            class="app-display text-[28px] leading-none text-[#4ADE80] md:text-[34px]"
+                                            class="text-[18px] font-semibold text-[#F8FAFC]"
                                         >
-                                            {{ activeLeague?.slug ?? 'guest' }}
+                                            {{ league.name }}
                                         </p>
-                                    </div>
-                                    <p class="app-kicker pb-4 text-[#94A3B8]">
-                                        /
-                                    </p>
-                                    <div class="space-y-2 text-right">
-                                        <p class="app-kicker text-[#94A3B8]">
-                                            Usuario
-                                        </p>
-                                        <p
-                                            class="app-display text-[28px] leading-none text-[#E5B849] md:text-[34px]"
+                                        <span
+                                            class="rounded-full border border-white/6 bg-[#0E1628] px-2.5 py-1 text-[11px] font-semibold text-[#94A3B8]"
                                         >
-                                            {{ user.first_name ?? user.name }}
-                                        </p>
+                                            {{ league.role_label }}
+                                        </span>
                                     </div>
-                                </div>
-
-                                <div class="grid gap-3 sm:grid-cols-2">
-                                    <button
-                                        type="button"
-                                        disabled
-                                        class="min-h-[88px] rounded-[12px] border border-[rgba(74,222,128,0.3)] bg-[rgba(74,222,128,0.12)] px-4 text-left text-[15px] font-semibold text-[#4ADE80]"
-                                    >
-                                        Panel base
-                                    </button>
-                                    <button
-                                        type="button"
-                                        disabled
-                                        class="min-h-[88px] rounded-[12px] border border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] px-4 text-left text-[15px] font-semibold text-[#E5B849]"
-                                    >
-                                        Ajustes listos
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="grid gap-3">
-                                <div
-                                    class="rounded-[24px] border border-white/6 bg-[#0E1628] p-4"
-                                >
-                                    <p class="app-kicker text-[#E5B849]">
-                                        Rol actual
-                                    </p>
-                                    <p
-                                        class="mt-3 text-[18px] font-semibold text-[#F8FAFC]"
-                                    >
+                                    <p class="text-[13px] text-[#94A3B8]">
                                         {{
-                                            activeLeague?.role_label ??
-                                            user.account_role_label
+                                            league.is_active
+                                                ? 'Entrar con este contexto operativo.'
+                                                : 'Esta liga tiene el acceso revocado en este momento.'
                                         }}
                                     </p>
-                                    <p
-                                        class="mt-2 text-[13px] leading-6 text-[#94A3B8]"
-                                    >
-                                        La interfaz regular ya distingue entre
-                                        rol de cuenta y rol dentro de la liga.
-                                    </p>
                                 </div>
 
-                                <div
-                                    class="rounded-[24px] border border-white/6 bg-[#0E1628] p-4"
+                                <span
+                                    class="inline-flex size-11 items-center justify-center rounded-full border border-[rgba(229,184,73,0.24)] bg-[rgba(229,184,73,0.1)] text-[#E5B849] transition group-hover:translate-x-1"
                                 >
-                                    <p class="app-kicker text-[#E5B849]">
-                                        Base lista
-                                    </p>
-                                    <div class="mt-4 space-y-3">
-                                        <div
-                                            class="flex items-center justify-between"
-                                        >
-                                            <span
-                                                class="text-[13px] text-[#94A3B8]"
-                                            >
-                                                Multi-tenant
-                                            </span>
-                                            <span
-                                                class="text-[13px] font-semibold text-[#F8FAFC]"
-                                            >
-                                                Activo
-                                            </span>
-                                        </div>
-                                        <div
-                                            class="flex items-center justify-between"
-                                        >
-                                            <span
-                                                class="text-[13px] text-[#94A3B8]"
-                                            >
-                                                Roles
-                                            </span>
-                                            <span
-                                                class="text-[13px] font-semibold text-[#F8FAFC]"
-                                            >
-                                                Activos
-                                            </span>
-                                        </div>
-                                        <div
-                                            class="flex items-center justify-between"
-                                        >
-                                            <span
-                                                class="text-[13px] text-[#94A3B8]"
-                                            >
-                                                Modulos
-                                            </span>
-                                            <span
-                                                class="inline-flex items-center gap-1 text-[12px] font-semibold text-[#E5B849]"
-                                            >
-                                                <Clock3 class="size-3.5" />
-                                                En construccion
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                                    <ArrowRight class="size-5" />
+                                </span>
+                            </button>
                         </div>
                     </div>
-                </article>
 
-                <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-                    <article
-                        v-for="card in quickCards"
-                        :key="card.title"
-                        class="app-surface space-y-4"
-                    >
-                        <div class="flex items-center justify-between gap-3">
-                            <p class="app-kicker text-[#E5B849]">
-                                {{ card.title }}
-                            </p>
-                            <component
-                                :is="card.icon"
-                                class="size-5 text-[#E5B849]"
-                            />
+                    <article class="rounded-[22px] border border-white/6 bg-[#0E1628] p-5">
+                        <p class="app-kicker text-[#E5B849]">Lo que sigue</p>
+                        <div class="mt-4 space-y-4">
+                            <div class="rounded-[16px] border border-white/6 bg-[#131B2F] p-4">
+                                <div class="flex items-center gap-3">
+                                    <ShieldCheck class="size-5 text-[#4ADE80]" />
+                                    <p class="text-sm font-semibold text-[#F8FAFC]">
+                                        Contexto aislado por liga
+                                    </p>
+                                </div>
+                                <p class="mt-3 text-[13px] leading-6 text-[#94A3B8]">
+                                    Toda la informacion visible cambia con la
+                                    liga seleccionada y no se mezcla con otras.
+                                </p>
+                            </div>
+
+                            <div class="rounded-[16px] border border-white/6 bg-[#131B2F] p-4">
+                                <div class="flex items-center gap-3">
+                                    <Users class="size-5 text-[#E5B849]" />
+                                    <p class="text-sm font-semibold text-[#F8FAFC]">
+                                        Llegada y Gestion listas
+                                    </p>
+                                </div>
+                                <p class="mt-3 text-[13px] leading-6 text-[#94A3B8]">
+                                    Esta entrega ya aterriza los dos primeros
+                                    modulos de la liga con su base de negocio.
+                                </p>
+                            </div>
                         </div>
-
-                        <p
-                            class="app-display text-[42px] leading-none text-[#F8FAFC]"
-                        >
-                            {{ card.value }}
-                        </p>
-                        <p class="text-[13px] leading-6 text-[#94A3B8]">
-                            {{ card.description }}
-                        </p>
                     </article>
                 </div>
             </section>
 
-            <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <article
-                    v-for="item in dayStats"
-                    :key="item.title"
-                    class="app-surface space-y-3"
-                >
-                    <p class="app-kicker">{{ item.title }}</p>
-                    <p
-                        class="text-[34px] leading-none font-semibold text-[#F8FAFC]"
-                    >
-                        {{ item.value }}
+            <section
+                v-else
+                class="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_320px]"
+            >
+                <article class="app-surface space-y-5">
+                    <p class="app-kicker text-[#E5B849]">
+                        {{
+                            leagueHome.mode === 'guest'
+                                ? 'Vista informativa'
+                                : 'Sin liga operativa'
+                        }}
                     </p>
-                    <p class="text-[13px] leading-6 text-[#94A3B8]">
-                        {{ item.description }}
+                    <div class="space-y-3">
+                        <h1
+                            class="app-display text-[48px] leading-[0.92] text-[#F8FAFC] md:text-[72px]"
+                        >
+                            {{
+                                leagueHome.mode === 'guest'
+                                    ? leagueHome.league?.name
+                                    : 'Panel base'
+                            }}
+                        </h1>
+                        <p class="max-w-2xl text-[15px] leading-7 text-[#94A3B8]">
+                            {{
+                                leagueHome.mode === 'guest'
+                                    ? 'Tu usuario pertenece a la liga seleccionada como invitado. Por ahora solo ve informacion general y datos personales del contexto activo.'
+                                    : 'Tu cuenta todavia no tiene una liga operativa asignada. Mientras eso sucede, puedes mantener al dia tus ajustes personales.'
+                            }}
+                        </p>
+                    </div>
+                </article>
+
+                <article class="app-surface space-y-4">
+                    <div class="flex items-center gap-3">
+                        <Lock class="size-5 text-[#E5B849]" />
+                        <p class="app-kicker text-[#E5B849]">Estado actual</p>
+                    </div>
+                    <p class="text-[14px] leading-7 text-[#94A3B8]">
+                        {{
+                            leagueHome.mode === 'guest'
+                                ? 'El acceso operativo sigue reservado para miembros y administradores de la liga.'
+                                : 'Cuando tengas una liga activa, este portal dejara de ser base y te llevara directo al shell de liga.'
+                        }}
                     </p>
                 </article>
             </section>
 
-            <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <section
+                v-if="!selectorMode"
+                class="grid gap-4 md:grid-cols-3"
+            >
                 <article
-                    v-for="item in moduleHighlights"
-                    :key="item.title"
-                    class="app-surface transition-transform duration-300 hover:-translate-y-1"
+                    v-for="card in genericCards"
+                    :key="card.title"
+                    class="app-surface space-y-3"
                 >
-                    <div class="flex items-start gap-4">
-                        <div
-                            class="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-white/6 bg-[#0E1628]"
-                        >
-                            <component
-                                :is="item.icon"
-                                class="size-5 text-[#E5B849]"
-                            />
-                        </div>
-
-                        <div class="space-y-2">
-                            <p class="app-kicker">{{ item.title }}</p>
-                            <p class="text-[13px] leading-6 text-[#94A3B8]">
-                                {{ item.description }}
-                            </p>
-                        </div>
-                    </div>
+                    <p class="app-kicker">{{ card.title }}</p>
+                    <p class="text-[24px] font-semibold text-[#F8FAFC]">
+                        {{ card.value }}
+                    </p>
+                    <p class="text-[13px] leading-6 text-[#94A3B8]">
+                        {{ card.description }}
+                    </p>
                 </article>
+            </section>
+
+            <section
+                v-if="!selectorMode"
+                class="app-surface flex items-start gap-4"
+            >
+                <div
+                    class="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-white/6 bg-[#0E1628]"
+                >
+                    <Sparkles class="size-5 text-[#E5B849]" />
+                </div>
+                <div class="space-y-2">
+                    <p class="app-kicker">Siguiente paso</p>
+                    <p class="text-[14px] leading-7 text-[#94A3B8]">
+                        {{
+                            leagueHome.mode === 'guest'
+                                ? 'Cuando tu rol cambie a miembro o administrador, podras entrar a la liga con el sidebar completo y sus modulos operativos.'
+                                : 'La liga activa controlara toda la experiencia web y mobile una vez el usuario reciba membresia.'
+                        }}
+                    </p>
+                </div>
             </section>
         </div>
     </AppLayout>

@@ -26,9 +26,13 @@ class CommandCenterLeagueDirectoryService
         return League::query()
             ->with([
                 'adminMemberships.user:id,name',
-                'memberMemberships',
             ])
-            ->withCount('memberMemberships')
+            ->withCount([
+                'memberships as operational_memberships_count' => fn ($query) => $query->whereIn('role', [
+                    LeagueMembershipRole::Admin->value,
+                    LeagueMembershipRole::Member->value,
+                ]),
+            ])
             ->orderByDesc('is_active')
             ->orderBy('name')
             ->get()
@@ -62,8 +66,12 @@ class CommandCenterLeagueDirectoryService
         return $this->toArray(
             $league->fresh([
                 'adminMemberships.user:id,name',
-                'memberMemberships',
-            ])->loadCount('memberMemberships')
+            ])->loadCount([
+                'memberships as operational_memberships_count' => fn ($query) => $query->whereIn('role', [
+                    LeagueMembershipRole::Admin->value,
+                    LeagueMembershipRole::Member->value,
+                ]),
+            ])
         );
     }
 
@@ -93,7 +101,7 @@ class CommandCenterLeagueDirectoryService
                 ->filter(fn (array $admin): bool => filled($admin['name']))
                 ->values()
                 ->all(),
-            'members_count' => (int) $league->member_memberships_count,
+            'members_count' => (int) $league->operational_memberships_count,
             'created_at' => $league->created_at?->toDateTimeString(),
         ];
     }

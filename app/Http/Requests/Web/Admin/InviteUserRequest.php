@@ -39,10 +39,6 @@ class InviteUserRequest extends FormRequest
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
             'account_role' => ['nullable', Rule::enum(AccountRole::class)],
             'league_id' => [
-                Rule::requiredIf(fn (): bool => in_array($this->input('account_role'), [
-                    AccountRole::LeagueAdmin->value,
-                    AccountRole::Member->value,
-                ], true)),
                 'nullable',
                 'integer',
                 Rule::exists('leagues', 'id')->where(fn ($query) => $query->where('is_active', true)),

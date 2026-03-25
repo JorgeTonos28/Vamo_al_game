@@ -26,6 +26,7 @@ class LeagueMembershipFactory extends Factory
             'role' => fake()->randomElement([
                 LeagueMembershipRole::Admin,
                 LeagueMembershipRole::Member,
+                LeagueMembershipRole::Guest,
             ]),
         ];
     }
@@ -41,6 +42,13 @@ class LeagueMembershipFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'role' => LeagueMembershipRole::Member,
+        ]);
+    }
+
+    public function guest(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => LeagueMembershipRole::Guest,
         ]);
     }
 }

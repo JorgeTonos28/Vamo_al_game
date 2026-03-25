@@ -1,71 +1,79 @@
 <script setup lang="ts">
-import { IonContent, IonPage } from '@ionic/vue'
-import { computed } from 'vue'
+import { IonContent, IonPage, onIonViewWillEnter } from '@ionic/vue'
+import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
+import { updateActiveLeague } from '@/services/tenancy'
+import type { LeagueOperationalContext } from '@/services/league'
 import { sessionState } from '@/state/session'
 
-const activeLeague = computed(() => sessionState.tenancy?.active_league ?? null)
+const router = useRouter()
+const isSubmittingLeagueId = ref<number | null>(null)
+
+const tenancy = computed(() => sessionState.tenancy as (typeof sessionState.tenancy & LeagueOperationalContext) | null)
+const activeLeague = computed(() => tenancy.value?.active_league ?? null)
+const selectorMode = computed(() => Boolean(tenancy.value?.can_access_modules && tenancy.value?.can_switch))
 
 const heroTitle = computed(() => {
+  if (selectorMode.value) {
+    return `Hola, ${sessionState.user?.first_name ?? sessionState.user?.name?.split(' ')[0] ?? 'Jugador'}`
+  }
+
   if (activeLeague.value) {
     return activeLeague.value.name
   }
 
-  return sessionState.tenancy?.guest_mode ? 'Modo invitado' : 'Panel base'
+  return tenancy.value?.is_guest_role ? 'Vista invitado' : 'Panel base'
 })
 
 const heroDescription = computed(() => {
-  if (activeLeague.value) {
-    return `Estas operando en nombre de ${activeLeague.value.name}. Toda la informacion visible en este shell ya responde a la liga seleccionada.`
+  if (selectorMode.value) {
+    return 'Selecciona la liga a la que quieres entrar. Desde ahi cargaremos el panel operativo y todos los modulos disponibles.'
   }
 
-  if (sessionState.tenancy?.guest_mode) {
-    return 'Tu cuenta aun no forma parte de una liga. Por ahora solo ves tu panel base y tus ajustes personales.'
+  if (tenancy.value?.is_guest_role) {
+    return 'Tu acceso actual es informativo. Los modulos operativos siguen reservados para miembros y administracion.'
   }
 
-  return 'Tu cuenta mantiene acceso al panel base y a los ajustes mientras se siguen construyendo los modulos deportivos.'
+  return 'Esta cuenta todavia no tiene una liga operativa lista para entrar desde mobile.'
 })
 
-const quickCards = computed(() => [
-  {
-    title: 'Rol visible',
-    value: activeLeague.value?.role_label ?? sessionState.user?.account_role_label ?? 'Invitado',
-    description: 'Contexto con el que entras al sistema.',
-  },
-  {
-    title: 'Ligas disponibles',
-    value: `${sessionState.tenancy?.available_leagues.length ?? 0}`,
-    description: 'Cantidad de tenants visibles desde tu switch.',
-  },
-  {
-    title: 'Estado',
-    value: activeLeague.value?.is_active === false ? 'Bloqueado' : activeLeague.value ? 'Operativo' : 'Base',
-    description: 'Disponibilidad actual del entorno regular.',
-  },
-])
+const infoCards = computed(() => {
+  if (tenancy.value?.is_guest_role && activeLeague.value) {
+    return [
+      { title: 'Liga activa', value: activeLeague.value.name, description: 'Contexto actual de tu cuenta.' },
+      { title: 'Rol', value: activeLeague.value.role_label, description: 'Aun sin acceso a modulos deportivos.' },
+      { title: 'Switch', value: tenancy.value.can_switch ? 'Disponible' : 'No aplica', description: 'Puedes cambiar de liga desde el topbar.' },
+    ]
+  }
 
-const detailCards = computed(() => [
-  {
-    title: 'Usuario',
-    value: sessionState.user?.name ?? 'Sin sesion',
-    description: 'Cuenta autenticada en esta sesion.',
-  },
-  {
-    title: 'Liga activa',
-    value: activeLeague.value?.name ?? 'Sin liga',
-    description: 'Tenant actual de la app.',
-  },
-  {
-    title: 'Switch multi-tenant',
-    value: sessionState.tenancy?.can_switch ? 'Disponible' : 'No aplica',
-    description: 'Se habilita cuando la cuenta tiene mas de una liga.',
-  },
-  {
-    title: 'Correo verificado',
-    value: sessionState.user?.email_verified_at ? 'Si' : 'Pendiente',
-    description: 'La verificacion sigue siendo obligatoria.',
-  },
-])
+  return [
+    { title: 'Usuario', value: sessionState.user?.name ?? 'Sin sesion', description: 'Cuenta autenticada.' },
+    { title: 'Ligas', value: `${tenancy.value?.available_leagues.length ?? 0}`, description: 'Ligas visibles para tu usuario.' },
+    { title: 'Estado', value: 'Base', description: 'Sin contexto operativo activo.' },
+  ]
+})
+
+onIonViewWillEnter(async () => {
+  if (tenancy.value?.can_access_modules && !tenancy.value?.can_switch) {
+    await router.replace({ name: 'league-panel' })
+  }
+})
+
+async function enterLeague(leagueId: number): Promise<void> {
+  if (isSubmittingLeagueId.value) {
+    return
+  }
+
+  isSubmittingLeagueId.value = leagueId
+
+  try {
+    await updateActiveLeague({ league_id: leagueId })
+    await router.replace({ name: 'league-panel' })
+  } finally {
+    isSubmittingLeagueId.value = null
+  }
+}
 </script>
 
 <template>
@@ -75,39 +83,31 @@ const detailCards = computed(() => [
         <div class="mobile-stack">
           <MobileAppTopbar :title="heroTitle" :description="heroDescription" />
 
-          <section class="app-surface hero-card">
-            <div class="hero-card__row">
-              <div>
-                <p class="app-kicker hero-card__kicker">Tenant activo</p>
-                <p class="hero-card__value">{{ activeLeague?.slug ?? 'guest' }}</p>
-              </div>
+          <section v-if="selectorMode" class="app-surface selector-card">
+            <p class="app-kicker selector-card__kicker">Acceso a liga</p>
+            <h2 class="selector-card__title">¿A qué liga quieres acceder?</h2>
 
-              <div class="hero-card__separator">/</div>
-
-              <div class="hero-card__copy">
-                <p class="app-kicker hero-card__kicker">Usuario</p>
-                <p class="hero-card__value hero-card__value--secondary">
-                  {{ sessionState.user?.first_name ?? sessionState.user?.name ?? 'Usuario' }}
-                </p>
-              </div>
-            </div>
-
-            <div class="hero-card__actions">
-              <div class="hero-chip hero-chip--success">Panel base</div>
-              <div class="hero-chip hero-chip--warning">Ajustes listos</div>
+            <div class="selector-card__list">
+              <button
+                v-for="league in tenancy?.available_leagues ?? []"
+                :key="league.id"
+                class="selector-option"
+                type="button"
+                @click="enterLeague(league.id)"
+              >
+                <div>
+                  <p class="selector-option__name">{{ league.name }}</p>
+                  <p class="selector-option__meta">{{ league.role_label }}</p>
+                </div>
+                <span class="selector-option__state">
+                  {{ isSubmittingLeagueId === league.id ? 'Entrando...' : 'Entrar' }}
+                </span>
+              </button>
             </div>
           </section>
 
-          <section class="card-grid">
-            <article v-for="card in quickCards" :key="card.title" class="app-surface info-card">
-              <p class="app-kicker info-card__kicker">{{ card.title }}</p>
-              <p class="info-card__value">{{ card.value }}</p>
-              <p class="info-card__description">{{ card.description }}</p>
-            </article>
-          </section>
-
-          <section class="card-grid">
-            <article v-for="card in detailCards" :key="card.title" class="app-surface detail-card">
+          <section v-else class="card-grid">
+            <article v-for="card in infoCards" :key="card.title" class="app-surface detail-card">
               <p class="app-kicker">{{ card.title }}</p>
               <p class="detail-card__value">{{ card.value }}</p>
               <p class="detail-card__description">{{ card.description }}</p>
@@ -120,121 +120,80 @@ const detailCards = computed(() => [
 </template>
 
 <style scoped>
-.hero-card,
-.card-grid,
-.info-card,
-.detail-card {
+.selector-card,
+.selector-card__list,
+.card-grid {
   display: flex;
   flex-direction: column;
 }
 
-.hero-card,
-.info-card,
-.detail-card {
+.selector-card,
+.card-grid {
   gap: 16px;
 }
 
-.hero-card {
-  background:
-    radial-gradient(circle at top right, rgba(229, 184, 73, 0.14), transparent 34%),
-    radial-gradient(circle at bottom left, rgba(74, 222, 128, 0.1), transparent 32%),
-    #131b2f;
+.selector-card__kicker {
+  color: #e5b849;
 }
 
-.hero-card__row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: end;
-  gap: 12px;
-}
-
-.hero-card__copy {
-  text-align: right;
-}
-
-.hero-card__separator {
-  padding-bottom: 14px;
-  color: #94a3b8;
-}
-
-.hero-card__kicker {
-  color: #94a3b8;
-}
-
-.hero-card__value,
-.info-card__value,
-.detail-card__value {
+.selector-card__title,
+.selector-option__name,
+.detail-card__value,
+.detail-card__description {
   margin: 0;
+}
+
+.selector-card__title {
+  font-size: 28px;
+  line-height: 1;
+  font-family: var(--font-display), ui-sans-serif, sans-serif;
+  text-transform: uppercase;
   color: #f8fafc;
 }
 
-.hero-card__value {
-  font-size: 34px;
-  line-height: 0.95;
-  font-family: var(--font-display), ui-sans-serif, sans-serif;
-  text-transform: uppercase;
-  color: #4ade80;
-}
-
-.hero-card__value--secondary {
-  color: #e5b849;
-}
-
-.hero-card__actions {
-  display: grid;
+.selector-card__list {
   gap: 12px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.hero-chip {
+.selector-option {
   display: flex;
-  min-height: 64px;
+  min-height: 84px;
   align-items: center;
-  justify-content: center;
-  border-radius: 16px;
+  justify-content: space-between;
+  gap: 16px;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  font-size: 14px;
+  border-radius: 18px;
+  background: #0e1628;
+  padding: 0 16px;
+  text-align: left;
+}
+
+.selector-option__name,
+.detail-card__value {
+  color: #f8fafc;
+}
+
+.selector-option__name {
+  font-size: 16px;
   font-weight: 700;
 }
 
-.hero-chip--success {
-  background: rgba(74, 222, 128, 0.12);
-  border-color: rgba(74, 222, 128, 0.28);
-  color: #4ade80;
+.selector-option__meta,
+.detail-card__description {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #94a3b8;
 }
 
-.hero-chip--warning {
-  background: rgba(229, 184, 73, 0.12);
-  border-color: rgba(229, 184, 73, 0.28);
+.selector-option__state {
+  font-size: 12px;
+  font-weight: 700;
   color: #e5b849;
-}
-
-.card-grid {
-  gap: 12px;
-}
-
-.info-card__kicker {
-  color: #e5b849;
-}
-
-.info-card__value {
-  font-size: 36px;
-  line-height: 0.95;
-  font-family: var(--font-display), ui-sans-serif, sans-serif;
-  text-transform: uppercase;
 }
 
 .detail-card__value {
   font-size: 24px;
   line-height: 1.1;
   font-weight: 700;
-}
-
-.info-card__description,
-.detail-card__description {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.6;
-  color: #94a3b8;
 }
 </style>
