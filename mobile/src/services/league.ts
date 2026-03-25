@@ -245,3 +245,351 @@ export async function downloadLeagueManagementReport(cutId: number): Promise<str
 
   return URL.createObjectURL(response.data as Blob)
 }
+
+export type LeagueCompetitionSession = {
+  id: number
+  status: string
+  session_date: string | null
+  current_game_number: number
+  streak: {
+    team: 'A' | 'B' | null
+    count: number
+    double_rotation_mode: boolean
+    waiting_champion_team: 'A' | 'B' | null
+  }
+  participants_count: number
+  pending_pool_count: number
+  queue_count: number
+}
+
+export type LeagueCompetitionBase = {
+  league: { id: number; name: string; emoji: string | null; slug: string }
+  role: { value: string; label: string; can_manage: boolean }
+  session: LeagueCompetitionSession
+}
+
+export type LeagueEntryCard = {
+  id: number
+  name: string
+  is_guest: boolean
+  jersey_number: number | null
+  arrival_order: number
+}
+
+export type LeagueTeamPlayer = LeagueEntryCard & {
+  points: number
+  shots: { 1: number; 2: number; 3: number }
+}
+
+export type LeagueGamePayload = LeagueCompetitionBase & {
+  game: {
+    state: 'idle' | 'draft' | 'live' | 'completed'
+    draft: { entries: LeagueEntryCard[]; can_start: boolean }
+    current: null | {
+      id: number
+      game_number: number
+      score: { team_a: number; team_b: number }
+      streak: LeagueCompetitionSession['streak']
+      team_a: LeagueTeamPlayer[]
+      team_b: LeagueTeamPlayer[]
+    }
+    history: Array<{
+      id: number
+      game_number: number
+      score: string
+      winner_side: 'A' | 'B' | null
+      summary: string
+    }>
+    summary: {
+      games: number
+      streak_label: string
+      active_players: number
+      guests: number
+      cash_collected_cents: number
+      unpaid_members_count: number
+    }
+  }
+}
+
+export type LeagueQueuePayload = LeagueCompetitionBase & {
+  queue: {
+    on_court: Array<{ id: number; name: string; team_side: string | null; games_played: number; points_scored: number }>
+    waiting: Array<{ id: number; name: string; position: number | null; games_played: number; points_scored: number }>
+    summary: {
+      games: number
+      streak_label: string
+      active_players: number
+      guests: number
+      cash_collected_cents: number
+      unpaid_members_count: number
+    }
+    live_game: null | { game_number: number; score: string }
+  }
+}
+
+export type LeagueStatsPayload = LeagueCompetitionBase & {
+  stats: {
+    games_count: number
+    points_leaders: Array<{
+      identity: { name: string; is_guest: boolean }
+      points: number
+      games: number
+      shots: { 1: number; 2: number; 3: number }
+    }>
+    games_leaders: Array<{
+      identity: { name: string; is_guest: boolean }
+      games: number
+      wins: number
+      losses: number
+    }>
+  }
+}
+
+export type LeagueTablePayload = LeagueCompetitionBase & {
+  table: {
+    banner: { games: number; points: number; players: number }
+    standings: Array<{
+      identity: { name: string; is_guest: boolean }
+      games: number
+      wins: number
+      losses: number
+      win_rate: number
+    }>
+    top_scorers: Array<{
+      identity: { name: string; is_guest: boolean }
+      points: number
+      points_per_game: number
+    }>
+    top_games: Array<{
+      identity: { name: string; is_guest: boolean }
+      games: number
+      wins: number
+      losses: number
+    }>
+  }
+}
+
+export type LeagueSeasonProfile = {
+  identity: { name: string; is_guest: boolean }
+  points: number
+  games: number
+  wins: number
+  losses: number
+  shots: { 1: number; 2: number; 3: number }
+  points_per_game: number
+  win_rate: number
+  sessions_attended: number
+}
+
+export type LeagueSeasonPayload = LeagueCompetitionBase & {
+  season: {
+    season: {
+      id: number
+      label: string
+      starts_on: string | null
+      sessions_count: number
+      totals: {
+        games: number
+        points: number
+        revenue_cents: number
+        show_revenue: boolean
+      }
+    }
+    leaders: {
+      points: LeagueSeasonProfile[]
+      wins: LeagueSeasonProfile[]
+      games: LeagueSeasonProfile[]
+    }
+    sessions: Array<{
+      id: number
+      date: string | null
+      total_games: number
+      total_points: number
+      players: number
+      top_scorer: null | { name: string; points: number }
+    }>
+    profiles: LeagueSeasonProfile[]
+  }
+}
+
+export type LeagueScoutProfile = {
+  position: string | null
+  role: string | null
+  offensive_consistency: string | null
+  speed_rating: number
+  dribbling_rating: number
+  scoring_rating: number
+  team_play_rating: number
+  court_knowledge_rating: number
+  defense_rating: number
+  triples_rating: number
+}
+
+export type LeagueScoutPayload = LeagueCompetitionBase & {
+  scout: {
+    meta: {
+      positions: string[]
+      roles: string[]
+      consistencies: string[]
+    }
+    summary: {
+      profiled_players: number
+      total_players: number
+      auto_preview_ready: boolean
+      auto_preview_pool_count: number
+    }
+    players: Array<{
+      player: { id: number; name: string; jersey_number: number | null }
+      profile: LeagueScoutProfile
+      season_stats: null | {
+        points: number
+        games: number
+        wins: number
+        losses: number
+        points_per_game: number
+        win_rate: number
+        sessions_attended: number
+      }
+      combined_rating: number
+      manual_rating: number
+      stat_rating: number | null
+      has_stats: boolean
+    }>
+    ranking: Array<{
+      player: { id: number; name: string; jersey_number: number | null }
+      combined_rating: number
+      profile: LeagueScoutProfile
+      has_stats: boolean
+    }>
+    auto_preview: null | {
+      mode: string
+      source: string
+      team_a: Array<{
+        id: number
+        name: string
+        is_guest: boolean
+        jersey_number: number | null
+        combined_rating: number
+        role: string | null
+        position: string | null
+        offensive_consistency: string | null
+        has_stats: boolean
+      }>
+      team_b: Array<{
+        id: number
+        name: string
+        is_guest: boolean
+        jersey_number: number | null
+        combined_rating: number
+        role: string | null
+        position: string | null
+        offensive_consistency: string | null
+        has_stats: boolean
+      }>
+      team_a_rating: number
+      team_b_rating: number
+    }
+  }
+}
+
+export async function fetchLeagueGame(): Promise<LeagueGamePayload> {
+  const { data } = await api.get<ApiSuccess<LeagueGamePayload>>('/league/modules/game')
+  return data.data
+}
+
+export async function fetchLeagueQueue(): Promise<LeagueQueuePayload> {
+  const { data } = await api.get<ApiSuccess<LeagueQueuePayload>>('/league/modules/queue')
+  return data.data
+}
+
+export async function fetchLeagueStats(): Promise<LeagueStatsPayload> {
+  const { data } = await api.get<ApiSuccess<LeagueStatsPayload>>('/league/modules/stats')
+  return data.data
+}
+
+export async function fetchLeagueTable(): Promise<LeagueTablePayload> {
+  const { data } = await api.get<ApiSuccess<LeagueTablePayload>>('/league/modules/table')
+  return data.data
+}
+
+export async function fetchLeagueSeason(): Promise<LeagueSeasonPayload> {
+  const { data } = await api.get<ApiSuccess<LeagueSeasonPayload>>('/league/modules/season')
+  return data.data
+}
+
+export async function fetchLeagueScout(): Promise<LeagueScoutPayload> {
+  const { data } = await api.get<ApiSuccess<LeagueScoutPayload>>('/league/modules/scout')
+  return data.data
+}
+
+export async function draftLeagueGame(payload: { mode: 'auto' | 'arrival' | 'manual'; assignments?: Record<number, 'A' | 'B'> }): Promise<LeagueGamePayload> {
+  const { data } = await api.post<ApiSuccess<LeagueGamePayload>>('/league/modules/game/draft', payload)
+  return data.data
+}
+
+export async function addLeagueTeamPoint(teamSide: 'A' | 'B'): Promise<LeagueGamePayload> {
+  const { data } = await api.post<ApiSuccess<LeagueGamePayload>>('/league/modules/game/team-point', {
+    team_side: teamSide,
+  })
+  return data.data
+}
+
+export async function addLeaguePlayerPoint(entryId: number, points: 1 | 2 | 3): Promise<LeagueGamePayload> {
+  const { data } = await api.post<ApiSuccess<LeagueGamePayload>>(`/league/modules/game/players/${entryId}/point`, {
+    points,
+  })
+  return data.data
+}
+
+export async function revertLeaguePlayerPoint(entryId: number, points: 1 | 2 | 3): Promise<LeagueGamePayload> {
+  const { data } = await api.post<ApiSuccess<LeagueGamePayload>>(`/league/modules/game/players/${entryId}/revert`, {
+    points,
+  })
+  return data.data
+}
+
+export async function removeLeagueGamePlayer(entryId: number): Promise<LeagueGamePayload> {
+  const { data } = await api.post<ApiSuccess<LeagueGamePayload>>(`/league/modules/game/players/${entryId}/remove`)
+  return data.data
+}
+
+export async function undoLeagueGameAction(): Promise<LeagueGamePayload> {
+  const { data } = await api.post<ApiSuccess<LeagueGamePayload>>('/league/modules/game/undo')
+  return data.data
+}
+
+export async function finishLeagueGame(winnerSide?: 'A' | 'B'): Promise<LeagueGamePayload> {
+  const { data } = await api.post<ApiSuccess<LeagueGamePayload>>('/league/modules/game/finish', {
+    winner_side: winnerSide,
+  })
+  return data.data
+}
+
+export async function endLeagueSession(): Promise<LeagueGamePayload> {
+  const { data } = await api.post<ApiSuccess<LeagueGamePayload>>('/league/modules/game/end-session')
+  return data.data
+}
+
+export async function resetLeagueGame(): Promise<LeagueGamePayload> {
+  const { data } = await api.post<ApiSuccess<LeagueGamePayload>>('/league/modules/game/reset')
+  return data.data
+}
+
+export async function updateLeagueScoutPlayer(
+  playerId: number,
+  payload: {
+    position: string | null
+    role: string | null
+    offensive_consistency: string | null
+    speed_rating: number
+    dribbling_rating: number
+    scoring_rating: number
+    team_play_rating: number
+    court_knowledge_rating: number
+    defense_rating: number
+    triples_rating: number
+  },
+): Promise<LeagueScoutPayload> {
+  const { data } = await api.patch<ApiSuccess<LeagueScoutPayload>>(`/league/modules/scout/players/${playerId}`, payload)
+  return data.data
+}

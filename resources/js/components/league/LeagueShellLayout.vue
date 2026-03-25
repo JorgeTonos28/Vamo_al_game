@@ -21,7 +21,7 @@ withDefaults(
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
-            <div class="xl:sticky xl:top-[calc(env(safe-area-inset-top)+96px)] xl:self-start">
+            <div class="min-w-0 xl:sticky xl:top-[calc(env(safe-area-inset-top)+96px)] xl:self-start">
                 <LeagueSidebarNav
                     :league-name="leagueName"
                     :league-emoji="leagueEmoji"

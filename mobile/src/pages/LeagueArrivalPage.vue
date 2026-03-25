@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { IonContent, IonPage, IonRefresher, IonRefresherContent, onIonViewWillEnter } from '@ionic/vue'
 import { computed, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import LeagueRosterSheet from '@/components/LeagueRosterSheet.vue'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
 import { addLeagueArrivalGuest, deleteLeagueArrivalGuest, fetchLeagueArrival, prepareLeagueArrival, resetLeagueArrival, toggleLeagueArrivalPlayer, type LeagueArrivalPayload, updateLeagueArrivalGuest } from '@/services/league'
 
+const router = useRouter()
 const payload = ref<LeagueArrivalPayload | null>(null)
 const isLoading = ref(false)
 const guestName = ref('')
@@ -13,7 +15,7 @@ const prepareOpen = ref(false)
 const rosterOpen = ref(false)
 const guestPayments = reactive<Record<number, boolean>>({})
 const canManageArrival = computed(() => payload.value?.role.can_manage ?? false)
-const sortedPlayers = computed(() => [...(payload.value?.players ?? [])].sort((left, right) => left.has_arrived !== right.has_arrived ? (left.has_arrived ? -1 : 1) : left.current_cut_paid !== right.current_cut_paid ? (left.current_cut_paid ? -1 : 1) : left.name.localeCompare(right.name)))
+const sortedPlayers = computed(() => payload.value?.players ?? [])
 
 async function loadPage(): Promise<void> { isLoading.value = true; try { payload.value = await fetchLeagueArrival() } finally { isLoading.value = false } }
 async function handleRefresh(event: CustomEvent): Promise<void> { try { await loadPage() } finally { await (event.target as HTMLIonRefresherElement).complete() } }
@@ -24,7 +26,12 @@ async function addGuest(): Promise<void> { if (!canManageArrival.value || !guest
 async function toggleGuest(guestId: number, paid: boolean): Promise<void> { if (!canManageArrival.value) return; payload.value = await updateLeagueArrivalGuest(guestId, !paid) }
 async function removeGuest(guestId: number): Promise<void> { if (!canManageArrival.value) return; payload.value = await deleteLeagueArrivalGuest(guestId) }
 function openPrepare(): void { if (!canManageArrival.value) return; (payload.value?.guests ?? []).forEach((guest) => { guestPayments[guest.id] = guest.guest_fee_paid }); prepareOpen.value = true }
-async function prepareSession(): Promise<void> { if (!canManageArrival.value) return; payload.value = await prepareLeagueArrival((payload.value?.guests ?? []).map((guest) => ({ id: guest.id, paid: Boolean(guestPayments[guest.id]) }))); prepareOpen.value = false }
+async function prepareSession(): Promise<void> {
+  if (!canManageArrival.value) return
+  payload.value = await prepareLeagueArrival((payload.value?.guests ?? []).map((guest) => ({ id: guest.id, paid: Boolean(guestPayments[guest.id]) })))
+  prepareOpen.value = false
+  await router.push({ name: 'league-game' })
+}
 async function resetSession(): Promise<void> { if (!canManageArrival.value) return; payload.value = await resetLeagueArrival() }
 function money(amountCents: number): string { return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 0 }).format(amountCents / 100) }
 </script>

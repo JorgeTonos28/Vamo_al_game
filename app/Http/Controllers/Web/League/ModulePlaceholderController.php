@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web\League;
 
 use App\Http\Controllers\Controller;
+use App\Services\LeagueOperations\LeagueCompetitionService;
 use App\Services\LeagueOperations\LeagueOperationsService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -25,11 +26,25 @@ class ModulePlaceholderController extends Controller
 
     public function __construct(
         private readonly LeagueOperationsService $operations,
+        private readonly LeagueCompetitionService $competition,
     ) {}
 
     public function show(Request $request, string $module): Response
     {
         abort_unless(array_key_exists($module, self::MODULE_MAP), 404);
+
+        if (in_array($module, ['juego', 'cola', 'stats', 'tabla', 'temporada', 'scout'], true)) {
+            $page = match ($module) {
+                'juego' => ['component' => 'league/Game', 'payload' => $this->competition->gamePageData($request->user())],
+                'cola' => ['component' => 'league/Queue', 'payload' => $this->competition->queuePageData($request->user())],
+                'stats' => ['component' => 'league/Stats', 'payload' => $this->competition->statsPageData($request->user())],
+                'tabla' => ['component' => 'league/Table', 'payload' => $this->competition->tablePageData($request->user())],
+                'temporada' => ['component' => 'league/Season', 'payload' => $this->competition->seasonPageData($request->user())],
+                'scout' => ['component' => 'league/Scout', 'payload' => $this->competition->scoutPageData($request->user())],
+            };
+
+            return Inertia::render($page['component'], $page['payload']);
+        }
 
         $context = $this->operations->requireOperationalContext($request->user());
 

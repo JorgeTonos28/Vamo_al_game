@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'league_id',
@@ -71,5 +72,10 @@ class LeaguePlayer extends Model
     public function sessionEntries(): HasMany
     {
         return $this->hasMany(LeagueSessionEntry::class);
+    }
+
+    public function scoutProfile(): HasOne
+    {
+        return $this->hasOne(LeaguePlayerScoutProfile::class, 'league_player_id');
     }
 }

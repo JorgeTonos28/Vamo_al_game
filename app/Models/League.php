@@ -78,6 +78,11 @@ class League extends Model
         return $this->hasMany(LeagueSession::class);
     }
 
+    public function seasons(): HasMany
+    {
+        return $this->hasMany(LeagueSeason::class);
+    }
+
     public function referrals(): HasMany
     {
         return $this->hasMany(LeaguePlayerReferral::class);

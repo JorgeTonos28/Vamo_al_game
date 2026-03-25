@@ -15,6 +15,7 @@ class LeagueArrivalService
     public function __construct(
         private readonly LeagueOperationsService $operations,
         private readonly LeagueManagementService $management,
+        private readonly LeagueSeasonService $seasons,
     ) {}
 
     /**
@@ -102,6 +103,16 @@ class LeagueArrivalService
                     'status_tone' => $statusTone,
                     'status_message' => $statusMessage,
                 ];
+            })->sort(function (array $left, array $right): int {
+                if ($left['has_arrived'] && $right['has_arrived']) {
+                    return ($left['arrival_order'] ?? PHP_INT_MAX) <=> ($right['arrival_order'] ?? PHP_INT_MAX);
+                }
+
+                if ($left['has_arrived'] !== $right['has_arrived']) {
+                    return $left['has_arrived'] ? -1 : 1;
+                }
+
+                return strcasecmp($left['name'], $right['name']);
             })->values()->all(),
             'guests' => $guestEntries->map(fn (LeagueSessionEntry $entry): array => [
                 'id' => $entry->id,
@@ -184,7 +195,11 @@ class LeagueArrivalService
     {
         $context = $this->operations->requireAdminContext($user);
         $cut = $this->operations->activeCutForLeague($context['league']);
-        $session = $this->operations->currentSessionForLeague($context['league'], $cut);
+        $session = $this->seasons->attachSessionToActiveSeason(
+            $this->operations->currentSessionForLeague($context['league'], $cut),
+            $context['league'],
+            $user,
+        );
 
         if ($session?->status === 'prepared') {
             throw ValidationException::withMessages([
@@ -270,11 +285,20 @@ class LeagueArrivalService
             ->with('player')
             ->orderBy('arrival_order')
             ->get();
-        $members = $entries->where('entry_type', 'player')->values();
+        $eligiblePlayers = $entries
+            ->where('entry_type', 'player')
+            ->values()
+            ->concat(
+                $entries
+                    ->where('entry_type', 'guest')
+                    ->where('guest_fee_paid', true)
+                    ->values(),
+            )
+            ->values();
 
-        if ($members->count() < 10) {
+        if ($eligiblePlayers->count() < 10) {
             throw ValidationException::withMessages([
-                'session' => 'Se necesitan al menos 10 miembros marcados para iniciar la jornada.',
+                'session' => 'Se necesitan al menos 10 jugadores habiles para iniciar la jornada.',
             ]);
         }
 
@@ -331,21 +355,42 @@ class LeagueArrivalService
 
         DB::transaction(function () use ($session, $firstTen, $queue): void {
             $session->entries()
-                ->whereNotNull('queue_seed')
-                ->update(['queue_seed' => null]);
+                ->update([
+                    'queue_seed' => null,
+                    'session_state' => 'arrival',
+                    'team_side' => null,
+                    'queue_position' => null,
+                ]);
 
             foreach ($queue as $index => $entry) {
                 $entry->forceFill([
                     'queue_seed' => $index + 1,
+                    'session_state' => 'queued',
+                    'queue_position' => $index + 1,
+                ])->save();
+            }
+
+            foreach ($firstTen as $entry) {
+                $entry->forceFill([
+                    'session_state' => 'pool',
+                    'team_side' => null,
+                    'queue_position' => null,
                 ])->save();
             }
 
             $session->forceFill([
                 'status' => 'prepared',
+                'current_game_number' => 1,
                 'started_at' => now(),
                 'prepared_at' => now(),
                 'initial_pool' => $this->serializeEntries($firstTen),
                 'initial_queue' => $this->serializeEntries($queue),
+                'rotation_state' => [
+                    'streak_team' => null,
+                    'streak_count' => 0,
+                    'double_rotation_mode' => false,
+                    'waiting_champion_team' => null,
+                ],
             ])->save();
         });
     }
@@ -361,13 +406,17 @@ class LeagueArrivalService
         }
 
         DB::transaction(function () use ($session): void {
+            $session->actionLogs()->delete();
+            $session->games()->delete();
             $session->entries()->delete();
             $session->forceFill([
                 'status' => 'arrival_open',
+                'current_game_number' => 1,
                 'started_at' => null,
                 'prepared_at' => null,
                 'initial_pool' => null,
                 'initial_queue' => null,
+                'rotation_state' => null,
             ])->save();
         });
     }

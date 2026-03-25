@@ -88,7 +88,9 @@ class ArrivalController extends Controller
             $validated['guest_payments'] ?? [],
         );
 
-        return back()->with('status', 'Jornada preparada. La cola inicial ya quedo lista para el modulo Juego.');
+        return redirect()
+            ->route('league.modules.show', ['module' => 'juego'])
+            ->with('status', 'Jornada preparada. La cola inicial ya quedo lista para el modulo Juego.');
     }
 
     public function reset(Request $request): RedirectResponse

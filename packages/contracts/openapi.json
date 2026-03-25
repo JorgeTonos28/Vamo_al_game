@@ -2659,6 +2659,954 @@
           }
         }
       }
+    },
+    "/league/modules/game": {
+      "get": {
+        "operationId": "leagueGame",
+        "summary": "Carga el modulo Juego",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueGameResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/modules/queue": {
+      "get": {
+        "operationId": "leagueQueue",
+        "summary": "Carga el modulo Cola",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueQueueResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/modules/stats": {
+      "get": {
+        "operationId": "leagueStats",
+        "summary": "Carga el modulo Stats",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueStatsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/modules/table": {
+      "get": {
+        "operationId": "leagueTable",
+        "summary": "Carga el modulo Tabla",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueTableResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/modules/season": {
+      "get": {
+        "operationId": "leagueSeason",
+        "summary": "Carga el modulo Temporada",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueSeasonResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/modules/scout": {
+      "get": {
+        "operationId": "leagueScout",
+        "summary": "Carga el modulo Scout",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueScoutResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/modules/game/draft": {
+      "post": {
+        "operationId": "draftLeagueGame",
+        "summary": "Confirma draft para iniciar un juego",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueGameDraftRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueGameResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/modules/game/team-point": {
+      "post": {
+        "operationId": "addLeagueGameTeamPoint",
+        "summary": "Agrega un punto al equipo",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueGameTeamPointRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueGameResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/modules/game/players/{entry}/point": {
+      "post": {
+        "operationId": "addLeagueGamePlayerPoint",
+        "summary": "Agrega puntos a un jugador en cancha",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "entry",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueGamePlayerPointRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueGameResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/modules/game/players/{entry}/revert": {
+      "post": {
+        "operationId": "revertLeagueGamePlayerPoint",
+        "summary": "Revierte puntos de un jugador en cancha",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "entry",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueGamePlayerPointRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueGameResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/modules/game/players/{entry}/remove": {
+      "post": {
+        "operationId": "removeLeagueGamePlayer",
+        "summary": "Marca salida de un jugador del juego actual",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "entry",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueGameResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/modules/game/undo": {
+      "post": {
+        "operationId": "undoLeagueGameAction",
+        "summary": "Revierte la ultima accion del juego",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueGameResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/modules/game/finish": {
+      "post": {
+        "operationId": "finishLeagueGame",
+        "summary": "Cierra el juego actual",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueGameFinishRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueGameResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/modules/game/end-session": {
+      "post": {
+        "operationId": "endLeagueSession",
+        "summary": "Cierra la jornada actual",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueGameResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/modules/game/reset": {
+      "post": {
+        "operationId": "resetLeagueGame",
+        "summary": "Limpia el juego actual",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueGameResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/modules/scout/players/{player}": {
+      "patch": {
+        "operationId": "updateLeagueScoutPlayer",
+        "summary": "Actualiza el perfil de scout de un jugador",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "player",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueScoutUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueScoutResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -5129,6 +6077,1659 @@
             "items": {
               "$ref": "#/components/schemas/LeagueReferralOption"
             }
+          }
+        }
+      },
+      "LeagueCompetitionPayload": {
+        "type": "object",
+        "required": [
+          "league",
+          "role",
+          "session"
+        ],
+        "properties": {
+          "league": {
+            "$ref": "#/components/schemas/LeagueHomeLeague"
+          },
+          "role": {
+            "$ref": "#/components/schemas/LeagueHomeRole"
+          },
+          "session": {
+            "$ref": "#/components/schemas/LeagueCompetitionSession"
+          }
+        }
+      },
+      "LeagueCompetitionSession": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "session_date",
+          "current_game_number",
+          "streak",
+          "participants_count",
+          "pending_pool_count",
+          "queue_count"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "session_date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "current_game_number": {
+            "type": "integer"
+          },
+          "streak": {
+            "$ref": "#/components/schemas/LeagueCompetitionStreak"
+          },
+          "participants_count": {
+            "type": "integer"
+          },
+          "pending_pool_count": {
+            "type": "integer"
+          },
+          "queue_count": {
+            "type": "integer"
+          }
+        }
+      },
+      "LeagueCompetitionStreak": {
+        "type": "object",
+        "required": [
+          "team",
+          "count",
+          "double_rotation_mode",
+          "waiting_champion_team"
+        ],
+        "properties": {
+          "team": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "A",
+                  "B"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "count": {
+            "type": "integer"
+          },
+          "double_rotation_mode": {
+            "type": "boolean"
+          },
+          "waiting_champion_team": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "A",
+                  "B"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "LeagueCompetitionEntryCard": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "is_guest",
+          "jersey_number",
+          "arrival_order"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "is_guest": {
+            "type": "boolean"
+          },
+          "jersey_number": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "arrival_order": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        }
+      },
+      "LeagueCompetitionShots": {
+        "type": "object",
+        "required": [
+          "1",
+          "2",
+          "3"
+        ],
+        "properties": {
+          "1": {
+            "type": "integer"
+          },
+          "2": {
+            "type": "integer"
+          },
+          "3": {
+            "type": "integer"
+          }
+        }
+      },
+      "LeagueCompetitionSummary": {
+        "type": "object",
+        "required": [
+          "games",
+          "streak_label",
+          "active_players",
+          "guests",
+          "cash_collected_cents",
+          "unpaid_members_count"
+        ],
+        "properties": {
+          "games": {
+            "type": "integer"
+          },
+          "streak_label": {
+            "type": "string"
+          },
+          "active_players": {
+            "type": "integer"
+          },
+          "guests": {
+            "type": "integer"
+          },
+          "cash_collected_cents": {
+            "type": "integer"
+          },
+          "unpaid_members_count": {
+            "type": "integer"
+          }
+        }
+      },
+      "LeagueCompetitionIdentity": {
+        "type": "object",
+        "required": [
+          "player_id",
+          "name",
+          "is_guest",
+          "jersey_number"
+        ],
+        "properties": {
+          "player_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "is_guest": {
+            "type": "boolean"
+          },
+          "jersey_number": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        }
+      },
+      "LeagueGameModule": {
+        "type": "object",
+        "required": [
+          "state",
+          "draft",
+          "current",
+          "history",
+          "summary"
+        ],
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "idle",
+              "draft",
+              "live",
+              "completed"
+            ]
+          },
+          "draft": {
+            "$ref": "#/components/schemas/LeagueGameDraft"
+          },
+          "current": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeagueGameCurrent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueGameHistoryItem"
+            }
+          },
+          "summary": {
+            "$ref": "#/components/schemas/LeagueCompetitionSummary"
+          }
+        }
+      },
+      "LeagueGameDraft": {
+        "type": "object",
+        "required": [
+          "entries",
+          "can_start"
+        ],
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueCompetitionEntryCard"
+            }
+          },
+          "can_start": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LeagueGameCurrent": {
+        "type": "object",
+        "required": [
+          "id",
+          "game_number",
+          "score",
+          "streak",
+          "team_a",
+          "team_b"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "game_number": {
+            "type": "integer"
+          },
+          "score": {
+            "type": "object",
+            "required": [
+              "team_a",
+              "team_b"
+            ],
+            "properties": {
+              "team_a": {
+                "type": "integer"
+              },
+              "team_b": {
+                "type": "integer"
+              }
+            }
+          },
+          "streak": {
+            "$ref": "#/components/schemas/LeagueCompetitionStreak"
+          },
+          "team_a": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueGameTeamPlayer"
+            }
+          },
+          "team_b": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueGameTeamPlayer"
+            }
+          }
+        }
+      },
+      "LeagueGameTeamPlayer": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LeagueCompetitionEntryCard"
+          },
+          {
+            "type": "object",
+            "required": [
+              "points",
+              "shots"
+            ],
+            "properties": {
+              "points": {
+                "type": "integer"
+              },
+              "shots": {
+                "$ref": "#/components/schemas/LeagueCompetitionShots"
+              }
+            }
+          }
+        ]
+      },
+      "LeagueGameHistoryItem": {
+        "type": "object",
+        "required": [
+          "id",
+          "game_number",
+          "score",
+          "winner_side",
+          "summary"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "game_number": {
+            "type": "integer"
+          },
+          "score": {
+            "type": "string"
+          },
+          "winner_side": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "A",
+                  "B"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "summary": {
+            "type": "string"
+          }
+        }
+      },
+      "LeagueGamePayload": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LeagueCompetitionPayload"
+          },
+          {
+            "type": "object",
+            "required": [
+              "game"
+            ],
+            "properties": {
+              "game": {
+                "$ref": "#/components/schemas/LeagueGameModule"
+              }
+            }
+          }
+        ]
+      },
+      "LeagueQueueModule": {
+        "type": "object",
+        "required": [
+          "on_court",
+          "waiting",
+          "summary",
+          "live_game"
+        ],
+        "properties": {
+          "on_court": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueQueueOnCourtEntry"
+            }
+          },
+          "waiting": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueQueueWaitingEntry"
+            }
+          },
+          "summary": {
+            "$ref": "#/components/schemas/LeagueCompetitionSummary"
+          },
+          "live_game": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeagueQueueLiveGame"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "LeagueQueueOnCourtEntry": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LeagueCompetitionEntryCard"
+          },
+          {
+            "type": "object",
+            "required": [
+              "team_side",
+              "games_played",
+              "points_scored"
+            ],
+            "properties": {
+              "team_side": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "A",
+                      "B"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "games_played": {
+                "type": "integer"
+              },
+              "points_scored": {
+                "type": "integer"
+              }
+            }
+          }
+        ]
+      },
+      "LeagueQueueWaitingEntry": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LeagueCompetitionEntryCard"
+          },
+          {
+            "type": "object",
+            "required": [
+              "position",
+              "games_played",
+              "points_scored"
+            ],
+            "properties": {
+              "position": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "games_played": {
+                "type": "integer"
+              },
+              "points_scored": {
+                "type": "integer"
+              }
+            }
+          }
+        ]
+      },
+      "LeagueQueueLiveGame": {
+        "type": "object",
+        "required": [
+          "game_number",
+          "score"
+        ],
+        "properties": {
+          "game_number": {
+            "type": "integer"
+          },
+          "score": {
+            "type": "string"
+          }
+        }
+      },
+      "LeagueQueuePayload": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LeagueCompetitionPayload"
+          },
+          {
+            "type": "object",
+            "required": [
+              "queue"
+            ],
+            "properties": {
+              "queue": {
+                "$ref": "#/components/schemas/LeagueQueueModule"
+              }
+            }
+          }
+        ]
+      },
+      "LeagueStatsModule": {
+        "type": "object",
+        "required": [
+          "games_count",
+          "points_leaders",
+          "games_leaders"
+        ],
+        "properties": {
+          "games_count": {
+            "type": "integer"
+          },
+          "points_leaders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueStatsPointsLeader"
+            }
+          },
+          "games_leaders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueStatsGamesLeader"
+            }
+          }
+        }
+      },
+      "LeagueStatsPointsLeader": {
+        "type": "object",
+        "required": [
+          "identity",
+          "points",
+          "games",
+          "shots"
+        ],
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/LeagueCompetitionIdentity"
+          },
+          "points": {
+            "type": "integer"
+          },
+          "games": {
+            "type": "integer"
+          },
+          "shots": {
+            "$ref": "#/components/schemas/LeagueCompetitionShots"
+          }
+        }
+      },
+      "LeagueStatsGamesLeader": {
+        "type": "object",
+        "required": [
+          "identity",
+          "games",
+          "wins",
+          "losses"
+        ],
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/LeagueCompetitionIdentity"
+          },
+          "games": {
+            "type": "integer"
+          },
+          "wins": {
+            "type": "integer"
+          },
+          "losses": {
+            "type": "integer"
+          }
+        }
+      },
+      "LeagueStatsPayload": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LeagueCompetitionPayload"
+          },
+          {
+            "type": "object",
+            "required": [
+              "stats"
+            ],
+            "properties": {
+              "stats": {
+                "$ref": "#/components/schemas/LeagueStatsModule"
+              }
+            }
+          }
+        ]
+      },
+      "LeagueTableModule": {
+        "type": "object",
+        "required": [
+          "banner",
+          "standings",
+          "top_scorers",
+          "top_games"
+        ],
+        "properties": {
+          "banner": {
+            "$ref": "#/components/schemas/LeagueTableBanner"
+          },
+          "standings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueTableStandingRow"
+            }
+          },
+          "top_scorers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueTableTopScorer"
+            }
+          },
+          "top_games": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueTableTopGames"
+            }
+          }
+        }
+      },
+      "LeagueTableBanner": {
+        "type": "object",
+        "required": [
+          "games",
+          "points",
+          "players"
+        ],
+        "properties": {
+          "games": {
+            "type": "integer"
+          },
+          "points": {
+            "type": "integer"
+          },
+          "players": {
+            "type": "integer"
+          }
+        }
+      },
+      "LeagueTableStandingRow": {
+        "type": "object",
+        "required": [
+          "identity",
+          "games",
+          "wins",
+          "losses",
+          "win_rate"
+        ],
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/LeagueCompetitionIdentity"
+          },
+          "games": {
+            "type": "integer"
+          },
+          "wins": {
+            "type": "integer"
+          },
+          "losses": {
+            "type": "integer"
+          },
+          "win_rate": {
+            "type": "integer"
+          }
+        }
+      },
+      "LeagueTableTopScorer": {
+        "type": "object",
+        "required": [
+          "identity",
+          "points",
+          "points_per_game"
+        ],
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/LeagueCompetitionIdentity"
+          },
+          "points": {
+            "type": "integer"
+          },
+          "points_per_game": {
+            "type": "number"
+          }
+        }
+      },
+      "LeagueTableTopGames": {
+        "type": "object",
+        "required": [
+          "identity",
+          "games",
+          "wins",
+          "losses"
+        ],
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/LeagueCompetitionIdentity"
+          },
+          "games": {
+            "type": "integer"
+          },
+          "wins": {
+            "type": "integer"
+          },
+          "losses": {
+            "type": "integer"
+          }
+        }
+      },
+      "LeagueTablePayload": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LeagueCompetitionPayload"
+          },
+          {
+            "type": "object",
+            "required": [
+              "table"
+            ],
+            "properties": {
+              "table": {
+                "$ref": "#/components/schemas/LeagueTableModule"
+              }
+            }
+          }
+        ]
+      },
+      "LeagueSeasonModule": {
+        "type": "object",
+        "required": [
+          "season",
+          "leaders",
+          "sessions",
+          "profiles"
+        ],
+        "properties": {
+          "season": {
+            "$ref": "#/components/schemas/LeagueSeasonMeta"
+          },
+          "leaders": {
+            "$ref": "#/components/schemas/LeagueSeasonLeaders"
+          },
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueSeasonSessionRow"
+            }
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueSeasonProfile"
+            }
+          }
+        }
+      },
+      "LeagueSeasonMeta": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "starts_on",
+          "sessions_count",
+          "totals"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "label": {
+            "type": "string"
+          },
+          "starts_on": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sessions_count": {
+            "type": "integer"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/LeagueSeasonTotals"
+          }
+        }
+      },
+      "LeagueSeasonTotals": {
+        "type": "object",
+        "required": [
+          "games",
+          "points",
+          "revenue_cents",
+          "show_revenue"
+        ],
+        "properties": {
+          "games": {
+            "type": "integer"
+          },
+          "points": {
+            "type": "integer"
+          },
+          "revenue_cents": {
+            "type": "integer"
+          },
+          "show_revenue": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LeagueSeasonLeaders": {
+        "type": "object",
+        "required": [
+          "points",
+          "wins",
+          "games"
+        ],
+        "properties": {
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueSeasonProfile"
+            }
+          },
+          "wins": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueSeasonProfile"
+            }
+          },
+          "games": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueSeasonProfile"
+            }
+          }
+        }
+      },
+      "LeagueSeasonSessionRow": {
+        "type": "object",
+        "required": [
+          "id",
+          "date",
+          "total_games",
+          "total_points",
+          "players",
+          "top_scorer"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "total_games": {
+            "type": "integer"
+          },
+          "total_points": {
+            "type": "integer"
+          },
+          "players": {
+            "type": "integer"
+          },
+          "top_scorer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeagueSeasonTopScorer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "LeagueSeasonTopScorer": {
+        "type": "object",
+        "required": [
+          "name",
+          "points"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "points": {
+            "type": "integer"
+          }
+        }
+      },
+      "LeagueSeasonProfile": {
+        "type": "object",
+        "required": [
+          "season_key",
+          "identity",
+          "points",
+          "games",
+          "wins",
+          "losses",
+          "shots",
+          "points_allowed",
+          "games_defended",
+          "sessions_attended",
+          "points_per_game",
+          "win_rate",
+          "points_allowed_per_game"
+        ],
+        "properties": {
+          "season_key": {
+            "type": "string"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/LeagueCompetitionIdentity"
+          },
+          "points": {
+            "type": "integer"
+          },
+          "games": {
+            "type": "integer"
+          },
+          "wins": {
+            "type": "integer"
+          },
+          "losses": {
+            "type": "integer"
+          },
+          "shots": {
+            "$ref": "#/components/schemas/LeagueCompetitionShots"
+          },
+          "points_allowed": {
+            "type": "integer"
+          },
+          "games_defended": {
+            "type": "integer"
+          },
+          "sessions_attended": {
+            "type": "integer"
+          },
+          "points_per_game": {
+            "type": "number"
+          },
+          "win_rate": {
+            "type": "integer"
+          },
+          "points_allowed_per_game": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        }
+      },
+      "LeagueSeasonPayload": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LeagueCompetitionPayload"
+          },
+          {
+            "type": "object",
+            "required": [
+              "season"
+            ],
+            "properties": {
+              "season": {
+                "$ref": "#/components/schemas/LeagueSeasonModule"
+              }
+            }
+          }
+        ]
+      },
+      "LeagueScoutProfile": {
+        "type": "object",
+        "required": [
+          "position",
+          "role",
+          "offensive_consistency",
+          "speed_rating",
+          "dribbling_rating",
+          "scoring_rating",
+          "team_play_rating",
+          "court_knowledge_rating",
+          "defense_rating",
+          "triples_rating"
+        ],
+        "properties": {
+          "position": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "role": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "offensive_consistency": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "speed_rating": {
+            "type": "integer"
+          },
+          "dribbling_rating": {
+            "type": "integer"
+          },
+          "scoring_rating": {
+            "type": "integer"
+          },
+          "team_play_rating": {
+            "type": "integer"
+          },
+          "court_knowledge_rating": {
+            "type": "integer"
+          },
+          "defense_rating": {
+            "type": "integer"
+          },
+          "triples_rating": {
+            "type": "integer"
+          }
+        }
+      },
+      "LeagueScoutMeta": {
+        "type": "object",
+        "required": [
+          "positions",
+          "roles",
+          "consistencies"
+        ],
+        "properties": {
+          "positions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "consistencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "LeagueScoutSummary": {
+        "type": "object",
+        "required": [
+          "profiled_players",
+          "total_players",
+          "auto_preview_ready",
+          "auto_preview_pool_count"
+        ],
+        "properties": {
+          "profiled_players": {
+            "type": "integer"
+          },
+          "total_players": {
+            "type": "integer"
+          },
+          "auto_preview_ready": {
+            "type": "boolean"
+          },
+          "auto_preview_pool_count": {
+            "type": "integer"
+          }
+        }
+      },
+      "LeagueScoutPlayerRow": {
+        "type": "object",
+        "required": [
+          "player",
+          "profile",
+          "season_stats",
+          "combined_rating",
+          "manual_rating",
+          "stat_rating",
+          "has_stats"
+        ],
+        "properties": {
+          "player": {
+            "$ref": "#/components/schemas/LeagueRosterPlayer"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/LeagueScoutProfile"
+          },
+          "season_stats": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeagueSeasonProfile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "combined_rating": {
+            "type": "number"
+          },
+          "manual_rating": {
+            "type": "number"
+          },
+          "stat_rating": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "has_stats": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LeagueScoutRankingRow": {
+        "type": "object",
+        "required": [
+          "player",
+          "combined_rating",
+          "profile",
+          "has_stats"
+        ],
+        "properties": {
+          "player": {
+            "$ref": "#/components/schemas/LeagueRosterPlayer"
+          },
+          "combined_rating": {
+            "type": "number"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/LeagueScoutProfile"
+          },
+          "has_stats": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LeagueScoutPreviewCard": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LeagueCompetitionEntryCard"
+          },
+          {
+            "type": "object",
+            "required": [
+              "combined_rating",
+              "role",
+              "position",
+              "offensive_consistency",
+              "has_stats"
+            ],
+            "properties": {
+              "combined_rating": {
+                "type": "number"
+              },
+              "role": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "position": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "offensive_consistency": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "has_stats": {
+                "type": "boolean"
+              }
+            }
+          }
+        ]
+      },
+      "LeagueScoutAutoPreview": {
+        "type": "object",
+        "required": [
+          "mode",
+          "source",
+          "team_a",
+          "team_b",
+          "team_a_rating",
+          "team_b_rating"
+        ],
+        "properties": {
+          "mode": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "team_a": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueScoutPreviewCard"
+            }
+          },
+          "team_b": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueScoutPreviewCard"
+            }
+          },
+          "team_a_rating": {
+            "type": "number"
+          },
+          "team_b_rating": {
+            "type": "number"
+          }
+        }
+      },
+      "LeagueScoutModule": {
+        "type": "object",
+        "required": [
+          "meta",
+          "summary",
+          "players",
+          "ranking",
+          "auto_preview"
+        ],
+        "properties": {
+          "meta": {
+            "$ref": "#/components/schemas/LeagueScoutMeta"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/LeagueScoutSummary"
+          },
+          "players": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueScoutPlayerRow"
+            }
+          },
+          "ranking": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueScoutRankingRow"
+            }
+          },
+          "auto_preview": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeagueScoutAutoPreview"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "LeagueScoutPayload": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LeagueCompetitionPayload"
+          },
+          {
+            "type": "object",
+            "required": [
+              "scout"
+            ],
+            "properties": {
+              "scout": {
+                "$ref": "#/components/schemas/LeagueScoutModule"
+              }
+            }
+          }
+        ]
+      },
+      "LeagueGameDraftRequest": {
+        "type": "object",
+        "required": [
+          "mode"
+        ],
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "arrival",
+              "manual"
+            ]
+          },
+          "assignments": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "A",
+                "B"
+              ]
+            }
+          }
+        }
+      },
+      "LeagueGameTeamPointRequest": {
+        "type": "object",
+        "required": [
+          "team_side"
+        ],
+        "properties": {
+          "team_side": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B"
+            ]
+          }
+        }
+      },
+      "LeagueGamePlayerPointRequest": {
+        "type": "object",
+        "required": [
+          "points"
+        ],
+        "properties": {
+          "points": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3
+            ]
+          }
+        }
+      },
+      "LeagueGameFinishRequest": {
+        "type": "object",
+        "properties": {
+          "winner_side": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "A",
+                  "B"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "LeagueScoutUpdateRequest": {
+        "type": "object",
+        "required": [
+          "speed_rating",
+          "dribbling_rating",
+          "scoring_rating",
+          "team_play_rating",
+          "court_knowledge_rating",
+          "defense_rating",
+          "triples_rating"
+        ],
+        "properties": {
+          "position": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 50
+          },
+          "role": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 50
+          },
+          "offensive_consistency": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 50
+          },
+          "speed_rating": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5
+          },
+          "dribbling_rating": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5
+          },
+          "scoring_rating": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5
+          },
+          "team_play_rating": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5
+          },
+          "court_knowledge_rating": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5
+          },
+          "defense_rating": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5
+          },
+          "triples_rating": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5
+          }
+        }
+      },
+      "LeagueGameResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LeagueGamePayload"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "LeagueQueueResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LeagueQueuePayload"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "LeagueStatsResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LeagueStatsPayload"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "LeagueTableResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LeagueTablePayload"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "LeagueSeasonResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LeagueSeasonPayload"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "LeagueScoutResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data",
+          "errors",
+          "meta"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LeagueScoutPayload"
+          },
+          "errors": {
+            "type": "array",
+            "items": {}
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
           }
         }
       },
