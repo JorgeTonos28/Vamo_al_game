@@ -13,8 +13,10 @@ use App\Http\Controllers\Api\V1\CommandCenter\UserController as CommandCenterUse
 use App\Http\Controllers\Api\V1\CurrentUserController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\League\ArrivalController as LeagueArrivalController;
+use App\Http\Controllers\Api\V1\League\GameController as LeagueGameController;
 use App\Http\Controllers\Api\V1\League\HomeController as LeagueHomeController;
 use App\Http\Controllers\Api\V1\League\ManagementController as LeagueManagementController;
+use App\Http\Controllers\Api\V1\League\ScoutController as LeagueScoutController;
 use App\Http\Controllers\Api\V1\Settings\EmailVerificationNotificationController;
 use App\Http\Controllers\Api\V1\Settings\PasswordController;
 use App\Http\Controllers\Api\V1\Settings\ProfileController as SettingsProfileController;
@@ -22,6 +24,8 @@ use App\Http\Controllers\Api\V1\Settings\TwoFactorController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Middleware\EnsureGeneralAdmin;
 use App\Http\Middleware\ForceJsonResponse;
+use App\Support\ApiResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 
@@ -107,6 +111,57 @@ Route::middleware([ForceJsonResponse::class])
                         ->name('management.players.update');
                     Route::patch('management/players/{player}/status', [LeagueManagementController::class, 'updatePlayerStatus'])
                         ->name('management.players.status.update');
+
+                    Route::get('modules/game', fn (Request $request) => ApiResponse::success(
+                        $request,
+                        app(\App\Services\LeagueOperations\LeagueCompetitionService::class)->gamePageData($request->user()),
+                        'Modulo Juego cargado.',
+                    ))->name('modules.game.show');
+                    Route::get('modules/queue', fn (Request $request) => ApiResponse::success(
+                        $request,
+                        app(\App\Services\LeagueOperations\LeagueCompetitionService::class)->queuePageData($request->user()),
+                        'Modulo Cola cargado.',
+                    ))->name('modules.queue.show');
+                    Route::get('modules/stats', fn (Request $request) => ApiResponse::success(
+                        $request,
+                        app(\App\Services\LeagueOperations\LeagueCompetitionService::class)->statsPageData($request->user()),
+                        'Modulo Stats cargado.',
+                    ))->name('modules.stats.show');
+                    Route::get('modules/table', fn (Request $request) => ApiResponse::success(
+                        $request,
+                        app(\App\Services\LeagueOperations\LeagueCompetitionService::class)->tablePageData($request->user()),
+                        'Modulo Tabla cargado.',
+                    ))->name('modules.table.show');
+                    Route::get('modules/season', fn (Request $request) => ApiResponse::success(
+                        $request,
+                        app(\App\Services\LeagueOperations\LeagueCompetitionService::class)->seasonPageData($request->user()),
+                        'Modulo Temporada cargado.',
+                    ))->name('modules.season.show');
+                    Route::get('modules/scout', fn (Request $request) => ApiResponse::success(
+                        $request,
+                        app(\App\Services\LeagueOperations\LeagueCompetitionService::class)->scoutPageData($request->user()),
+                        'Modulo Scout cargado.',
+                    ))->name('modules.scout.show');
+                    Route::post('modules/game/draft', [LeagueGameController::class, 'draft'])
+                        ->name('modules.game.draft');
+                    Route::post('modules/game/team-point', [LeagueGameController::class, 'teamPoint'])
+                        ->name('modules.game.team-point');
+                    Route::post('modules/game/players/{entry}/point', [LeagueGameController::class, 'playerPoint'])
+                        ->name('modules.game.players.point');
+                    Route::post('modules/game/players/{entry}/revert', [LeagueGameController::class, 'revertPlayerPoint'])
+                        ->name('modules.game.players.revert');
+                    Route::post('modules/game/players/{entry}/remove', [LeagueGameController::class, 'removePlayer'])
+                        ->name('modules.game.players.remove');
+                    Route::post('modules/game/undo', [LeagueGameController::class, 'undo'])
+                        ->name('modules.game.undo');
+                    Route::post('modules/game/finish', [LeagueGameController::class, 'finish'])
+                        ->name('modules.game.finish');
+                    Route::post('modules/game/end-session', [LeagueGameController::class, 'endSession'])
+                        ->name('modules.game.end-session');
+                    Route::post('modules/game/reset', [LeagueGameController::class, 'reset'])
+                        ->name('modules.game.reset');
+                    Route::patch('modules/scout/players/{player}', [LeagueScoutController::class, 'update'])
+                        ->name('modules.scout.players.update');
                 });
 
             Route::prefix('settings')

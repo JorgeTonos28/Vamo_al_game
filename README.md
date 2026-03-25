@@ -65,6 +65,22 @@ La base de trabajo queda definida asi:
 - `PATCH /api/v1/league/management/players/{player}`
 - `PATCH /api/v1/league/management/players/{player}/status`
 - `GET /api/v1/league/management/report`
+- `GET /api/v1/league/modules/game`
+- `POST /api/v1/league/modules/game/draft`
+- `POST /api/v1/league/modules/game/team-point`
+- `POST /api/v1/league/modules/game/players/{entry}/point`
+- `POST /api/v1/league/modules/game/players/{entry}/revert`
+- `POST /api/v1/league/modules/game/players/{entry}/remove`
+- `POST /api/v1/league/modules/game/undo`
+- `POST /api/v1/league/modules/game/finish`
+- `POST /api/v1/league/modules/game/end-session`
+- `POST /api/v1/league/modules/game/reset`
+- `GET /api/v1/league/modules/queue`
+- `GET /api/v1/league/modules/stats`
+- `GET /api/v1/league/modules/table`
+- `GET /api/v1/league/modules/season`
+- `GET /api/v1/league/modules/scout`
+- `PATCH /api/v1/league/modules/scout/players/{player}`
 - `GET /api/v1/command-center/dashboard`
 - `GET|POST /api/v1/command-center/users`
 - `POST /api/v1/command-center/users/{user}/leagues`
@@ -259,9 +275,10 @@ Ups! Lo sentimos, ha ocurrido un problema accediendo a la app. Comuniquese con l
 
 ### Shell por liga
 
-- Web: `Panel`, `Llegada`, placeholders del resto de modulos y `Gestion` viven bajo `routes/web.php` con un sidebar fijo a la izquierda.
-- Movil: el mismo orden de modulos vive dentro del hamburger menu existente.
-- Los placeholders del resto de modulos muestran `Modulo aun en construccion... vuelva mas tarde`.
+- Web: `Panel`, `Llegada`, `Juego`, `Cola`, `Stats`, `Tabla`, `Temporada`, `Scout` y `Gestion` viven bajo `routes/web.php` con shell responsive y sidebar adaptativo.
+- Movil: el mismo conjunto de modulos existe en `mobile/` consumiendo los mismos endpoints de `/api/v1`.
+- Invitados no entran a los modulos operativos; administradores y miembros comparten contexto por liga activa.
+- Miembros operativos navegan los modulos en modo solo lectura; las acciones de negocio quedan reservadas a administradores de liga.
 
 ### Llegada
 
@@ -270,8 +287,49 @@ Ups! Lo sentimos, ha ocurrido un problema accediendo a la app. Comuniquese con l
 - Antes del vencimiento del corte, todos los miembros conservan prioridad por llegada.
 - Al vencer el corte, solo mantienen prioridad quienes estan al dia; los demas pasan detras de los que pagaron y quedan alineados con la cola que luego consumira `Juego`.
 - Los invitados sin pago confirmado salen automaticamente cuando se prepara la jornada.
+- `Iniciar jornada` redirige al modulo `Juego` una vez la jornada queda preparada.
 - Los miembros quedan en modo solo lectura: pueden ver cola, estados y lista de invitados, pero no pueden registrar llegadas ni ejecutar acciones operativas.
 - La gestion de miembros se puede abrir desde Llegada, pero solo para administradores.
+
+### Juego
+
+- Es el modulo operativo principal de la jornada actual y solo permite acciones a administradores.
+- Requiere una jornada preparada con 10 jugadores listos en el pool para iniciar el draft.
+- Soporta draft `auto`, `arrival` y `manual`.
+- El draft automatico combina rating manual de `Scout` con rendimiento de `Temporada`; respeta maximo 2 invitados por equipo.
+- Durante el juego se pueden registrar puntos por equipo, puntos por jugador, reversar puntos de jugador, marcar salida de jugador, deshacer la ultima accion, cerrar el juego, cerrar la jornada y limpiar el juego actual.
+- La rotacion posterior usa la cola activa, la racha del equipo ganador y la regla de doble rotacion cuando hay 20 o mas participantes.
+- Los miembros solo ven el marcador, las alineaciones, el historial de juegos y el resumen de la jornada.
+
+### Cola
+
+- Muestra los jugadores en cancha, la cola de espera y el resumen operativo de la jornada activa.
+- Cada fila conserva informacion de orden de llegada, juegos jugados, puntos del dia y lado de cancha cuando aplica.
+- En web y mobile replica la cola consumida por `Juego`; no cierra jornada desde aqui.
+
+### Stats
+
+- Resume la jornada actual con lideres de puntos, tiros y juegos disputados.
+- Los datos salen de los juegos completados de la jornada activa.
+- Es de solo lectura para administradores y miembros.
+
+### Tabla
+
+- Construye la tabla de la jornada actual a partir de victorias, derrotas, puntos y volumen de juegos.
+- Incluye banner general, standings, lideres anotadores y lideres por partidos jugados.
+- Es de solo lectura para administradores y miembros.
+
+### Temporada
+
+- Agrega todas las jornadas de la temporada activa para mostrar lideres acumulados, perfiles por jugador y resumen por jornada.
+- El total recaudado existe en el payload pero solo se muestra a administradores de liga.
+- Es de solo lectura para miembros.
+
+### Scout
+
+- Permite registrar perfil manual por jugador: posicion, rol, consistencia ofensiva y ratings de 0 a 5.
+- Combina ese perfil con la produccion de `Temporada` para calcular un rating consolidado y previsualizar el draft automatico cuando hay 10 jugadores en pool.
+- Los hints y ayudas del flujo existen en web y mobile; solo administradores pueden editar perfiles.
 
 ### Gestion
 
@@ -347,7 +405,7 @@ Ademas, el seeder crea ligas de muestra y membresias para probar el contexto mul
 10. Si la liga activa fue revocada, la app movil muestra la misma pantalla de acceso no disponible que web y conserva el switch de ligas.
 11. Cerrar sesion con `POST /api/v1/auth/logout`.
 
-Al abrir la app movil, el flujo visible arranca con un starter breve de marca y luego entra directo a `Login` o al shell autenticado segun exista sesion. Los administradores generales ven el Centro de mando mobile con `Panel`, `Usuarios`, `Ligas` y `Ajustes`. Los administradores de ligas, miembros e invitados ven el shell regular con branding compartido, hamburger menu, switch multi-tenant de ligas y los modulos `Panel`, `Llegada`, placeholders del resto y `Gestion` solo cuando el rol activo puede administrar la liga. Las pantallas mobile con datos remotos habilitan `pull-to-refresh`, `Gestion de miembros` soporta cambio de tab por swipe horizontal y el emoji de cada liga acompana su nombre en el selector y en la navegacion.
+Al abrir la app movil, el flujo visible arranca con un starter breve de marca y luego entra directo a `Login` o al shell autenticado segun exista sesion. Los administradores generales ven el Centro de mando mobile con `Panel`, `Usuarios`, `Ligas` y `Ajustes`. Los administradores de ligas, miembros e invitados ven el shell regular con branding compartido, hamburger menu, switch multi-tenant de ligas y los modulos `Panel`, `Llegada`, `Juego`, `Cola`, `Stats`, `Tabla`, `Temporada`, `Scout` y `Gestion` segun su rol activo. `Iniciar jornada` en mobile tambien lleva al modulo `Juego`. Las pantallas mobile con datos remotos habilitan `pull-to-refresh`, `Gestion de miembros` soporta cambio de tab por swipe horizontal y el emoji de cada liga acompana su nombre en el selector y en la navegacion.
 
 Variables relevantes para web y movil:
 

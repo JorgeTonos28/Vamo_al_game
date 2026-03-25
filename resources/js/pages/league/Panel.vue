@@ -89,7 +89,7 @@ const stats = computed(() => {
                 <div class="max-w-3xl space-y-3">
                     <p class="app-kicker text-[#E5B849]">Panel operativo</p>
                     <h1
-                        class="app-display text-[44px] leading-[0.9] text-[#F8FAFC] md:text-[64px]"
+                        class="app-display app-module-title text-[#F8FAFC]"
                     >
                         {{ props.module.league?.name }}
                     </h1>

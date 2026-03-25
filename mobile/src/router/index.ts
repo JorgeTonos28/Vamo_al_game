@@ -14,9 +14,15 @@ import HealthPage from '@/pages/HealthPage.vue'
 import HomePage from '@/pages/HomePage.vue'
 import LandingPage from '@/pages/LandingPage.vue'
 import LeagueArrivalPage from '@/pages/LeagueArrivalPage.vue'
+import LeagueGamePage from '@/pages/LeagueGamePage.vue'
 import LeagueManagementPage from '@/pages/LeagueManagementPage.vue'
 import LeagueModulePlaceholderPage from '@/pages/LeagueModulePlaceholderPage.vue'
 import LeaguePanelPage from '@/pages/LeaguePanelPage.vue'
+import LeagueQueuePage from '@/pages/LeagueQueuePage.vue'
+import LeagueScoutPage from '@/pages/LeagueScoutPage.vue'
+import LeagueSeasonPage from '@/pages/LeagueSeasonPage.vue'
+import LeagueStatsPage from '@/pages/LeagueStatsPage.vue'
+import LeagueTablePage from '@/pages/LeagueTablePage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
 import ProfilePage from '@/pages/ProfilePage.vue'
 import RegisterPage from '@/pages/RegisterPage.vue'
@@ -109,6 +115,60 @@ const routes: RouteRecordRaw[] = [
         path: 'league/arrival',
         name: 'league-arrival',
         component: LeagueArrivalPage,
+        meta: {
+          requiresAuth: true,
+          regularAppOnly: true,
+        },
+      },
+      {
+        path: 'league/game',
+        name: 'league-game',
+        component: LeagueGamePage,
+        meta: {
+          requiresAuth: true,
+          regularAppOnly: true,
+        },
+      },
+      {
+        path: 'league/queue',
+        name: 'league-queue',
+        component: LeagueQueuePage,
+        meta: {
+          requiresAuth: true,
+          regularAppOnly: true,
+        },
+      },
+      {
+        path: 'league/stats',
+        name: 'league-stats',
+        component: LeagueStatsPage,
+        meta: {
+          requiresAuth: true,
+          regularAppOnly: true,
+        },
+      },
+      {
+        path: 'league/table',
+        name: 'league-table',
+        component: LeagueTablePage,
+        meta: {
+          requiresAuth: true,
+          regularAppOnly: true,
+        },
+      },
+      {
+        path: 'league/season',
+        name: 'league-season',
+        component: LeagueSeasonPage,
+        meta: {
+          requiresAuth: true,
+          regularAppOnly: true,
+        },
+      },
+      {
+        path: 'league/scout',
+        name: 'league-scout',
+        component: LeagueScoutPage,
         meta: {
           requiresAuth: true,
           regularAppOnly: true,

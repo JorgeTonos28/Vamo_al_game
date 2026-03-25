@@ -13,9 +13,11 @@ use App\Http\Controllers\Web\CommandCenter\UserController as CommandCenterUserCo
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\InvitationAcceptanceController;
 use App\Http\Controllers\Web\League\ArrivalController as LeagueArrivalController;
+use App\Http\Controllers\Web\League\GameController as LeagueGameController;
 use App\Http\Controllers\Web\League\ManagementController as LeagueManagementController;
 use App\Http\Controllers\Web\League\ModulePlaceholderController as LeagueModulePlaceholderController;
 use App\Http\Controllers\Web\League\PanelController as LeaguePanelController;
+use App\Http\Controllers\Web\League\ScoutController as LeagueScoutController;
 use App\Http\Middleware\EnsureGeneralAdmin;
 use App\Http\Middleware\EnsureRegularAppAccess;
 use Illuminate\Support\Facades\Route;
@@ -132,6 +134,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
                 Route::get('modulos/{module}', [LeagueModulePlaceholderController::class, 'show'])
                     ->name('modules.show');
+                Route::post('modulos/juego/draft', [LeagueGameController::class, 'draft'])
+                    ->name('modules.game.draft');
+                Route::post('modulos/juego/team-point', [LeagueGameController::class, 'teamPoint'])
+                    ->name('modules.game.team-point');
+                Route::post('modulos/juego/players/{entry}/point', [LeagueGameController::class, 'playerPoint'])
+                    ->name('modules.game.players.point');
+                Route::post('modulos/juego/players/{entry}/revert', [LeagueGameController::class, 'revertPlayerPoint'])
+                    ->name('modules.game.players.revert');
+                Route::post('modulos/juego/players/{entry}/remove', [LeagueGameController::class, 'removePlayer'])
+                    ->name('modules.game.players.remove');
+                Route::post('modulos/juego/undo', [LeagueGameController::class, 'undo'])
+                    ->name('modules.game.undo');
+                Route::post('modulos/juego/finish', [LeagueGameController::class, 'finish'])
+                    ->name('modules.game.finish');
+                Route::post('modulos/juego/end-session', [LeagueGameController::class, 'endSession'])
+                    ->name('modules.game.end-session');
+                Route::post('modulos/juego/reset', [LeagueGameController::class, 'reset'])
+                    ->name('modules.game.reset');
+                Route::patch('modulos/scout/players/{player}', [LeagueScoutController::class, 'update'])
+                    ->name('modules.scout.players.update');
             });
     });
 });

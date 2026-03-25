@@ -58,7 +58,7 @@ function downloadReport(): void { window.open(`/liga/gestion/report?cut_id=${pro
                 <div class="flex items-start justify-between gap-4">
                     <div class="space-y-3">
                         <p class="app-kicker text-[#E5B849]">Gestion por corte</p>
-                        <h1 class="app-display text-[42px] leading-[0.92] text-[#F8FAFC]">{{ props.module.summary.selected_cut.label }}</h1>
+                        <h1 class="app-display app-module-title text-[#F8FAFC]">{{ props.module.summary.selected_cut.label }}</h1>
                     </div>
                     <select :value="props.module.cut_selector.selected_cut_id" class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none" @change="onCutChange">
                         <option v-for="cut in props.module.cut_selector.cuts" :key="cut.id" :value="cut.id">{{ cut.label }}{{ cut.is_active ? ' · activo' : '' }}</option>

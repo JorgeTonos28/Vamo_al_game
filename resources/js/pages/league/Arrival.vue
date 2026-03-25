@@ -99,22 +99,12 @@ const guestForm = reactive({
 });
 const selectedPlayer = ref<PlayerRow | null>(null);
 const prepareDialogOpen = ref(false);
+const prepareError = ref('');
+const prepareSubmitting = ref(false);
 const guestPayments = reactive<Record<number, boolean>>({});
 
 const canManageArrival = computed(() => props.module.role.can_manage);
-const sortedPlayers = computed(() =>
-    [...props.module.players].sort((left, right) => {
-        if (left.has_arrived !== right.has_arrived) {
-            return left.has_arrived ? -1 : 1;
-        }
-
-        if (left.current_cut_paid !== right.current_cut_paid) {
-            return left.current_cut_paid ? -1 : 1;
-        }
-
-        return left.name.localeCompare(right.name);
-    }),
-);
+const sortedPlayers = computed(() => props.module.players);
 
 function statusIcon(player: PlayerRow) {
     if (player.current_cut_paid) {
@@ -209,6 +199,7 @@ function openPrepareDialog(): void {
         return;
     }
 
+    prepareError.value = '';
     props.module.guests.forEach((guest) => {
         guestPayments[guest.id] = guest.guest_fee_paid;
     });
@@ -216,10 +207,11 @@ function openPrepareDialog(): void {
 }
 
 function prepareSession(): void {
-    if (!canManageArrival.value) {
+    if (!canManageArrival.value || prepareSubmitting.value) {
         return;
     }
 
+    prepareError.value = '';
     router.post(
         '/liga/llegada/prepare',
         {
@@ -229,9 +221,19 @@ function prepareSession(): void {
             })),
         },
         {
-            preserveScroll: true,
-            onSuccess: () => {
-                prepareDialogOpen.value = false;
+            preserveScroll: false,
+            onStart: () => {
+                prepareSubmitting.value = true;
+            },
+            onError: (errors) => {
+                prepareError.value = String(
+                    errors.session ??
+                        errors.guest_payments ??
+                        'No se pudo iniciar la jornada. Verifica la lista y vuelve a intentar.',
+                );
+            },
+            onFinish: () => {
+                prepareSubmitting.value = false;
             },
         },
     );
@@ -272,7 +274,7 @@ function resetSession(): void {
                 <div class="flex items-start justify-between gap-4">
                     <div class="space-y-3">
                         <p class="app-kicker text-[#E5B849]">Corte activo</p>
-                        <h1 class="app-display text-[42px] leading-[0.92] text-[#F8FAFC]">
+                        <h1 class="app-display app-module-title text-[#F8FAFC]">
                             {{ props.module.cut.label }}
                         </h1>
                         <p class="text-[14px] leading-7 text-[#94A3B8]">
@@ -635,6 +637,13 @@ function resetSession(): void {
 
                 <div class="grid gap-3">
                     <div
+                        v-if="prepareError"
+                        class="rounded-[14px] border border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] p-4 text-sm text-[#FCA5A5]"
+                    >
+                        {{ prepareError }}
+                    </div>
+
+                    <div
                         v-if="props.module.guests.length === 0"
                         class="rounded-[14px] border border-dashed border-white/8 bg-[#131B2F] p-4 text-sm text-[#94A3B8]"
                     >
@@ -681,9 +690,10 @@ function resetSession(): void {
                     <Button
                         type="button"
                         class="min-h-12 rounded-[12px] bg-[#E5B849] text-[#0A0F1D] hover:bg-[#e8c25d]"
+                        :disabled="prepareSubmitting"
                         @click="prepareSession"
                     >
-                        Confirmar jornada
+                        {{ prepareSubmitting ? 'Preparando...' : 'Confirmar jornada' }}
                     </Button>
                 </DialogFooter>
             </DialogContent>

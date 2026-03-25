@@ -42,7 +42,7 @@ const breadcrumbs: BreadcrumbItem[] = [
             </div>
             <div class="space-y-3">
                 <p class="app-kicker text-[#E5B849]">{{ props.module.label }}</p>
-                <h1 class="app-display text-[44px] leading-none text-[#F8FAFC]">
+                <h1 class="app-display app-module-title text-[#F8FAFC]">
                     Modulo aun en construccion
                 </h1>
                 <p class="mx-auto max-w-xl text-[15px] leading-7 text-[#94A3B8]">

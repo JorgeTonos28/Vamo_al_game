@@ -710,6 +710,278 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/league/modules/game": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Carga el modulo Juego */
+        get: operations["leagueGame"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/modules/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Carga el modulo Cola */
+        get: operations["leagueQueue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/modules/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Carga el modulo Stats */
+        get: operations["leagueStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/modules/table": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Carga el modulo Tabla */
+        get: operations["leagueTable"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/modules/season": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Carga el modulo Temporada */
+        get: operations["leagueSeason"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/modules/scout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Carga el modulo Scout */
+        get: operations["leagueScout"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/modules/game/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirma draft para iniciar un juego */
+        post: operations["draftLeagueGame"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/modules/game/team-point": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Agrega un punto al equipo */
+        post: operations["addLeagueGameTeamPoint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/modules/game/players/{entry}/point": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Agrega puntos a un jugador en cancha */
+        post: operations["addLeagueGamePlayerPoint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/modules/game/players/{entry}/revert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revierte puntos de un jugador en cancha */
+        post: operations["revertLeagueGamePlayerPoint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/modules/game/players/{entry}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Marca salida de un jugador del juego actual */
+        post: operations["removeLeagueGamePlayer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/modules/game/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revierte la ultima accion del juego */
+        post: operations["undoLeagueGameAction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/modules/game/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cierra el juego actual */
+        post: operations["finishLeagueGame"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/modules/game/end-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cierra la jornada actual */
+        post: operations["endLeagueSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/modules/game/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Limpia el juego actual */
+        post: operations["resetLeagueGame"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/modules/scout/players/{player}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Actualiza el perfil de scout de un jugador */
+        patch: operations["updateLeagueScoutPlayer"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1339,6 +1611,372 @@ export interface components {
             referrer: components["schemas"]["LeagueReferralOption"];
             available_credit_cents: number;
             members: components["schemas"]["LeagueReferralOption"][];
+        };
+        LeagueCompetitionPayload: {
+            league: components["schemas"]["LeagueHomeLeague"];
+            role: components["schemas"]["LeagueHomeRole"];
+            session: components["schemas"]["LeagueCompetitionSession"];
+        };
+        LeagueCompetitionSession: {
+            id: number;
+            status: string;
+            session_date: string | null;
+            current_game_number: number;
+            streak: components["schemas"]["LeagueCompetitionStreak"];
+            participants_count: number;
+            pending_pool_count: number;
+            queue_count: number;
+        };
+        LeagueCompetitionStreak: {
+            team: ("A" | "B") | null;
+            count: number;
+            double_rotation_mode: boolean;
+            waiting_champion_team: ("A" | "B") | null;
+        };
+        LeagueCompetitionEntryCard: {
+            id: number;
+            name: string;
+            is_guest: boolean;
+            jersey_number: number | null;
+            arrival_order: number | null;
+        };
+        LeagueCompetitionShots: {
+            1: number;
+            2: number;
+            3: number;
+        };
+        LeagueCompetitionSummary: {
+            games: number;
+            streak_label: string;
+            active_players: number;
+            guests: number;
+            cash_collected_cents: number;
+            unpaid_members_count: number;
+        };
+        LeagueCompetitionIdentity: {
+            player_id: number | null;
+            name: string;
+            is_guest: boolean;
+            jersey_number: number | null;
+        };
+        LeagueGameModule: {
+            /** @enum {string} */
+            state: "idle" | "draft" | "live" | "completed";
+            draft: components["schemas"]["LeagueGameDraft"];
+            current: components["schemas"]["LeagueGameCurrent"] | null;
+            history: components["schemas"]["LeagueGameHistoryItem"][];
+            summary: components["schemas"]["LeagueCompetitionSummary"];
+        };
+        LeagueGameDraft: {
+            entries: components["schemas"]["LeagueCompetitionEntryCard"][];
+            can_start: boolean;
+        };
+        LeagueGameCurrent: {
+            id: number;
+            game_number: number;
+            score: {
+                team_a: number;
+                team_b: number;
+            };
+            streak: components["schemas"]["LeagueCompetitionStreak"];
+            team_a: components["schemas"]["LeagueGameTeamPlayer"][];
+            team_b: components["schemas"]["LeagueGameTeamPlayer"][];
+        };
+        LeagueGameTeamPlayer: components["schemas"]["LeagueCompetitionEntryCard"] & {
+            points: number;
+            shots: components["schemas"]["LeagueCompetitionShots"];
+        };
+        LeagueGameHistoryItem: {
+            id: number;
+            game_number: number;
+            score: string;
+            winner_side: ("A" | "B") | null;
+            summary: string;
+        };
+        LeagueGamePayload: components["schemas"]["LeagueCompetitionPayload"] & {
+            game: components["schemas"]["LeagueGameModule"];
+        };
+        LeagueQueueModule: {
+            on_court: components["schemas"]["LeagueQueueOnCourtEntry"][];
+            waiting: components["schemas"]["LeagueQueueWaitingEntry"][];
+            summary: components["schemas"]["LeagueCompetitionSummary"];
+            live_game: components["schemas"]["LeagueQueueLiveGame"] | null;
+        };
+        LeagueQueueOnCourtEntry: components["schemas"]["LeagueCompetitionEntryCard"] & {
+            team_side: ("A" | "B") | null;
+            games_played: number;
+            points_scored: number;
+        };
+        LeagueQueueWaitingEntry: components["schemas"]["LeagueCompetitionEntryCard"] & {
+            position: number | null;
+            games_played: number;
+            points_scored: number;
+        };
+        LeagueQueueLiveGame: {
+            game_number: number;
+            score: string;
+        };
+        LeagueQueuePayload: components["schemas"]["LeagueCompetitionPayload"] & {
+            queue: components["schemas"]["LeagueQueueModule"];
+        };
+        LeagueStatsModule: {
+            games_count: number;
+            points_leaders: components["schemas"]["LeagueStatsPointsLeader"][];
+            games_leaders: components["schemas"]["LeagueStatsGamesLeader"][];
+        };
+        LeagueStatsPointsLeader: {
+            identity: components["schemas"]["LeagueCompetitionIdentity"];
+            points: number;
+            games: number;
+            shots: components["schemas"]["LeagueCompetitionShots"];
+        };
+        LeagueStatsGamesLeader: {
+            identity: components["schemas"]["LeagueCompetitionIdentity"];
+            games: number;
+            wins: number;
+            losses: number;
+        };
+        LeagueStatsPayload: components["schemas"]["LeagueCompetitionPayload"] & {
+            stats: components["schemas"]["LeagueStatsModule"];
+        };
+        LeagueTableModule: {
+            banner: components["schemas"]["LeagueTableBanner"];
+            standings: components["schemas"]["LeagueTableStandingRow"][];
+            top_scorers: components["schemas"]["LeagueTableTopScorer"][];
+            top_games: components["schemas"]["LeagueTableTopGames"][];
+        };
+        LeagueTableBanner: {
+            games: number;
+            points: number;
+            players: number;
+        };
+        LeagueTableStandingRow: {
+            identity: components["schemas"]["LeagueCompetitionIdentity"];
+            games: number;
+            wins: number;
+            losses: number;
+            win_rate: number;
+        };
+        LeagueTableTopScorer: {
+            identity: components["schemas"]["LeagueCompetitionIdentity"];
+            points: number;
+            points_per_game: number;
+        };
+        LeagueTableTopGames: {
+            identity: components["schemas"]["LeagueCompetitionIdentity"];
+            games: number;
+            wins: number;
+            losses: number;
+        };
+        LeagueTablePayload: components["schemas"]["LeagueCompetitionPayload"] & {
+            table: components["schemas"]["LeagueTableModule"];
+        };
+        LeagueSeasonModule: {
+            season: components["schemas"]["LeagueSeasonMeta"];
+            leaders: components["schemas"]["LeagueSeasonLeaders"];
+            sessions: components["schemas"]["LeagueSeasonSessionRow"][];
+            profiles: components["schemas"]["LeagueSeasonProfile"][];
+        };
+        LeagueSeasonMeta: {
+            id: number;
+            label: string;
+            starts_on: string | null;
+            sessions_count: number;
+            totals: components["schemas"]["LeagueSeasonTotals"];
+        };
+        LeagueSeasonTotals: {
+            games: number;
+            points: number;
+            revenue_cents: number;
+            show_revenue: boolean;
+        };
+        LeagueSeasonLeaders: {
+            points: components["schemas"]["LeagueSeasonProfile"][];
+            wins: components["schemas"]["LeagueSeasonProfile"][];
+            games: components["schemas"]["LeagueSeasonProfile"][];
+        };
+        LeagueSeasonSessionRow: {
+            id: number;
+            date: string | null;
+            total_games: number;
+            total_points: number;
+            players: number;
+            top_scorer: components["schemas"]["LeagueSeasonTopScorer"] | null;
+        };
+        LeagueSeasonTopScorer: {
+            name: string;
+            points: number;
+        };
+        LeagueSeasonProfile: {
+            season_key: string;
+            identity: components["schemas"]["LeagueCompetitionIdentity"];
+            points: number;
+            games: number;
+            wins: number;
+            losses: number;
+            shots: components["schemas"]["LeagueCompetitionShots"];
+            points_allowed: number;
+            games_defended: number;
+            sessions_attended: number;
+            points_per_game: number;
+            win_rate: number;
+            points_allowed_per_game: number | null;
+        };
+        LeagueSeasonPayload: components["schemas"]["LeagueCompetitionPayload"] & {
+            season: components["schemas"]["LeagueSeasonModule"];
+        };
+        LeagueScoutProfile: {
+            position: string | null;
+            role: string | null;
+            offensive_consistency: string | null;
+            speed_rating: number;
+            dribbling_rating: number;
+            scoring_rating: number;
+            team_play_rating: number;
+            court_knowledge_rating: number;
+            defense_rating: number;
+            triples_rating: number;
+        };
+        LeagueScoutMeta: {
+            positions: string[];
+            roles: string[];
+            consistencies: string[];
+        };
+        LeagueScoutSummary: {
+            profiled_players: number;
+            total_players: number;
+            auto_preview_ready: boolean;
+            auto_preview_pool_count: number;
+        };
+        LeagueScoutPlayerRow: {
+            player: components["schemas"]["LeagueRosterPlayer"];
+            profile: components["schemas"]["LeagueScoutProfile"];
+            season_stats: components["schemas"]["LeagueSeasonProfile"] | null;
+            combined_rating: number;
+            manual_rating: number;
+            stat_rating: number | null;
+            has_stats: boolean;
+        };
+        LeagueScoutRankingRow: {
+            player: components["schemas"]["LeagueRosterPlayer"];
+            combined_rating: number;
+            profile: components["schemas"]["LeagueScoutProfile"];
+            has_stats: boolean;
+        };
+        LeagueScoutPreviewCard: components["schemas"]["LeagueCompetitionEntryCard"] & {
+            combined_rating: number;
+            role: string | null;
+            position: string | null;
+            offensive_consistency: string | null;
+            has_stats: boolean;
+        };
+        LeagueScoutAutoPreview: {
+            mode: string;
+            source: string;
+            team_a: components["schemas"]["LeagueScoutPreviewCard"][];
+            team_b: components["schemas"]["LeagueScoutPreviewCard"][];
+            team_a_rating: number;
+            team_b_rating: number;
+        };
+        LeagueScoutModule: {
+            meta: components["schemas"]["LeagueScoutMeta"];
+            summary: components["schemas"]["LeagueScoutSummary"];
+            players: components["schemas"]["LeagueScoutPlayerRow"][];
+            ranking: components["schemas"]["LeagueScoutRankingRow"][];
+            auto_preview: components["schemas"]["LeagueScoutAutoPreview"] | null;
+        };
+        LeagueScoutPayload: components["schemas"]["LeagueCompetitionPayload"] & {
+            scout: components["schemas"]["LeagueScoutModule"];
+        };
+        LeagueGameDraftRequest: {
+            /** @enum {string} */
+            mode: "auto" | "arrival" | "manual";
+            assignments?: {
+                [key: string]: "A" | "B";
+            };
+        };
+        LeagueGameTeamPointRequest: {
+            /** @enum {string} */
+            team_side: "A" | "B";
+        };
+        LeagueGamePlayerPointRequest: {
+            /** @enum {integer} */
+            points: 1 | 2 | 3;
+        };
+        LeagueGameFinishRequest: {
+            winner_side?: ("A" | "B") | null;
+        };
+        LeagueScoutUpdateRequest: {
+            position?: string | null;
+            role?: string | null;
+            offensive_consistency?: string | null;
+            speed_rating: number;
+            dribbling_rating: number;
+            scoring_rating: number;
+            team_play_rating: number;
+            court_knowledge_rating: number;
+            defense_rating: number;
+            triples_rating: number;
+        };
+        LeagueGameResponse: {
+            /** @constant */
+            success: true;
+            message: string;
+            data: components["schemas"]["LeagueGamePayload"];
+            errors: unknown[];
+            meta: {
+                [key: string]: unknown;
+            };
+        };
+        LeagueQueueResponse: {
+            /** @constant */
+            success: true;
+            message: string;
+            data: components["schemas"]["LeagueQueuePayload"];
+            errors: unknown[];
+            meta: {
+                [key: string]: unknown;
+            };
+        };
+        LeagueStatsResponse: {
+            /** @constant */
+            success: true;
+            message: string;
+            data: components["schemas"]["LeagueStatsPayload"];
+            errors: unknown[];
+            meta: {
+                [key: string]: unknown;
+            };
+        };
+        LeagueTableResponse: {
+            /** @constant */
+            success: true;
+            message: string;
+            data: components["schemas"]["LeagueTablePayload"];
+            errors: unknown[];
+            meta: {
+                [key: string]: unknown;
+            };
+        };
+        LeagueSeasonResponse: {
+            /** @constant */
+            success: true;
+            message: string;
+            data: components["schemas"]["LeagueSeasonPayload"];
+            errors: unknown[];
+            meta: {
+                [key: string]: unknown;
+            };
+        };
+        LeagueScoutResponse: {
+            /** @constant */
+            success: true;
+            message: string;
+            data: components["schemas"]["LeagueScoutPayload"];
+            errors: unknown[];
+            meta: {
+                [key: string]: unknown;
+            };
         };
         LeagueHomeResponse: {
             /** @constant */
@@ -3590,6 +4228,790 @@ export interface operations {
                 };
             };
             /** @description Validaci?n fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    leagueGame: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueGameResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    leagueQueue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueQueueResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    leagueStats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueStatsResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    leagueTable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueTableResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    leagueSeason: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueSeasonResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    leagueScout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueScoutResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    draftLeagueGame: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeagueGameDraftRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueGameResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    addLeagueGameTeamPoint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeagueGameTeamPointRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueGameResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    addLeagueGamePlayerPoint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeagueGamePlayerPointRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueGameResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    revertLeagueGamePlayerPoint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeagueGamePlayerPointRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueGameResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    removeLeagueGamePlayer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueGameResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    undoLeagueGameAction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueGameResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    finishLeagueGame: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["LeagueGameFinishRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueGameResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    endLeagueSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueGameResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    resetLeagueGame: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueGameResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    updateLeagueScoutPlayer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                player: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeagueScoutUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueScoutResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
             422: {
                 headers: {
                     [name: string]: unknown;

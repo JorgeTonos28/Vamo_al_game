@@ -65,11 +65,13 @@
         background: var(--background);
         color: var(--foreground);
         scroll-behavior: smooth;
+        overflow-x: hidden;
     }
 
     body {
         min-height: 100svh;
         margin: 0;
+        overflow-x: hidden;
         font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
         background:
             radial-gradient(
@@ -88,6 +90,7 @@
 
     main {
         width: 100%;
+        min-width: 0;
     }
 
     ::selection {
@@ -122,6 +125,7 @@
         margin-inline: auto;
         display: flex;
         min-height: 100%;
+        min-width: 0;
         width: 100%;
         max-width: calc(var(--app-shell-max) + (var(--app-gutter) * 2));
         flex: 1;
@@ -170,6 +174,12 @@
         font-family: var(--font-display), ui-sans-serif, sans-serif;
         letter-spacing: 0.04em;
         text-transform: uppercase;
+    }
+
+    .app-module-title {
+        font-size: clamp(2.25rem, 8vw, 4rem);
+        line-height: 0.92;
+        overflow-wrap: anywhere;
     }
 
     .app-tab-strip {
