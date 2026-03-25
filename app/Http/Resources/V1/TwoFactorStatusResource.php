@@ -2,11 +2,12 @@
 
 namespace App\Http\Resources\V1;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Laravel\Fortify\Features;
 
-/** @mixin \App\Models\User */
+/** @mixin User */
 class TwoFactorStatusResource extends JsonResource
 {
     /**

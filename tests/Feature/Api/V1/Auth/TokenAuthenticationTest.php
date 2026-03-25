@@ -3,7 +3,6 @@
 namespace Tests\Feature\Api\V1\Auth;
 
 use App\Actions\Api\Auth\CreateMobileOauthHandoff;
-use App\Actions\Api\Auth\IssueMobileToken;
 use App\Models\User;
 use App\Notifications\VerifyEmailNotification;
 use App\Services\Invitations\UserInvitationService;
@@ -179,6 +178,28 @@ class TokenAuthenticationTest extends TestCase
         ]);
 
         app(UserInvitationService::class)->issue($user);
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $response
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('email');
+    }
+
+    public function test_expired_invited_users_can_not_get_an_api_token(): void
+    {
+        $user = User::factory()->create([
+            'invited_at' => now()->subDays(8),
+            'onboarded_at' => null,
+        ]);
+
+        app(UserInvitationService::class)->issue($user);
+        $user->invitation()->update([
+            'expires_at' => now()->subDay(),
+        ]);
 
         $response = $this->postJson('/api/v1/auth/login', [
             'email' => $user->email,

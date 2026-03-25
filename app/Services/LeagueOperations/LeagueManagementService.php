@@ -75,6 +75,7 @@ class LeagueManagementService
             'league' => [
                 'id' => $league->id,
                 'name' => $league->name,
+                'emoji' => $league->emoji,
                 'slug' => $league->slug,
             ],
             'role' => [
@@ -382,6 +383,17 @@ class LeagueManagementService
         if ($referrer->is($referred)) {
             throw ValidationException::withMessages([
                 'referred_player_id' => 'El referidor y el referido no pueden ser la misma persona.',
+            ]);
+        }
+
+        $alreadyExists = LeaguePlayerReferral::query()
+            ->where('league_id', $context['league']->id)
+            ->where('referred_player_id', $referred->id)
+            ->exists();
+
+        if ($alreadyExists) {
+            throw ValidationException::withMessages([
+                'referred_player_id' => 'Ese miembro ya tiene un referido registrado en esta liga.',
             ]);
         }
 

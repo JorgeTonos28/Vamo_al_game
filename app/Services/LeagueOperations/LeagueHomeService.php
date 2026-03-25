@@ -37,6 +37,7 @@ class LeagueHomeService
                 'league' => [
                     'id' => $league->id,
                     'name' => $league->name,
+                    'emoji' => $league->emoji,
                     'slug' => $league->slug,
                 ],
                 'role' => [
@@ -61,6 +62,7 @@ class LeagueHomeService
             'league' => [
                 'id' => $league->id,
                 'name' => $league->name,
+                'emoji' => $league->emoji,
                 'slug' => $league->slug,
             ],
             'role' => [

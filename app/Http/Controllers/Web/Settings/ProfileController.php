@@ -27,8 +27,7 @@ class ProfileController extends Controller
     public function update(
         ProfileUpdateRequest $request,
         UpdateUserProfile $updateUserProfile,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $updateUserProfile->handle($request->user(), $request->validated());
 
         return $request->user()->isGeneralAdmin()
@@ -39,8 +38,7 @@ class ProfileController extends Controller
     public function destroy(
         ProfileDeleteRequest $request,
         DeleteUserAccount $deleteUserAccount,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $user = $request->user();
 
         Auth::logout();

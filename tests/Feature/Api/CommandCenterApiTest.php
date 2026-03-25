@@ -82,6 +82,47 @@ class CommandCenterApiTest extends TestCase
         ]);
     }
 
+    public function test_general_admin_can_invite_multiple_users_without_document_id(): void
+    {
+        Notification::fake();
+
+        $generalAdmin = User::factory()->generalAdmin()->create();
+
+        $this->actingAs($generalAdmin, 'sanctum')
+            ->postJson('/api/v1/command-center/users', [
+                'first_name' => 'Ana',
+                'last_name' => 'Santos',
+                'document_id' => '',
+                'phone' => '',
+                'address' => '',
+                'email' => 'ana@example.com',
+                'account_role' => AccountRole::Guest->value,
+            ])
+            ->assertCreated();
+
+        $this->actingAs($generalAdmin, 'sanctum')
+            ->postJson('/api/v1/command-center/users', [
+                'first_name' => 'Marta',
+                'last_name' => 'Lopez',
+                'document_id' => '',
+                'phone' => '',
+                'address' => '',
+                'email' => 'marta@example.com',
+                'account_role' => AccountRole::Guest->value,
+            ])
+            ->assertCreated();
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'ana@example.com',
+            'document_id' => null,
+        ]);
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'marta@example.com',
+            'document_id' => null,
+        ]);
+    }
+
     public function test_general_admin_can_toggle_league_access_from_api(): void
     {
         $generalAdmin = User::factory()->generalAdmin()->create();
@@ -93,6 +134,46 @@ class CommandCenterApiTest extends TestCase
             ->patchJson("/api/v1/command-center/leagues/{$league->id}")
             ->assertOk()
             ->assertJsonPath('data.league.is_active', false);
+    }
+
+    public function test_general_admin_can_create_a_league_from_api(): void
+    {
+        $generalAdmin = User::factory()->generalAdmin()->create();
+
+        $this->actingAs($generalAdmin, 'sanctum')
+            ->postJson('/api/v1/command-center/leagues', [
+                'name' => 'Liga Aurora',
+                'emoji' => '⚽',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.league.name', 'Liga Aurora')
+            ->assertJsonPath('data.league.emoji', '⚽')
+            ->assertJsonPath('data.league.is_active', true);
+
+        $this->assertDatabaseHas('leagues', [
+            'name' => 'Liga Aurora',
+            'emoji' => '⚽',
+            'slug' => 'liga-aurora',
+            'created_by_user_id' => $generalAdmin->id,
+            'is_active' => true,
+        ]);
+    }
+
+    public function test_general_admin_cannot_create_two_leagues_with_the_same_exact_name(): void
+    {
+        $generalAdmin = User::factory()->generalAdmin()->create();
+
+        League::factory()->create([
+            'name' => 'Liga Aurora',
+            'slug' => 'liga-aurora',
+        ]);
+
+        $this->actingAs($generalAdmin, 'sanctum')
+            ->postJson('/api/v1/command-center/leagues', [
+                'name' => 'Liga Aurora',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['name']);
     }
 
     public function test_general_admin_can_assign_an_existing_user_to_an_active_league(): void

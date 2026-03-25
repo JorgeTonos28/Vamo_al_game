@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IonButton, IonContent, IonInput, IonItem, IonLabel, IonPage, IonSelect, IonSelectOption, IonText, onIonViewWillEnter } from '@ionic/vue'
+import { IonButton, IonContent, IonInput, IonItem, IonLabel, IonPage, IonRefresher, IonRefresherContent, IonSelect, IonSelectOption, IonText, onIonViewWillEnter } from '@ionic/vue'
 import type { AxiosError } from 'axios'
 import { computed, reactive, ref, watch } from 'vue'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
@@ -119,12 +119,24 @@ async function assignLeague(user: CommandCenterUserRow): Promise<void> {
   replaceUserRow(response.user as CommandCenterUserRow)
 }
 
+async function handleRefresh(event: CustomEvent): Promise<void> {
+  try {
+    await loadUsers()
+  } finally {
+    await (event.target as HTMLIonRefresherElement).complete()
+  }
+}
+
 onIonViewWillEnter(loadUsers)
 </script>
 
 <template>
   <IonPage>
     <IonContent :fullscreen="true">
+      <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
+        <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
+      </IonRefresher>
+
       <div class="mobile-shell">
         <div class="mobile-stack">
           <MobileAppTopbar command-center title="Usuarios" description="Invita usuarios, asigna ligas activas y revisa su onboarding." />

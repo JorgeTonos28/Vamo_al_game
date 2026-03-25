@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IonContent, IonPage, onIonViewWillEnter } from '@ionic/vue'
+import { IonContent, IonPage, IonRefresher, IonRefresherContent, onIonViewWillEnter } from '@ionic/vue'
 import { ref } from 'vue'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
 import { fetchCommandCenterDashboard } from '@/services/command-center'
@@ -28,12 +28,24 @@ async function loadDashboard(): Promise<void> {
   }
 }
 
+async function handleRefresh(event: CustomEvent): Promise<void> {
+  try {
+    await loadDashboard()
+  } finally {
+    await (event.target as HTMLIonRefresherElement).complete()
+  }
+}
+
 onIonViewWillEnter(loadDashboard)
 </script>
 
 <template>
   <IonPage>
     <IonContent :fullscreen="true">
+      <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
+        <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
+      </IonRefresher>
+
       <div class="mobile-shell">
         <div class="mobile-stack">
           <MobileAppTopbar

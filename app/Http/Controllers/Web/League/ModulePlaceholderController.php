@@ -40,6 +40,7 @@ class ModulePlaceholderController extends Controller
                 'league' => [
                     'id' => $context['league']->id,
                     'name' => $context['league']->name,
+                    'emoji' => $context['league']->emoji,
                 ],
                 'role' => [
                     'value' => $context['role']->value,

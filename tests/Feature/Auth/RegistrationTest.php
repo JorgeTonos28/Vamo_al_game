@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Fortify\Features;
 use Tests\TestCase;
@@ -43,7 +44,7 @@ class RegistrationTest extends TestCase
 
     public function test_registration_rejects_duplicate_email_addresses()
     {
-        \App\Models\User::factory()->create([
+        User::factory()->create([
             'email' => 'taken@example.com',
         ]);
 

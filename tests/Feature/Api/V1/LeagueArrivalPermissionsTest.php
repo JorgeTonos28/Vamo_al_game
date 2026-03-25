@@ -56,4 +56,30 @@ class LeagueArrivalPermissionsTest extends TestCase
             ->postJson('/api/v1/league/arrival/reset')
             ->assertForbidden();
     }
+
+    public function test_inactive_selected_league_cannot_access_operational_arrival_routes(): void
+    {
+        $inactiveLeague = League::factory()->inactive()->create();
+        $admin = User::factory()->leagueAdmin()->create([
+            'active_league_id' => $inactiveLeague->id,
+        ]);
+
+        LeagueMembershipFactory::new()->admin()->create([
+            'league_id' => $inactiveLeague->id,
+            'user_id' => $admin->id,
+        ]);
+
+        $player = LeaguePlayer::factory()->for($inactiveLeague)->create([
+            'created_by_user_id' => $admin->id,
+            'updated_by_user_id' => $admin->id,
+        ]);
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/league/arrival')
+            ->assertForbidden();
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/league/arrival/players/{$player->id}/toggle")
+            ->assertForbidden();
+    }
 }

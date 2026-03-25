@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IonContent, IonPage, onIonViewWillEnter } from '@ionic/vue'
+import { IonContent, IonPage, IonRefresher, IonRefresherContent, onIonViewWillEnter } from '@ionic/vue'
 import { reactive, ref } from 'vue'
 import LeagueRosterSheet from '@/components/LeagueRosterSheet.vue'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
@@ -35,6 +35,14 @@ async function loadPage(cutId?: number): Promise<void> {
   }
 }
 
+async function handleRefresh(event: CustomEvent): Promise<void> {
+  try {
+    await loadPage(payload.value?.cut_selector.selected_cut_id)
+  } finally {
+    await (event.target as HTMLIonRefresherElement).complete()
+  }
+}
+
 onIonViewWillEnter(() => loadPage())
 
 async function onCutChange(event: Event): Promise<void> { const target = event.target as HTMLSelectElement; await loadPage(Number(target.value)) }
@@ -54,6 +62,10 @@ async function openReport(): Promise<void> { if (!payload.value) return; const u
 <template>
   <IonPage>
     <IonContent :fullscreen="true">
+      <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
+        <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
+      </IonRefresher>
+
       <div class="mobile-shell">
         <div class="mobile-stack">
           <MobileAppTopbar :title="payload?.league.name ?? 'Gestion'" description="Balance, pagos, gastos, referidos y configuracion del corte." />

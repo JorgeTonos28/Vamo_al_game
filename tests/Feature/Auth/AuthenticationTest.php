@@ -107,6 +107,29 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_expired_invited_users_still_must_complete_onboarding_before_login(): void
+    {
+        $user = User::factory()->create([
+            'invited_at' => now()->subDays(8),
+            'onboarded_at' => null,
+        ]);
+
+        app(UserInvitationService::class)->issue($user);
+        $user->invitation()->update([
+            'expires_at' => now()->subDay(),
+        ]);
+
+        $response = $this->from(route('login'))
+            ->post(route('login.store'), [
+                'email' => $user->email,
+                'password' => 'password',
+            ]);
+
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHasErrors('email');
+        $this->assertGuest();
+    }
+
     public function test_users_can_logout()
     {
         $user = User::factory()->create();

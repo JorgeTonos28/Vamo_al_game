@@ -20,7 +20,7 @@ const heroTitle = computed(() => {
   }
 
   if (activeLeague.value) {
-    return activeLeague.value.name
+    return activeLeague.value.emoji ? `${activeLeague.value.emoji} ${activeLeague.value.name}` : activeLeague.value.name
   }
 
   return tenancy.value?.is_guest_role ? 'Vista invitado' : 'Panel base'
@@ -41,7 +41,7 @@ const heroDescription = computed(() => {
 const infoCards = computed(() => {
   if (tenancy.value?.is_guest_role && activeLeague.value) {
     return [
-      { title: 'Liga activa', value: activeLeague.value.name, description: 'Contexto actual de tu cuenta.' },
+      { title: 'Liga activa', value: activeLeague.value.emoji ? `${activeLeague.value.emoji} ${activeLeague.value.name}` : activeLeague.value.name, description: 'Contexto actual de tu cuenta.' },
       { title: 'Rol', value: activeLeague.value.role_label, description: 'Aun sin acceso a modulos deportivos.' },
       { title: 'Switch', value: tenancy.value.can_switch ? 'Disponible' : 'No aplica', description: 'Puedes cambiar de liga desde el topbar.' },
     ]
@@ -96,7 +96,7 @@ async function enterLeague(leagueId: number): Promise<void> {
                 @click="enterLeague(league.id)"
               >
                 <div>
-                  <p class="selector-option__name">{{ league.name }}</p>
+                  <p class="selector-option__name">{{ league.emoji ? `${league.emoji} ${league.name}` : league.name }}</p>
                   <p class="selector-option__meta">{{ league.role_label }}</p>
                 </div>
                 <span class="selector-option__state">

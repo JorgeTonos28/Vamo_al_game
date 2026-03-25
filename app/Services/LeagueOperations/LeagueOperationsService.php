@@ -44,21 +44,15 @@ class LeagueOperationsService
         $membership = LeagueMembership::query()
             ->with('league')
             ->where('user_id', $user->id)
-            ->when(
-                $user->active_league_id !== null,
-                fn ($query) => $query->orderByRaw(
-                    'case when league_id = ? then 0 else 1 end',
-                    [$user->active_league_id],
-                ),
-            )
-            ->orderByRaw(
-                'case
-                    when role = ? then 0
-                    when role = ? then 1
-                    else 2
-                end',
-                [LeagueMembershipRole::Admin->value, LeagueMembershipRole::Member->value],
-            )
+            ->get()
+            ->filter(fn (LeagueMembership $membership): bool => $membership->league !== null)
+            ->sortBy(fn (LeagueMembership $membership): string => sprintf(
+                '%d-%d-%02d-%s',
+                $user->active_league_id !== null && $membership->league_id === $user->active_league_id ? 0 : 1,
+                $membership->league?->is_active ? 0 : 1,
+                $membership->role->sortOrder(),
+                mb_strtolower($membership->league?->name ?? ''),
+            ))
             ->first();
 
         if ($membership === null || $membership->league === null) {
@@ -81,6 +75,10 @@ class LeagueOperationsService
 
         if ($context === null) {
             throw new AuthorizationException('La cuenta no tiene una liga activa disponible.');
+        }
+
+        if (! $context['league']->is_active) {
+            throw new AuthorizationException('La liga activa seleccionada no esta disponible en este momento.');
         }
 
         return $context;

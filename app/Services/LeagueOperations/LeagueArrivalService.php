@@ -45,6 +45,7 @@ class LeagueArrivalService
             'league' => [
                 'id' => $league->id,
                 'name' => $league->name,
+                'emoji' => $league->emoji,
                 'slug' => $league->slug,
             ],
             'role' => [

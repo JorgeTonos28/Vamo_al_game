@@ -580,6 +580,67 @@
       }
     },
     "/command-center/leagues": {
+      "post": {
+        "operationId": "commandCenterCreateLeague",
+        "summary": "Crea una nueva liga operativa",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommandCenterCreateLeagueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Liga creada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommandCenterLeagueResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Datos invalidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
       "get": {
         "operationId": "commandCenterLeagues",
         "summary": "Listado del modulo de ligas del centro de mando",
@@ -2714,6 +2775,25 @@
           }
         }
       },
+      "CommandCenterCreateLeagueRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "emoji": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 16
+          }
+        }
+      },
       "CommandCenterAssignLeagueMembershipRequest": {
         "type": "object",
         "required": [
@@ -2979,6 +3059,7 @@
         "required": [
           "id",
           "name",
+          "emoji",
           "slug",
           "role",
           "role_label",
@@ -2990,6 +3071,12 @@
           },
           "name": {
             "type": "string"
+          },
+          "emoji": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "slug": {
             "type": "string"
@@ -3168,6 +3255,7 @@
         "required": [
           "id",
           "name",
+          "emoji",
           "slug"
         ],
         "properties": {
@@ -3176,6 +3264,12 @@
           },
           "name": {
             "type": "string"
+          },
+          "emoji": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "slug": {
             "type": "string"
@@ -3323,6 +3417,7 @@
         "required": [
           "id",
           "name",
+          "emoji",
           "slug",
           "is_active",
           "admins",
@@ -3335,6 +3430,12 @@
           },
           "name": {
             "type": "string"
+          },
+          "emoji": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "slug": {
             "type": "string"
@@ -4251,6 +4352,7 @@
         "required": [
           "id",
           "name",
+          "emoji",
           "slug"
         ],
         "properties": {
@@ -4259,6 +4361,12 @@
           },
           "name": {
             "type": "string"
+          },
+          "emoji": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "slug": {
             "type": "string"

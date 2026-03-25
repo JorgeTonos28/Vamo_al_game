@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IonContent, IonPage, onIonViewWillEnter } from '@ionic/vue'
+import { IonContent, IonPage, IonRefresher, IonRefresherContent, onIonViewWillEnter } from '@ionic/vue'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
@@ -24,12 +24,24 @@ async function loadPage(): Promise<void> {
   }
 }
 
+async function handleRefresh(event: CustomEvent): Promise<void> {
+  try {
+    await loadPage()
+  } finally {
+    await (event.target as HTMLIonRefresherElement).complete()
+  }
+}
+
 onIonViewWillEnter(loadPage)
 </script>
 
 <template>
   <IonPage>
     <IonContent :fullscreen="true">
+      <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
+        <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
+      </IonRefresher>
+
       <div class="mobile-shell">
         <div class="mobile-stack">
           <MobileAppTopbar

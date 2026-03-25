@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IonContent, IonPage, onIonViewWillEnter } from '@ionic/vue'
+import { IonContent, IonPage, IonRefresher, IonRefresherContent, onIonViewWillEnter } from '@ionic/vue'
 import { computed, reactive, ref } from 'vue'
 import LeagueRosterSheet from '@/components/LeagueRosterSheet.vue'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
@@ -16,6 +16,7 @@ const canManageArrival = computed(() => payload.value?.role.can_manage ?? false)
 const sortedPlayers = computed(() => [...(payload.value?.players ?? [])].sort((left, right) => left.has_arrived !== right.has_arrived ? (left.has_arrived ? -1 : 1) : left.current_cut_paid !== right.current_cut_paid ? (left.current_cut_paid ? -1 : 1) : left.name.localeCompare(right.name)))
 
 async function loadPage(): Promise<void> { isLoading.value = true; try { payload.value = await fetchLeagueArrival() } finally { isLoading.value = false } }
+async function handleRefresh(event: CustomEvent): Promise<void> { try { await loadPage() } finally { await (event.target as HTMLIonRefresherElement).complete() } }
 onIonViewWillEnter(loadPage)
 
 async function togglePlayer(playerId: number, paid?: boolean): Promise<void> { if (!canManageArrival.value) return; payload.value = await toggleLeagueArrivalPlayer(playerId, paid); selectedPlayerId.value = null }
@@ -31,6 +32,10 @@ function money(amountCents: number): string { return new Intl.NumberFormat('es-D
 <template>
   <IonPage>
     <IonContent :fullscreen="true">
+      <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
+        <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
+      </IonRefresher>
+
       <div class="mobile-shell">
         <div class="mobile-stack">
           <MobileAppTopbar :title="payload?.league.name ?? 'Llegada'" :description="payload?.cut.is_past_due ? 'Solo mantienen prioridad quienes estan al dia.' : 'Todos los miembros siguen con prioridad dentro del corte.'" />

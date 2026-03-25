@@ -60,6 +60,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->name('users.leagues.store');
             Route::get('leagues', [CommandCenterLeagueController::class, 'index'])
                 ->name('leagues.index');
+            Route::post('leagues', [CommandCenterLeagueController::class, 'store'])
+                ->name('leagues.store');
             Route::patch('leagues/{league}', [CommandCenterLeagueController::class, 'update'])
                 ->name('leagues.update');
             Route::get('settings', [CommandCenterSettingsController::class, 'index'])

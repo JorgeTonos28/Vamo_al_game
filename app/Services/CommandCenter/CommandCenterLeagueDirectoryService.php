@@ -7,6 +7,8 @@ use App\Models\League;
 use App\Models\LeagueMembership;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class CommandCenterLeagueDirectoryService
 {
@@ -44,6 +46,53 @@ class CommandCenterLeagueDirectoryService
      * @return array{
      *     id: int,
      *     name: string,
+     *     slug: string,
+     *     is_active: bool,
+     *     admins: array<int, array{id: int|null, name: string|null}>,
+     *     members_count: int,
+     *     created_at: string|null
+     * }
+     */
+    public function create(User $creator, string $name, ?string $emoji = null): array
+    {
+        $normalizedName = preg_replace('/\s+/', ' ', trim($name)) ?? trim($name);
+        $normalizedEmoji = filled($emoji) ? trim($emoji) : null;
+
+        $alreadyExists = League::query()
+            ->pluck('name')
+            ->contains(fn ($existingName): bool => $existingName === $normalizedName);
+
+        if ($alreadyExists) {
+            throw ValidationException::withMessages([
+                'name' => 'Ya existe una liga con ese nombre.',
+            ]);
+        }
+
+        $league = League::query()->create([
+            'name' => $normalizedName,
+            'emoji' => $normalizedEmoji,
+            'slug' => $this->uniqueSlugFor($normalizedName),
+            'is_active' => true,
+            'created_by_user_id' => $creator->id,
+        ]);
+
+        return $this->toArray(
+            $league->fresh([
+                'adminMemberships.user:id,name',
+            ])->loadCount([
+                'memberships as operational_memberships_count' => fn ($query) => $query->whereIn('role', [
+                    LeagueMembershipRole::Admin->value,
+                    LeagueMembershipRole::Member->value,
+                ]),
+            ])
+        );
+    }
+
+    /**
+     * @return array{
+     *     id: int,
+     *     name: string,
+     *     emoji: string|null,
      *     slug: string,
      *     is_active: bool,
      *     admins: array<int, array{id: int|null, name: string|null}>,
@@ -91,6 +140,7 @@ class CommandCenterLeagueDirectoryService
         return [
             'id' => $league->id,
             'name' => $league->name,
+            'emoji' => $league->emoji,
             'slug' => $league->slug,
             'is_active' => $league->is_active,
             'admins' => $league->adminMemberships
@@ -137,5 +187,20 @@ class CommandCenterLeagueDirectoryService
             )
             ->orderBy('leagues.name')
             ->value('leagues.id');
+    }
+
+    private function uniqueSlugFor(string $name): string
+    {
+        $baseSlug = Str::slug($name);
+        $baseSlug = $baseSlug !== '' ? $baseSlug : 'liga';
+        $slug = $baseSlug;
+        $suffix = 2;
+
+        while (League::query()->where('slug', $slug)->exists()) {
+            $slug = "{$baseSlug}-{$suffix}";
+            $suffix++;
+        }
+
+        return $slug;
     }
 }

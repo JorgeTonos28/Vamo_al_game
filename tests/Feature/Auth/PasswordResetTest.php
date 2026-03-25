@@ -120,4 +120,34 @@ class PasswordResetTest extends TestCase
             return true;
         });
     }
+
+    public function test_expired_invited_users_can_not_reset_their_password_before_accepting_the_invitation(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create([
+            'invited_at' => now()->subDays(8),
+            'onboarded_at' => null,
+        ]);
+
+        app(UserInvitationService::class)->issue($user);
+        $user->invitation()->update([
+            'expires_at' => now()->subDay(),
+        ]);
+
+        $this->post(route('password.email'), ['email' => $user->email]);
+
+        Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
+            $response = $this->post(route('password.update'), [
+                'token' => $notification->token,
+                'email' => $user->email,
+                'password' => 'new-password-123',
+                'password_confirmation' => 'new-password-123',
+            ]);
+
+            $response->assertSessionHasErrors('email');
+
+            return true;
+        });
+    }
 }

@@ -14,7 +14,7 @@ type PaymentRow = { player: { id: number; name: string; jersey_number: number | 
 type ExpenseRow = { id: number; name: string; amount_cents: number; is_system_generated: boolean; is_fixed: boolean };
 type ReferralGroup = { referrer: { id: number; name: string }; available_credit_cents: number; members: Array<{ id: number; name: string }> };
 type ModulePayload = {
-    league: { id: number; name: string; slug: string };
+    league: { id: number; name: string; emoji: string | null; slug: string };
     role: { value: string; label: string };
     cut_selector: { selected_cut_id: number; cuts: Array<{ id: number; label: string; is_active: boolean }> };
     summary: { selected_cut: { id: number; label: string; starts_on: string; ends_on: string; due_on: string; is_past_due: boolean }; income: { cash_payments_cents: number; guest_income_cents: number; total_cents: number }; expenses: { total_cents: number }; balance_cents: number };
@@ -52,7 +52,7 @@ function downloadReport(): void { window.open(`/liga/gestion/report?cut_id=${pro
 
 <template>
     <Head title="Gestion" />
-    <LeagueShellLayout :breadcrumbs="breadcrumbs" :league-name="props.module.league.name" :role-label="props.module.role.label" active-module="gestion" :can-manage-league="true">
+    <LeagueShellLayout :breadcrumbs="breadcrumbs" :league-name="props.module.league.name" :league-emoji="props.module.league.emoji" :role-label="props.module.role.label" active-module="gestion" :can-manage-league="true">
         <section class="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_320px]">
             <article class="app-surface space-y-5">
                 <div class="flex items-start justify-between gap-4">

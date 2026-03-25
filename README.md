@@ -289,8 +289,9 @@ Los administradores generales acceden a un shell separado de la app regular. Por
 - `Panel`: metricas basicas del sistema como usuarios totales, ligas activas, administradores de ligas, miembros, invitados y ligas inactivas.
 - `Usuarios`: formulario para invitar nuevos usuarios con nombre, apellido, cedula, telefono, direccion, correo y rol, con liga inicial opcional si el rol es operativo.
 - `Usuarios`: cada fila tambien muestra las membresias actuales del usuario y permite asignarle nuevas ligas activas con rol `league_admin` o `member`.
-- `Ligas`: listado de ligas, administradores, cantidad de miembros operativos, fecha de creacion y toggle de acceso.
+- `Ligas`: listado de ligas, administradores, cantidad de miembros operativos, fecha de creacion, formulario para crear nuevas ligas activas con emoji opcional y toggle de acceso.
 - `Ajustes`: misma estructura de cuenta del shell regular (`Perfil`, `Seguridad` y `Apariencia`), con el branding global de logo y favicon integrado dentro de `Apariencia`.
+- Los campos opcionales de identidad (`cedula`, `telefono`, `direccion`) se normalizan a `null` cuando llegan vacios para no reservar valores en blanco ni romper constraints unicos.
 
 ### Invitaciones y onboarding
 
@@ -300,9 +301,11 @@ Los administradores generales acceden a un shell separado de la app regular. Por
 - Si se selecciona una `Liga inicial`, esa asignacion crea de inmediato la primera fila en `league_memberships` y tambien define `users.active_league_id`.
 - Si no se selecciona liga, la cuenta puede quedar sin membresias hasta que un administrador general le asigne una liga activa desde el mismo Centro de mando.
 - Desde `Gestion de miembros` dentro del perfil de una liga, los administradores de liga usan el mismo flujo de invitacion por correo del Centro de mando, limitado a roles `league_admin` y `member`.
+- `Gestion de miembros` dentro de la liga ahora se divide por tabs (`Invitar`, `Editar`, `Activos`, `Inactivos`) para mantener el modal y el sheet utilizables en web y mobile.
+- El tab `Editar` usa un filtro por texto que busca coincidencias por nombre o numero antes de cargar el formulario del miembro seleccionado.
 - El sistema envia un correo con enlace para completar onboarding por password o continuar con Google.
 - Durante el onboarding, el usuario puede completar o corregir los datos basicos precargados.
-- Mientras la invitacion siga pendiente, la cuenta no puede iniciar sesion ni usar recuperacion de contrasena fuera del flujo de aceptacion.
+- Mientras la cuenta invitada no complete onboarding, no puede iniciar sesion ni usar recuperacion de contrasena fuera del flujo de aceptacion, aunque el enlace original ya haya expirado.
 - Al terminar el onboarding, la cuenta queda habilitada segun su rol global y sus membresias activas.
 - Si el enlace de invitacion con Google falla por token expirado o por elegir otra cuenta, web y movil redirigen de vuelta al login con el error normalizado.
 - Los correos usan el branding configurado por los administradores generales cuando existe un logo personalizado.
@@ -328,6 +331,7 @@ Ademas, el seeder crea ligas de muestra y membresias para probar el contexto mul
 - Si la cuenta tiene 2FA activa, el login movil por password o por Google devuelve un reto 2FA antes de emitir el token.
 - Si la administracion general desactiva la liga que el usuario tenia seleccionada, el sistema intenta moverlo automaticamente a otra liga activa donde tenga membresia.
 - Si el usuario selecciona manualmente una liga revocada desde el switch, la app mantiene esa seleccion y muestra la pantalla de acceso no disponible hasta que cambie a otra liga valida.
+- Los endpoints operativos de liga en web/API rechazan cualquier accion cuando la liga activa seleccionada esta inactiva, incluso si el usuario conserva la membresia.
 
 ## Flujo movil minimo
 
@@ -343,7 +347,7 @@ Ademas, el seeder crea ligas de muestra y membresias para probar el contexto mul
 10. Si la liga activa fue revocada, la app movil muestra la misma pantalla de acceso no disponible que web y conserva el switch de ligas.
 11. Cerrar sesion con `POST /api/v1/auth/logout`.
 
-Al abrir la app movil, el flujo visible arranca con un starter breve de marca y luego entra directo a `Login` o al shell autenticado segun exista sesion. Los administradores generales ven el Centro de mando mobile con `Panel`, `Usuarios`, `Ligas` y `Ajustes`. Los administradores de ligas, miembros e invitados ven el shell regular con branding compartido, hamburger menu, switch multi-tenant de ligas y los modulos `Panel`, `Llegada`, placeholders del resto y `Gestion` solo cuando el rol activo puede administrar la liga.
+Al abrir la app movil, el flujo visible arranca con un starter breve de marca y luego entra directo a `Login` o al shell autenticado segun exista sesion. Los administradores generales ven el Centro de mando mobile con `Panel`, `Usuarios`, `Ligas` y `Ajustes`. Los administradores de ligas, miembros e invitados ven el shell regular con branding compartido, hamburger menu, switch multi-tenant de ligas y los modulos `Panel`, `Llegada`, placeholders del resto y `Gestion` solo cuando el rol activo puede administrar la liga. Las pantallas mobile con datos remotos habilitan `pull-to-refresh`, `Gestion de miembros` soporta cambio de tab por swipe horizontal y el emoji de cada liga acompana su nombre en el selector y en la navegacion.
 
 Variables relevantes para web y movil:
 

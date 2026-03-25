@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\CommandCenter;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\CommandCenter\StoreLeagueRequest;
 use App\Models\League;
 use App\Services\CommandCenter\CommandCenterLeagueDirectoryService;
 use App\Support\ApiResponse;
@@ -21,6 +22,24 @@ class LeagueController extends Controller
                 'leagues' => $directoryService->leagues(),
             ],
             'Ligas del centro de mando cargadas.',
+        );
+    }
+
+    public function store(
+        StoreLeagueRequest $request,
+        CommandCenterLeagueDirectoryService $directoryService,
+    ): JsonResponse {
+        return ApiResponse::success(
+            $request,
+            [
+                'league' => $directoryService->create(
+                    $request->user(),
+                    $request->string('name')->value(),
+                    $request->input('emoji'),
+                ),
+            ],
+            'Liga creada correctamente.',
+            201,
         );
     }
 

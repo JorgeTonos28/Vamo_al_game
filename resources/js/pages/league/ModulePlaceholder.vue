@@ -8,7 +8,7 @@ const props = defineProps<{
     module: {
         key: string;
         label: string;
-        league: { id: number; name: string };
+        league: { id: number; name: string; emoji: string | null };
         role: { value: string; label: string; can_manage: boolean };
     };
 }>();
@@ -27,6 +27,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     <LeagueShellLayout
         :breadcrumbs="breadcrumbs"
         :league-name="props.module.league.name"
+        :league-emoji="props.module.league.emoji"
         :role-label="props.module.role.label"
         :active-module="props.module.key"
         :can-manage-league="props.module.role.can_manage"

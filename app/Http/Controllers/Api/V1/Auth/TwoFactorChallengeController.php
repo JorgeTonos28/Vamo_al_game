@@ -13,6 +13,7 @@ use App\Http\Resources\V1\TwoFactorChallengeResource;
 use App\Models\User;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class TwoFactorChallengeController extends Controller
 {
@@ -79,7 +80,7 @@ class TwoFactorChallengeController extends Controller
     }
 
     public static function pendingResponse(
-        \Illuminate\Http\Request $request,
+        Request $request,
         User $user,
         string $deviceName,
         CreateMobileTwoFactorChallenge $createMobileTwoFactorChallenge,

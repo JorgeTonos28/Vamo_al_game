@@ -8,7 +8,7 @@ import type { BreadcrumbItem } from '@/types';
 
 type ModulePayload = {
     mode: 'operational' | 'guest' | 'no_league';
-    league: { id: number; name: string; slug: string } | null;
+    league: { id: number; name: string; emoji: string | null; slug: string } | null;
     role: { value: string; label: string; can_manage: boolean } | null;
     summary: {
         cut_label: string;
@@ -77,6 +77,7 @@ const stats = computed(() => {
     <LeagueShellLayout
         :breadcrumbs="breadcrumbs"
         :league-name="props.module.league?.name ?? 'Liga activa'"
+        :league-emoji="props.module.league?.emoji ?? null"
         :role-label="props.module.role?.label ?? 'Sin rol'"
         active-module="panel"
         :can-manage-league="props.module.role?.can_manage ?? false"

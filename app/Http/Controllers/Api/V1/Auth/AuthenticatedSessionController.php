@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
+use App\Actions\Api\Auth\CreateMobileTwoFactorChallenge;
 use App\Actions\Api\Auth\IssueMobileToken;
 use App\Actions\Api\Auth\RevokeCurrentAccessToken;
-use App\Actions\Api\Auth\CreateMobileTwoFactorChallenge;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Auth\LoginRequest;
 use App\Http\Resources\V1\AuthTokenResource;
@@ -21,8 +21,7 @@ class AuthenticatedSessionController extends Controller
         LoginRequest $request,
         IssueMobileToken $issueMobileToken,
         CreateMobileTwoFactorChallenge $createMobileTwoFactorChallenge,
-    ): JsonResponse
-    {
+    ): JsonResponse {
         $user = User::query()
             ->where('email', $request->string('email')->value())
             ->first();
@@ -33,7 +32,7 @@ class AuthenticatedSessionController extends Controller
             ]);
         }
 
-        if ($user->hasPendingInvitation() && ! $user->hasCompletedOnboarding()) {
+        if ($user->mustCompleteInvitationOnboarding()) {
             throw ValidationException::withMessages([
                 'email' => ['Debes completar la invitacion enviada a tu correo antes de iniciar sesion.'],
             ]);

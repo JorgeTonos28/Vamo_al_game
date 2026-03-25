@@ -84,6 +84,7 @@ class LocalStarterDataSeeder extends Seeder
             'slug' => 'liga-aurora',
         ], [
             'name' => 'Liga Aurora',
+            'emoji' => '⚽',
             'is_active' => true,
             'created_by_user_id' => $leagueAdmin->id,
         ]);
@@ -92,6 +93,7 @@ class LocalStarterDataSeeder extends Seeder
             'slug' => 'liga-titanes',
         ], [
             'name' => 'Liga Titanes',
+            'emoji' => '🏀',
             'is_active' => true,
             'created_by_user_id' => $leagueAdmin->id,
         ]);
@@ -100,6 +102,7 @@ class LocalStarterDataSeeder extends Seeder
             'slug' => 'liga-barrio-central',
         ], [
             'name' => 'Liga Barrio Central',
+            'emoji' => '🏐',
             'is_active' => false,
             'created_by_user_id' => $leagueAdmin->id,
         ]);

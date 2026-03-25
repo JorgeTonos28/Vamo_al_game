@@ -10,7 +10,7 @@ use Illuminate\Support\Collection;
 class LeagueContextResolver
 {
     /**
-     * @return Collection<int, array{id: int, name: string, slug: string, role: string, role_label: string, is_active: bool}>
+     * @return Collection<int, array{id: int, name: string, emoji: string|null, slug: string, role: string, role_label: string, is_active: bool}>
      */
     public function leaguesFor(User $user): Collection
     {
@@ -22,6 +22,7 @@ class LeagueContextResolver
             ->select([
                 'leagues.id',
                 'leagues.name',
+                'leagues.emoji',
                 'leagues.slug',
                 'leagues.is_active',
                 'league_memberships.role',
@@ -42,6 +43,7 @@ class LeagueContextResolver
             ->map(fn (League $league): array => [
                 'id' => $league->id,
                 'name' => $league->name,
+                'emoji' => $league->emoji,
                 'slug' => $league->slug,
                 'role' => (string) $league->getAttribute('role'),
                 'role_label' => LeagueMembershipRole::from((string) $league->getAttribute('role'))->label(),
@@ -50,7 +52,7 @@ class LeagueContextResolver
     }
 
     /**
-     * @return array{id: int, name: string, slug: string, role: string, role_label: string, is_active: bool}|null
+     * @return array{id: int, name: string, emoji: string|null, slug: string, role: string, role_label: string, is_active: bool}|null
      */
     public function activeLeagueFor(User $user): ?array
     {
@@ -97,8 +99,8 @@ class LeagueContextResolver
 
     /**
      * @return array{
-     *     available_leagues: array<int, array{id: int, name: string, slug: string, role: string, role_label: string, is_active: bool}>,
-     *     active_league: array{id: int, name: string, slug: string, role: string, role_label: string, is_active: bool}|null,
+     *     available_leagues: array<int, array{id: int, name: string, emoji: string|null, slug: string, role: string, role_label: string, is_active: bool}>,
+     *     active_league: array{id: int, name: string, emoji: string|null, slug: string, role: string, role_label: string, is_active: bool}|null,
      *     can_switch: bool,
      *     has_memberships: bool,
      *     has_blocked_access: bool,

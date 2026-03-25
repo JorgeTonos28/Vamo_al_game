@@ -7,6 +7,7 @@ withDefaults(
     defineProps<{
         breadcrumbs?: BreadcrumbItem[];
         leagueName: string;
+        leagueEmoji?: string | null;
         roleLabel: string;
         activeModule: string;
         canManageLeague: boolean;
@@ -23,6 +24,7 @@ withDefaults(
             <div class="xl:sticky xl:top-[calc(env(safe-area-inset-top)+96px)] xl:self-start">
                 <LeagueSidebarNav
                     :league-name="leagueName"
+                    :league-emoji="leagueEmoji"
                     :role-label="roleLabel"
                     :active-module="activeModule"
                     :can-manage-league="canManageLeague"

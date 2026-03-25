@@ -16,7 +16,7 @@ export type LeagueOperationalContext = {
 
 export type LeagueHomePayload = {
   mode: 'operational' | 'guest' | 'no_league'
-  league: { id: number; name: string; slug: string } | null
+  league: { id: number; name: string; emoji: string | null; slug: string } | null
   role: { value: string; label: string; can_manage: boolean } | null
   requires_league_selection: boolean
   summary: {
@@ -40,7 +40,7 @@ export type LeagueRosterManagement = {
 }
 
 export type LeagueArrivalPayload = {
-  league: { id: number; name: string; slug: string }
+  league: { id: number; name: string; emoji: string | null; slug: string }
   role: { value: string; label: string; can_manage: boolean }
   cut: {
     id: number
@@ -78,7 +78,7 @@ export type LeagueArrivalPayload = {
 }
 
 export type LeagueManagementPayload = {
-  league: { id: number; name: string; slug: string }
+  league: { id: number; name: string; emoji: string | null; slug: string }
   role: { value: string; label: string }
   cut_selector: { selected_cut_id: number; cuts: Array<{ id: number; label: string; is_active: boolean }> }
   summary: {

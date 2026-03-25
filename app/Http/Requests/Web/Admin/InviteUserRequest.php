@@ -18,10 +18,16 @@ class InviteUserRequest extends FormRequest
     {
         $role = $this->input('account_role');
         $leagueId = $this->input('league_id');
+        $documentId = $this->input('document_id');
+        $phone = $this->input('phone');
+        $address = $this->input('address');
 
         $this->merge([
             'account_role' => $role !== '' ? $role : null,
             'league_id' => $leagueId !== '' ? $leagueId : null,
+            'document_id' => $documentId !== '' ? $documentId : null,
+            'phone' => $phone !== '' ? $phone : null,
+            'address' => $address !== '' ? $address : null,
         ]);
     }
 

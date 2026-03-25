@@ -52,7 +52,7 @@ type RosterManagement = {
 };
 
 type ModulePayload = {
-    league: { id: number; name: string; slug: string };
+    league: { id: number; name: string; emoji: string | null; slug: string };
     role: { value: string; label: string; can_manage: boolean };
     cut: {
         id: number;
@@ -262,6 +262,7 @@ function resetSession(): void {
     <LeagueShellLayout
         :breadcrumbs="breadcrumbs"
         :league-name="props.module.league.name"
+        :league-emoji="props.module.league.emoji"
         :role-label="props.module.role.label"
         active-module="llegada"
         :can-manage-league="props.module.role.can_manage"

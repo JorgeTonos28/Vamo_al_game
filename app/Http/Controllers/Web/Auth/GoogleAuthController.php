@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\GoogleProvider;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 class GoogleAuthController extends Controller
@@ -44,8 +45,7 @@ class GoogleAuthController extends Controller
         SynchronizeGoogleUser $synchronizeGoogleUser,
         CreateMobileOauthHandoff $createMobileOauthHandoff,
         CompleteGoogleInvitation $completeGoogleInvitation,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         try {
             $googleUser = $this->googleProvider()->user();
         } catch (Throwable $exception) {
@@ -77,9 +77,7 @@ class GoogleAuthController extends Controller
 
             return $this->googleFailureRedirect(
                 $request,
-                $exception->getMessage() !== ''
-                    ? $exception->getMessage()
-                    : 'No fue posible completar la invitacion con Google.',
+                $this->invitationFailureMessage($exception),
             );
         }
 
@@ -142,8 +140,7 @@ class GoogleAuthController extends Controller
     private function completeMobileSignIn(
         User $user,
         CreateMobileOauthHandoff $createMobileOauthHandoff,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         if (! $user->hasVerifiedEmail()) {
             $user->sendEmailVerificationNotification();
 
@@ -234,6 +231,20 @@ class GoogleAuthController extends Controller
         }
 
         return 'No fue posible completar el acceso con Google. Intentalo de nuevo.';
+    }
+
+    private function invitationFailureMessage(Throwable $exception): string
+    {
+        if (
+            $exception instanceof HttpExceptionInterface
+            && $exception->getStatusCode() >= 400
+            && $exception->getStatusCode() < 500
+            && $exception->getMessage() !== ''
+        ) {
+            return $exception->getMessage();
+        }
+
+        return 'No fue posible completar la invitacion con Google.';
     }
 
     private function flattenExceptionMessages(Throwable $exception): string

@@ -219,7 +219,8 @@ export interface paths {
         /** Listado del modulo de ligas del centro de mando */
         get: operations["commandCenterLeagues"];
         put?: never;
-        post?: never;
+        /** Crea una nueva liga operativa */
+        post: operations["commandCenterCreateLeague"];
         delete?: never;
         options?: never;
         head?: never;
@@ -737,6 +738,10 @@ export interface components {
             account_role?: components["schemas"]["AccountRole"] | null;
             league_id?: number | null;
         };
+        CommandCenterCreateLeagueRequest: {
+            name: string;
+            emoji?: string | null;
+        };
         CommandCenterAssignLeagueMembershipRequest: {
             league_id: number;
             /** @enum {string} */
@@ -807,6 +812,7 @@ export interface components {
         LeagueContextLeague: {
             id: number;
             name: string;
+            emoji: string | null;
             slug: string;
             role: components["schemas"]["LeagueMembershipRole"];
             role_label: string;
@@ -851,6 +857,7 @@ export interface components {
         LeagueOption: {
             id: number;
             name: string;
+            emoji: string | null;
             slug: string;
         };
         CommandCenterMembership: {
@@ -886,6 +893,7 @@ export interface components {
         CommandCenterLeague: {
             id: number;
             name: string;
+            emoji: string | null;
             slug: string;
             is_active: boolean;
             admins: components["schemas"]["CommandCenterLeagueAdmin"][];
@@ -1149,6 +1157,7 @@ export interface components {
         LeagueHomeLeague: {
             id: number;
             name: string;
+            emoji: string | null;
             slug: string;
         };
         LeagueHomeRole: {
@@ -1943,6 +1952,57 @@ export interface operations {
             };
             /** @description Sin permisos */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    commandCenterCreateLeague: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommandCenterCreateLeagueRequest"];
+            };
+        };
+        responses: {
+            /** @description Liga creada */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandCenterLeagueResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Sin permisos */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Datos invalidos */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

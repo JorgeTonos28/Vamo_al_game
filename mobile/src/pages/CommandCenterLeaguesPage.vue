@@ -1,22 +1,87 @@
 <script setup lang="ts">
-import { IonButton, IonContent, IonPage, onIonViewWillEnter } from '@ionic/vue'
-import { ref } from 'vue'
+import {
+  IonButton,
+  IonContent,
+  IonInput,
+  IonItem,
+  IonLabel,
+  IonPage,
+  IonRefresher,
+  IonRefresherContent,
+  IonText,
+  onIonViewWillEnter,
+} from '@ionic/vue'
+import type { AxiosError } from 'axios'
+import { reactive, ref } from 'vue'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
-import { fetchCommandCenterLeagues, toggleCommandCenterLeague } from '@/services/command-center'
-import type { CommandCenterLeague } from '@/types/api'
+import {
+  createCommandCenterLeague,
+  fetchCommandCenterLeagues,
+  toggleCommandCenterLeague,
+} from '@/services/command-center'
+import type {
+  CommandCenterCreateLeaguePayload,
+  CommandCenterLeague,
+  ErrorResponse,
+} from '@/types/api'
 
+const form = reactive<CommandCenterCreateLeaguePayload>({
+  name: '',
+  emoji: null,
+})
 const leagues = ref<CommandCenterLeague[]>([])
 const isLoading = ref(false)
+const isSubmitting = ref(false)
 const activeRequestLeagueId = ref<number | null>(null)
+const successMessage = ref<string | null>(null)
+const errorMessage = ref<string | null>(null)
+
+function sortLeagues(entries: CommandCenterLeague[]): CommandCenterLeague[] {
+  return [...entries].sort((left, right) => {
+    if (left.is_active !== right.is_active) {
+      return left.is_active ? -1 : 1
+    }
+
+    return left.name.localeCompare(right.name, 'es')
+  })
+}
 
 async function loadLeagues(): Promise<void> {
   isLoading.value = true
 
   try {
     const response = await fetchCommandCenterLeagues()
-    leagues.value = response.leagues
+    leagues.value = sortLeagues(response.leagues)
   } finally {
     isLoading.value = false
+  }
+}
+
+async function submit(): Promise<void> {
+  if (!form.name.trim()) {
+    return
+  }
+
+  isSubmitting.value = true
+  successMessage.value = null
+  errorMessage.value = null
+
+  try {
+    const response = await createCommandCenterLeague({
+      name: form.name,
+      emoji: form.emoji?.trim() || null,
+    })
+
+    leagues.value = sortLeagues([response.league, ...leagues.value])
+    form.name = ''
+    form.emoji = null
+    successMessage.value = 'Liga creada correctamente.'
+  } catch (error) {
+    const response = (error as AxiosError<ErrorResponse>).response?.data
+    const validationErrors = response?.errors as Record<string, string[]> | undefined
+    errorMessage.value = validationErrors?.name?.[0] ?? response?.message ?? 'No fue posible crear la liga.'
+  } finally {
+    isSubmitting.value = false
   }
 }
 
@@ -25,9 +90,19 @@ async function toggleLeague(leagueId: number): Promise<void> {
 
   try {
     const response = await toggleCommandCenterLeague(leagueId)
-    leagues.value = leagues.value.map((league) => (league.id === leagueId ? response.league : league))
+    leagues.value = sortLeagues(
+      leagues.value.map((league) => (league.id === leagueId ? response.league : league)),
+    )
   } finally {
     activeRequestLeagueId.value = null
+  }
+}
+
+async function handleRefresh(event: CustomEvent): Promise<void> {
+  try {
+    await loadLeagues()
+  } finally {
+    await (event.target as HTMLIonRefresherElement).complete()
   }
 }
 
@@ -37,13 +112,41 @@ onIonViewWillEnter(loadLeagues)
 <template>
   <IonPage>
     <IonContent :fullscreen="true">
+      <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
+        <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
+      </IonRefresher>
+
       <div class="mobile-shell">
         <div class="mobile-stack">
           <MobileAppTopbar
             command-center
             title="Ligas"
-            description="Revoca o restaura el acceso operativo por liga sin ocultarla del switch multi-tenant."
+            description="Crea ligas nuevas y controla si mantienen acceso operativo dentro del sistema."
           />
+
+          <section class="app-surface section-stack">
+            <p class="app-kicker section-kicker">Nueva liga</p>
+            <IonText v-if="successMessage" color="success"><p class="feedback-text">{{ successMessage }}</p></IonText>
+            <IonText v-if="errorMessage" color="danger"><p class="feedback-text">{{ errorMessage }}</p></IonText>
+
+            <div class="field-group">
+              <IonLabel position="stacked">Nombre de la liga</IonLabel>
+              <IonItem lines="none">
+                <IonInput v-model="form.name" :maxlength="120" placeholder="Liga Aurora" />
+              </IonItem>
+            </div>
+
+            <div class="field-group">
+              <IonLabel position="stacked">Emoji</IonLabel>
+              <IonItem lines="none">
+                <IonInput v-model="form.emoji" :maxlength="16" placeholder="⚽" />
+              </IonItem>
+            </div>
+
+            <IonButton :disabled="isSubmitting" expand="block" @click="submit">
+              {{ isSubmitting ? 'Creando...' : 'Crear liga' }}
+            </IonButton>
+          </section>
 
           <section class="app-surface section-stack">
             <p v-if="isLoading" class="loading-copy">Cargando ligas...</p>
@@ -51,7 +154,7 @@ onIonViewWillEnter(loadLeagues)
             <article v-for="league in leagues" :key="league.id" class="league-row">
               <div class="league-row__copy">
                 <div class="league-row__title">
-                  <p class="league-row__name">{{ league.name }}</p>
+                  <p class="league-row__name">{{ league.emoji ? `${league.emoji} ${league.name}` : league.name }}</p>
                   <span :class="['status-chip', league.is_active ? 'status-chip--positive' : 'status-chip--negative']">
                     {{ league.is_active ? 'Con acceso' : 'Acceso revocado' }}
                   </span>
@@ -95,12 +198,18 @@ onIonViewWillEnter(loadLeagues)
 </template>
 
 <style scoped>
-.section-stack {
+.section-stack,
+.field-group {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
+.section-kicker {
+  color: #e5b849;
+}
+
+.feedback-text,
 .loading-copy,
 .league-row__meta {
   margin: 0;

@@ -19,7 +19,7 @@ class ResetUserPassword implements ResetsUserPasswords
      */
     public function reset(User $user, array $input): void
     {
-        if ($user->hasPendingInvitation() && ! $user->hasCompletedOnboarding()) {
+        if ($user->mustCompleteInvitationOnboarding()) {
             throw ValidationException::withMessages([
                 'email' => ['Debes completar la invitacion enviada a tu correo antes de restablecer la clave.'],
             ]);

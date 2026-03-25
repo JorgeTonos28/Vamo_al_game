@@ -56,4 +56,53 @@ class LeagueManagementMemberInvitationTest extends TestCase
             'status' => 'active',
         ]);
     }
+
+    public function test_league_admin_can_invite_multiple_members_without_document_id(): void
+    {
+        Notification::fake();
+
+        $league = League::factory()->create();
+        $admin = User::factory()->leagueAdmin()->create([
+            'active_league_id' => $league->id,
+        ]);
+
+        LeagueMembershipFactory::new()->admin()->create([
+            'league_id' => $league->id,
+            'user_id' => $admin->id,
+        ]);
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/league/management/players', [
+                'first_name' => 'Carlos',
+                'last_name' => 'Diaz',
+                'document_id' => '',
+                'phone' => '',
+                'address' => '',
+                'email' => 'carlos.blank@example.com',
+                'account_role' => 'member',
+            ])
+            ->assertCreated();
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/league/management/players', [
+                'first_name' => 'Juan',
+                'last_name' => 'Perez',
+                'document_id' => '',
+                'phone' => '',
+                'address' => '',
+                'email' => 'juan.blank@example.com',
+                'account_role' => 'member',
+            ])
+            ->assertCreated();
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'carlos.blank@example.com',
+            'document_id' => null,
+        ]);
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'juan.blank@example.com',
+            'document_id' => null,
+        ]);
+    }
 }

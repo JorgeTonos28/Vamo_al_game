@@ -8,6 +8,19 @@ use Illuminate\Validation\Rule;
 
 class AcceptInvitationRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $documentId = $this->input('document_id');
+        $phone = $this->input('phone');
+        $address = $this->input('address');
+
+        $this->merge([
+            'document_id' => $documentId !== '' ? $documentId : null,
+            'phone' => $phone !== '' ? $phone : null,
+            'address' => $address !== '' ? $address : null,
+        ]);
+    }
+
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
