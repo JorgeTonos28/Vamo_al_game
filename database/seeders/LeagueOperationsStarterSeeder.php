@@ -31,17 +31,32 @@ class LeagueOperationsStarterSeeder extends Seeder
 
         $names = [
             ['name' => 'Miembro Prueba', 'jersey' => 7, 'user_id' => $member->id],
-            ['name' => 'Gregory Cruz', 'jersey' => 10],
-            ['name' => 'Raul Veras', 'jersey' => 11],
-            ['name' => 'Juan Luis Santana', 'jersey' => 12],
-            ['name' => 'Christopher Reyes', 'jersey' => 15],
-            ['name' => 'Leo Rosario', 'jersey' => 18],
-            ['name' => 'Angel Marte', 'jersey' => 21],
-            ['name' => 'Joel Peguero', 'jersey' => 23],
-            ['name' => 'Misael Tapia', 'jersey' => 24],
-            ['name' => 'Ramon Vargas', 'jersey' => 30],
-            ['name' => 'Juan Estrella', 'jersey' => 31],
-            ['name' => 'Pedro Guzman', 'jersey' => 33],
+            ['name' => 'Juan Luis Santana', 'jersey' => 1],
+            ['name' => 'Elvis Espinal', 'jersey' => 23],
+            ['name' => 'Levsky Abud', 'jersey' => null],
+            ['name' => 'Edward Smith', 'jersey' => 11],
+            ['name' => 'Gilbert Tejeda', 'jersey' => 21],
+            ['name' => 'Edsel Tineo', 'jersey' => 5],
+            ['name' => 'Gregory Cruz', 'jersey' => 7],
+            ['name' => 'Leonardo Pujols', 'jersey' => 24],
+            ['name' => 'Alexis Carmona', 'jersey' => 10],
+            ['name' => 'Michael Troncoso', 'jersey' => 3],
+            ['name' => 'Jose Medos', 'jersey' => 8],
+            ['name' => 'David Mejia', 'jersey' => null],
+            ['name' => 'Raul Veras', 'jersey' => 15],
+            ['name' => 'Radziwill de Jesus', 'jersey' => null],
+            ['name' => 'Deivi Dominguez', 'jersey' => 32],
+            ['name' => 'Manuel Emilio', 'jersey' => null],
+            ['name' => 'Manuel Cabral', 'jersey' => null],
+            ['name' => 'Elvis Rosado', 'jersey' => null],
+            ['name' => 'Gilbert Mendez', 'jersey' => null],
+            ['name' => 'Gilberg Jimenez', 'jersey' => null],
+            ['name' => 'Ariel Brown', 'jersey' => null],
+            ['name' => 'Gregory Conde', 'jersey' => null],
+            ['name' => 'Johan Follon', 'jersey' => null],
+            ['name' => 'Namil Correa', 'jersey' => null],
+            ['name' => 'Lazaro Garcia', 'jersey' => null],
+            ['name' => 'Wilbert Lachapel', 'jersey' => null],
         ];
 
         $players = collect($names)->map(function (array $playerData) use ($league, $leagueAdmin): LeaguePlayer {
@@ -76,13 +91,40 @@ class LeagueOperationsStarterSeeder extends Seeder
         $management->recordPayment($leagueAdmin, $players[6], 60000, false, $currentCut->id);
         $management->recordPayment($leagueAdmin, $players[7], 60000, false, $currentCut->id);
 
-        $management->storeExpense(
-            $leagueAdmin,
-            'Marcadores nuevos',
-            250000,
-            'custom',
-            $currentCut->id,
-        );
+        collect([
+            [
+                'name' => 'Alquiler cancha',
+                'amount_cents' => LeagueOperationsService::DEFAULT_COURT_RENT_CENTS,
+                'expense_type' => 'fixed',
+            ],
+            [
+                'name' => 'Arbitros',
+                'amount_cents' => LeagueOperationsService::DEFAULT_REFEREE_FEE_CENTS * $currentCut->sessions_limit,
+                'expense_type' => 'fixed',
+            ],
+            [
+                'name' => 'Agua, vasos e hielo',
+                'amount_cents' => LeagueOperationsService::DEFAULT_SUPPLIES_FEE_CENTS * $currentCut->sessions_limit,
+                'expense_type' => 'fixed',
+            ],
+            [
+                'name' => 'Marcadores nuevos',
+                'amount_cents' => 250000,
+                'expense_type' => 'custom',
+            ],
+        ])->each(function (array $expense) use ($currentCut): void {
+            $currentCut->expenses()->updateOrCreate(
+                [
+                    'name' => $expense['name'],
+                    'expense_type' => $expense['expense_type'],
+                ],
+                [
+                    'amount_cents' => $expense['amount_cents'],
+                    'spent_on' => $currentCut->ends_on,
+                    'is_system_generated' => false,
+                ],
+            );
+        });
 
         if ($players->count() >= 9) {
             $existingReferral = $league->referrals()
@@ -132,7 +174,7 @@ class LeagueOperationsStarterSeeder extends Seeder
             'entry_type' => 'guest',
             'arrival_order' => 10,
             'guest_fee_paid' => false,
-            'priority_bucket' => 'guest_paid',
+            'priority_bucket' => 'guest_unpaid',
         ]);
 
         $league->cutConfigurations()->updateOrCreate(

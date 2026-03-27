@@ -119,12 +119,18 @@ Route::middleware([ForceJsonResponse::class])
                     ))->name('modules.game.show');
                     Route::get('modules/queue', fn (Request $request) => ApiResponse::success(
                         $request,
-                        app(\App\Services\LeagueOperations\LeagueCompetitionService::class)->queuePageData($request->user()),
+                        app(\App\Services\LeagueOperations\LeagueCompetitionService::class)->queuePageData(
+                            $request->user(),
+                            $request->integer('session_id') ?: null,
+                        ),
                         'Modulo Cola cargado.',
                     ))->name('modules.queue.show');
                     Route::get('modules/stats', fn (Request $request) => ApiResponse::success(
                         $request,
-                        app(\App\Services\LeagueOperations\LeagueCompetitionService::class)->statsPageData($request->user()),
+                        app(\App\Services\LeagueOperations\LeagueCompetitionService::class)->statsPageData(
+                            $request->user(),
+                            $request->integer('session_id') ?: null,
+                        ),
                         'Modulo Stats cargado.',
                     ))->name('modules.stats.show');
                     Route::get('modules/table', fn (Request $request) => ApiResponse::success(
@@ -156,6 +162,14 @@ Route::middleware([ForceJsonResponse::class])
                         ->name('modules.game.undo');
                     Route::post('modules/game/finish', [LeagueGameController::class, 'finish'])
                         ->name('modules.game.finish');
+                    Route::post('modules/game/clock', [LeagueGameController::class, 'configureClock'])
+                        ->name('modules.game.clock.configure');
+                    Route::post('modules/game/clock/start', [LeagueGameController::class, 'startClock'])
+                        ->name('modules.game.clock.start');
+                    Route::post('modules/game/clock/pause', [LeagueGameController::class, 'pauseClock'])
+                        ->name('modules.game.clock.pause');
+                    Route::post('modules/game/clock/reset', [LeagueGameController::class, 'resetClock'])
+                        ->name('modules.game.clock.reset');
                     Route::post('modules/game/end-session', [LeagueGameController::class, 'endSession'])
                         ->name('modules.game.end-session');
                     Route::post('modules/game/reset', [LeagueGameController::class, 'reset'])

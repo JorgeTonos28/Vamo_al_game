@@ -45,8 +45,32 @@ type GuestRow = {
 
 type RosterManagement = {
     can_manage: boolean;
-    active_players: Array<{ id: number; name: string; jersey_number: number | null }>;
-    inactive_players: Array<{ id: number; name: string; jersey_number: number | null }>;
+    active_players: Array<{
+        id: number;
+        name: string;
+        jersey_number: number | null;
+        first_name: string;
+        last_name: string;
+        document_id: string | null;
+        phone: string | null;
+        email: string | null;
+        address: string | null;
+        account_role: 'league_admin' | 'member';
+        invitation_pending: boolean;
+    }>;
+    inactive_players: Array<{
+        id: number;
+        name: string;
+        jersey_number: number | null;
+        first_name: string;
+        last_name: string;
+        document_id: string | null;
+        phone: string | null;
+        email: string | null;
+        address: string | null;
+        account_role: 'league_admin' | 'member';
+        invitation_pending: boolean;
+    }>;
     referral_options: Array<{ id: number; name: string }>;
     referral_credit_amount_cents: number;
 };
@@ -105,6 +129,8 @@ const guestPayments = reactive<Record<number, boolean>>({});
 
 const canManageArrival = computed(() => props.module.role.can_manage);
 const sortedPlayers = computed(() => props.module.players);
+const liveArrivalLocked = computed(() => ['prepared', 'in_progress'].includes(props.module.session.status));
+const prepareLocked = computed(() => ['prepared', 'in_progress'].includes(props.module.session.status));
 
 function statusIcon(player: PlayerRow) {
     if (player.current_cut_paid) {
@@ -115,11 +141,25 @@ function statusIcon(player: PlayerRow) {
 }
 
 function enterPlayer(player: PlayerRow): void {
-    if (!canManageArrival.value || props.module.session.status === 'prepared') {
+    if (!canManageArrival.value) {
         return;
     }
 
-    if (player.has_arrived || player.current_cut_paid) {
+    if (player.has_arrived) {
+        if (liveArrivalLocked.value) {
+            return;
+        }
+
+        router.post(
+            `/liga/llegada/players/${player.id}/toggle`,
+            {},
+            { preserveScroll: true },
+        );
+
+        return;
+    }
+
+    if (player.current_cut_paid) {
         router.post(
             `/liga/llegada/players/${player.id}/toggle`,
             {},
@@ -195,7 +235,7 @@ function deleteGuest(guest: GuestRow): void {
 }
 
 function openPrepareDialog(): void {
-    if (!canManageArrival.value) {
+    if (!canManageArrival.value || prepareLocked.value) {
         return;
     }
 
@@ -293,7 +333,7 @@ function resetSession(): void {
                                 : 'app-badge-positive'
                         "
                     >
-                        {{ props.module.cut.is_past_due ? 'Plazo vencido' : 'Prioridad abierta' }}
+                        {{ props.module.cut.is_past_due ? 'Plazo vencido' : 'Corte activo' }}
                     </div>
                 </div>
 
@@ -317,13 +357,19 @@ function resetSession(): void {
                     <div class="rounded-[16px] border border-white/6 bg-[#0E1628] p-4">
                         <p class="app-kicker">Jornada</p>
                         <p class="mt-3 text-[20px] font-semibold text-[#F8FAFC]">
-                            {{ props.module.session.status === 'prepared' ? 'Preparada' : 'Abierta' }}
+                            {{
+                                props.module.session.status === 'in_progress'
+                                    ? 'En juego'
+                                    : props.module.session.status === 'prepared'
+                                      ? 'Preparada'
+                                      : 'Abierta'
+                            }}
                         </p>
                         <p class="mt-2 text-[12px] text-[#94A3B8]">
                             {{
-                                props.module.session.status === 'prepared'
-                                    ? 'La cola inicial ya quedo sembrada para Juego.'
-                                    : 'Necesitas al menos 10 miembros para iniciar.'
+                                prepareLocked
+                                    ? 'La jornada ya esta activa. Las llegadas nuevas se agregan directo a la cola operativa.'
+                                    : 'Necesitas al menos 10 jugadores habiles para iniciar.'
                             }}
                         </p>
                     </div>
@@ -343,7 +389,7 @@ function resetSession(): void {
                     <Button
                         type="button"
                         class="min-h-12 rounded-[12px] bg-[#E5B849] text-[#0A0F1D] hover:bg-[#e8c25d]"
-                        :disabled="props.module.session.status === 'prepared'"
+                        :disabled="prepareLocked"
                         @click="openPrepareDialog"
                     >
                         Iniciar jornada
@@ -374,7 +420,7 @@ function resetSession(): void {
                     <div>
                         <p class="app-kicker text-[#E5B849]">Miembros</p>
                         <p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">
-                            La prioridad cambia segun pago y fecha de corte, pero la llegada siempre conserva orden interno.
+                            La prioridad operativa siempre coloca primero a los miembros habilitados y reordena a invitados debajo de ellos.
                         </p>
                     </div>
                     <span class="rounded-full border border-white/6 bg-[#0E1628] px-3 py-1 text-[12px] text-[#94A3B8]">
@@ -431,17 +477,21 @@ function resetSession(): void {
                             type="button"
                             class="inline-flex min-h-12 items-center justify-center rounded-[12px] border px-4 text-sm font-semibold transition active:scale-[0.97] active:opacity-80"
                             :class="
-                                player.has_arrived
+                                player.has_arrived && !liveArrivalLocked
                                     ? 'border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] text-[#FCA5A5]'
-                                    : player.current_cut_paid
+                                    : player.has_arrived
+                                      ? 'border-white/6 bg-[#0E1628] text-[#94A3B8]'
+                                      : player.current_cut_paid
                                       ? 'border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] text-[#4ADE80]'
                                       : 'border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] text-[#F8FAFC]'
                             "
-                            :disabled="props.module.session.status === 'prepared'"
+                            :disabled="player.has_arrived && liveArrivalLocked"
                             @click="enterPlayer(player)"
                         >
                             {{
-                                player.has_arrived
+                                player.has_arrived && liveArrivalLocked
+                                    ? 'Ya registrado'
+                                    : player.has_arrived
                                     ? 'Quitar llegada'
                                     : player.current_cut_paid
                                       ? 'Confirmar llegada'
@@ -464,7 +514,7 @@ function resetSession(): void {
                     <div>
                         <p class="app-kicker text-[#E5B849]">Invitados</p>
                         <p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">
-                            Los invitados sin pago confirmado salen automaticamente al iniciar la jornada.
+                            Los invitados solo entran al pool o a la cola si tienen el pago confirmado.
                         </p>
                     </div>
                     <span class="rounded-full border border-white/6 bg-[#0E1628] px-3 py-1 text-[12px] text-[#94A3B8]">
@@ -486,7 +536,6 @@ function resetSession(): void {
                         <button
                             type="button"
                             class="inline-flex min-h-12 items-center justify-center gap-2 rounded-[12px] border border-white/6 bg-[#131B2F] px-4 text-sm font-semibold text-[#F8FAFC]"
-                            :disabled="props.module.session.status === 'prepared'"
                             @click="addGuest"
                         >
                             <UserPlus class="size-4" />
@@ -631,7 +680,7 @@ function resetSession(): void {
                         Iniciar jornada
                     </DialogTitle>
                     <DialogDescription class="text-[13px] leading-6 text-[#94A3B8]">
-                        Confirma el pago de invitados antes de preparar la cola inicial. Los pendientes saldran de la lista.
+                        Confirma el pago de invitados antes de preparar la cola inicial. Solo los pagos quedaran habilitados para entrar.
                     </DialogDescription>
                 </DialogHeader>
 

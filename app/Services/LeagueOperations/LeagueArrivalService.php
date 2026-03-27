@@ -2,6 +2,7 @@
 
 namespace App\Services\LeagueOperations;
 
+use App\Models\LeagueCut;
 use App\Models\LeaguePlayer;
 use App\Models\LeagueSession;
 use App\Models\LeagueSessionEntry;
@@ -26,13 +27,25 @@ class LeagueArrivalService
         $context = $this->operations->requireOperationalContext($user);
         $league = $context['league'];
         $cut = $this->operations->activeCutForLeague($league);
-        $session = $this->operations->currentSessionForLeague($league, $cut);
+        $session = $this->pruneNonOperationalEntries(
+            $this->operations->currentSessionForLeague($league, $cut),
+            $league,
+        );
         $attendanceCounts = $this->operations->attendanceCounts($league);
-        $players = $league->activePlayers()
+        $players = $this->operations->activeOperationalPlayersQuery($league)
             ->orderBy('display_name')
             ->get();
+        $operationalPlayerIds = $players
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
         $sessionEntries = $session?->entries
-            ? $session->entries->sortBy('arrival_order')->values()
+            ? $session->entries
+                ->filter(fn (LeagueSessionEntry $entry): bool => $entry->entry_type === 'guest'
+                    || in_array((int) $entry->league_player_id, $operationalPlayerIds, true))
+                ->where('session_state', '!=', 'removed')
+                ->sortBy('arrival_order')
+                ->values()
             : collect();
         $entryByPlayer = $sessionEntries
             ->where('entry_type', 'player')
@@ -78,48 +91,54 @@ class LeagueArrivalService
                 'prepared_pool' => $session?->initial_pool ?? [],
                 'prepared_queue' => $session?->initial_queue ?? [],
             ],
-            'players' => $players->map(function (LeaguePlayer $player) use ($cut, $entryByPlayer, $attendanceCounts, $isPastDue): array {
-                $balance = $this->operations->balanceForPlayer($cut, $player);
-                /** @var LeagueSessionEntry|null $entry */
-                $entry = $entryByPlayer->get($player->id);
-                $hasPaid = $balance->status === 'paid';
-                $statusTone = $hasPaid
-                    ? 'paid'
-                    : ($isPastDue ? 'overdue' : 'pending');
-                $statusMessage = $hasPaid
-                    ? 'Al dia y con prioridad activa.'
-                    : ($isPastDue
-                        ? 'Plazo vencido. Si juega hoy entra detras de los que estan al dia.'
-                        : 'Pendiente de pago. Aun mantiene prioridad dentro del corte activo.');
+            'players' => $players
+                ->map(function (LeaguePlayer $player) use ($cut, $entryByPlayer, $attendanceCounts, $isPastDue): array {
+                    $balance = $this->operations->balanceForPlayer($cut, $player);
+                    /** @var LeagueSessionEntry|null $entry */
+                    $entry = $entryByPlayer->get($player->id);
+                    $hasPaid = $balance->status === 'paid';
+                    $statusTone = $hasPaid
+                        ? 'paid'
+                        : ($isPastDue ? 'overdue' : 'pending');
+                    $statusMessage = $hasPaid
+                        ? 'Al dia y con prioridad activa.'
+                        : ($isPastDue
+                            ? 'Plazo vencido. Si juega hoy entra detras de los que estan al dia.'
+                            : 'Pendiente de pago. Aun mantiene prioridad dentro del corte activo.');
 
-                return [
-                    'id' => $player->id,
-                    'name' => $player->display_name,
-                    'jersey_number' => $player->jersey_number,
-                    'attendance_count' => $attendanceCounts[$player->id] ?? 0,
-                    'arrival_order' => $entry?->arrival_order,
-                    'has_arrived' => $entry !== null,
-                    'current_cut_paid' => $entry?->current_cut_paid ?? $hasPaid,
-                    'status_tone' => $statusTone,
-                    'status_message' => $statusMessage,
-                ];
-            })->sort(function (array $left, array $right): int {
-                if ($left['has_arrived'] && $right['has_arrived']) {
-                    return ($left['arrival_order'] ?? PHP_INT_MAX) <=> ($right['arrival_order'] ?? PHP_INT_MAX);
-                }
+                    return [
+                        'id' => $player->id,
+                        'name' => $player->display_name,
+                        'jersey_number' => $player->jersey_number,
+                        'attendance_count' => $attendanceCounts[$player->id] ?? 0,
+                        'arrival_order' => $entry?->arrival_order,
+                        'has_arrived' => $entry !== null,
+                        'current_cut_paid' => $entry?->current_cut_paid ?? $hasPaid,
+                        'status_tone' => $statusTone,
+                        'status_message' => $statusMessage,
+                    ];
+                })
+                ->sort(function (array $left, array $right): int {
+                    if ($left['has_arrived'] && $right['has_arrived']) {
+                        return ($left['arrival_order'] ?? PHP_INT_MAX) <=> ($right['arrival_order'] ?? PHP_INT_MAX);
+                    }
 
-                if ($left['has_arrived'] !== $right['has_arrived']) {
-                    return $left['has_arrived'] ? -1 : 1;
-                }
+                    if ($left['has_arrived'] !== $right['has_arrived']) {
+                        return $left['has_arrived'] ? -1 : 1;
+                    }
 
-                return strcasecmp($left['name'], $right['name']);
-            })->values()->all(),
-            'guests' => $guestEntries->map(fn (LeagueSessionEntry $entry): array => [
-                'id' => $entry->id,
-                'name' => $entry->guest_name,
-                'arrival_order' => $entry->arrival_order,
-                'guest_fee_paid' => $entry->guest_fee_paid,
-            ])->all(),
+                    return strcasecmp($left['name'], $right['name']);
+                })
+                ->values()
+                ->all(),
+            'guests' => $guestEntries
+                ->map(fn (LeagueSessionEntry $entry): array => [
+                    'id' => $entry->id,
+                    'name' => $entry->guest_name,
+                    'arrival_order' => $entry->arrival_order,
+                    'guest_fee_paid' => $entry->guest_fee_paid,
+                ])
+                ->all(),
             'roster_management' => $this->management->rosterData($user),
         ];
     }
@@ -136,24 +155,38 @@ class LeagueArrivalService
         }
 
         $cut = $this->operations->activeCutForLeague($league);
-        $session = $this->operations->currentSessionForLeague($league, $cut);
+        $session = $this->seasons->attachSessionToActiveSeason(
+            $this->operations->currentSessionForLeague($league, $cut),
+            $league,
+            $user,
+        );
+        $session = $this->pruneNonOperationalEntries($session, $league);
 
-        if ($session?->status === 'prepared') {
-            throw ValidationException::withMessages([
-                'session' => 'La jornada ya fue preparada. Reinicia la lista de llegada para modificarla.',
-            ]);
+        if ($session->status === 'completed') {
+            $session = $this->reopenCompletedSession($session);
         }
 
-        $existingEntry = $session?->entries()
+        $existingEntry = $session->entries()
             ->where('entry_type', 'player')
             ->where('league_player_id', $player->id)
             ->first();
 
         if ($existingEntry !== null) {
-            $existingEntry->delete();
-            $this->resequenceEntries($session->fresh('entries'));
+            if (in_array($session->status, ['prepared', 'in_progress'], true) && $existingEntry->session_state !== 'removed') {
+                throw ValidationException::withMessages([
+                    'session' => 'Con la jornada activa solo puedes registrar nuevas llegadas. Las salidas operativas se controlan desde Juego.',
+                ]);
+            }
 
-            return;
+            $existingEntry->delete();
+
+            if ($existingEntry->session_state !== 'removed') {
+                $this->resequenceEntries($session->fresh('entries'), $cut);
+
+                return;
+            }
+
+            $session = $session->fresh('entries');
         }
 
         $balance = $this->operations->balanceForPlayer($cut, $player);
@@ -176,19 +209,26 @@ class LeagueArrivalService
         }
 
         $isPaidForQueue = $balance->status === 'paid' || $paid === true;
-        $arrivalOrder = ($session?->entries()->max('arrival_order') ?? 0) + 1;
+        $isLiveSession = in_array($session->status, ['prepared', 'in_progress'], true);
 
-        $session?->entries()->create([
+        $session->entries()->create([
             'league_player_id' => $player->id,
             'entry_type' => 'player',
-            'arrival_order' => $arrivalOrder,
+            'arrival_order' => ((int) $session->entries()->max('arrival_order')) + 1,
             'current_cut_paid' => $isPaidForQueue,
             'guest_fee_paid' => false,
             'was_marked_paid_on_arrival' => ! $alreadyPaid && $paid === true,
-            'priority_bucket' => $this->operations->hasPastDue($cut) && ! $isPaidForQueue
-                ? 'member_unpaid'
-                : 'member_priority',
+            'priority_bucket' => $this->playerPriorityBucket($cut, $isPaidForQueue),
+            'session_state' => $isLiveSession ? 'queued' : 'arrival',
+            'team_side' => null,
+            'queue_position' => null,
         ]);
+
+        $this->resequenceEntries($session->fresh('entries'), $cut);
+
+        if ($isLiveSession) {
+            $this->resequenceLiveQueue($session->fresh('entries'), $cut);
+        }
     }
 
     public function storeGuest(User $user, string $guestName): void
@@ -200,21 +240,23 @@ class LeagueArrivalService
             $context['league'],
             $user,
         );
+        $session = $this->pruneNonOperationalEntries($session, $context['league']);
 
-        if ($session?->status === 'prepared') {
-            throw ValidationException::withMessages([
-                'session' => 'La jornada ya fue preparada. Reinicia la lista de llegada para agregar invitados nuevos.',
-            ]);
+        if ($session->status === 'completed') {
+            $session = $this->reopenCompletedSession($session);
         }
 
-        $session?->entries()->create([
+        $session->entries()->create([
             'guest_name' => $guestName,
             'entry_type' => 'guest',
-            'arrival_order' => ($session->entries()->max('arrival_order') ?? 0) + 1,
+            'arrival_order' => ((int) $session->entries()->max('arrival_order')) + 1,
             'guest_fee_paid' => false,
             'current_cut_paid' => false,
-            'priority_bucket' => 'guest_paid',
+            'priority_bucket' => 'guest_unpaid',
+            'session_state' => 'arrival',
         ]);
+
+        $this->resequenceEntries($session->fresh('entries'), $cut);
     }
 
     public function updateGuestPayment(User $user, LeagueSessionEntry $guestEntry, bool $paid): void
@@ -223,15 +265,45 @@ class LeagueArrivalService
         $cut = $this->operations->activeCutForLeague($context['league']);
         $session = $this->operations->currentSessionForLeague($context['league'], $cut);
 
-        if ($guestEntry->league_session_id !== $session?->id || $guestEntry->entry_type !== 'guest') {
+        if ($session === null) {
+            throw ValidationException::withMessages([
+                'session' => 'No existe una jornada activa para actualizar invitados.',
+            ]);
+        }
+
+        $session = $this->pruneNonOperationalEntries($session, $context['league']);
+
+        if ($session->status === 'completed') {
+            $session = $this->reopenCompletedSession($session);
+        }
+
+        if ($guestEntry->league_session_id !== $session->id || $guestEntry->entry_type !== 'guest') {
             throw ValidationException::withMessages([
                 'guest_id' => 'El invitado seleccionado no pertenece a la jornada activa.',
             ]);
         }
 
+        if (! $paid && in_array($guestEntry->session_state, ['pool', 'on_court'], true)) {
+            throw ValidationException::withMessages([
+                'guest_fee_paid' => 'No puedes quitar el pago a un invitado que ya esta dentro del juego activo.',
+            ]);
+        }
+
+        $isLiveSession = in_array($session->status, ['prepared', 'in_progress'], true);
+
         $guestEntry->forceFill([
             'guest_fee_paid' => $paid,
+            'priority_bucket' => $paid ? 'guest_paid' : 'guest_unpaid',
+            'session_state' => $paid && $isLiveSession ? 'queued' : (in_array($guestEntry->session_state, ['pool', 'on_court'], true) ? $guestEntry->session_state : 'arrival'),
+            'team_side' => in_array($guestEntry->session_state, ['pool', 'on_court'], true) ? $guestEntry->team_side : null,
+            'queue_position' => $paid && $isLiveSession ? $guestEntry->queue_position : null,
         ])->save();
+
+        $this->resequenceEntries($session->fresh('entries'), $cut);
+
+        if ($isLiveSession) {
+            $this->resequenceLiveQueue($session->fresh('entries'), $cut);
+        }
     }
 
     public function deleteGuest(User $user, LeagueSessionEntry $guestEntry): void
@@ -240,14 +312,36 @@ class LeagueArrivalService
         $cut = $this->operations->activeCutForLeague($context['league']);
         $session = $this->operations->currentSessionForLeague($context['league'], $cut);
 
-        if ($guestEntry->league_session_id !== $session?->id || $guestEntry->entry_type !== 'guest') {
+        if ($session === null) {
+            return;
+        }
+
+        $session = $this->pruneNonOperationalEntries($session, $context['league']);
+
+        if ($session->status === 'completed') {
+            $session = $this->reopenCompletedSession($session);
+        }
+
+        if ($guestEntry->league_session_id !== $session->id || $guestEntry->entry_type !== 'guest') {
             throw ValidationException::withMessages([
                 'guest_id' => 'El invitado seleccionado no pertenece a la jornada activa.',
             ]);
         }
 
+        if (in_array($guestEntry->session_state, ['pool', 'on_court'], true)) {
+            throw ValidationException::withMessages([
+                'guest_id' => 'No puedes remover un invitado que ya forma parte del juego activo.',
+            ]);
+        }
+
+        $isLiveSession = in_array($session->status, ['prepared', 'in_progress'], true);
+
         $guestEntry->delete();
-        $this->resequenceEntries($session->fresh('entries'));
+        $this->resequenceEntries($session->fresh('entries'), $cut);
+
+        if ($isLiveSession) {
+            $this->resequenceLiveQueue($session->fresh('entries'), $cut);
+        }
     }
 
     /**
@@ -265,6 +359,18 @@ class LeagueArrivalService
             ]);
         }
 
+        $session = $this->pruneNonOperationalEntries($session, $context['league']);
+
+        if ($session->status === 'completed') {
+            $session = $this->reopenCompletedSession($session);
+        }
+
+        if ($session->status === 'in_progress') {
+            throw ValidationException::withMessages([
+                'session' => 'La jornada ya esta en juego. Las llegadas nuevas se agregan a la cola operativa desde Llegada.',
+            ]);
+        }
+
         if ($session->status === 'prepared') {
             return;
         }
@@ -277,12 +383,16 @@ class LeagueArrivalService
             if ($entry !== null) {
                 $entry->forceFill([
                     'guest_fee_paid' => (bool) $guestPayment['paid'],
+                    'priority_bucket' => (bool) $guestPayment['paid'] ? 'guest_paid' : 'guest_unpaid',
                 ])->save();
             }
         }
 
+        $this->resequenceEntries($session->fresh('entries'), $cut);
+
         $entries = $session->entries()
             ->with('player')
+            ->where('session_state', '!=', 'removed')
             ->orderBy('arrival_order')
             ->get();
         $eligiblePlayers = $entries
@@ -301,17 +411,6 @@ class LeagueArrivalService
                 'session' => 'Se necesitan al menos 10 jugadores habiles para iniciar la jornada.',
             ]);
         }
-
-        $entries
-            ->where('entry_type', 'guest')
-            ->where('guest_fee_paid', false)
-            ->each
-            ->delete();
-
-        $entries = $session->entries()
-            ->with('player')
-            ->orderBy('arrival_order')
-            ->get();
 
         $playerEntries = $entries->where('entry_type', 'player')->values();
         $paidGuests = $entries
@@ -355,6 +454,7 @@ class LeagueArrivalService
 
         DB::transaction(function () use ($session, $firstTen, $queue): void {
             $session->entries()
+                ->where('session_state', '!=', 'removed')
                 ->update([
                     'queue_seed' => null,
                     'session_state' => 'arrival',
@@ -380,9 +480,10 @@ class LeagueArrivalService
 
             $session->forceFill([
                 'status' => 'prepared',
-                'current_game_number' => 1,
-                'started_at' => now(),
+                'current_game_number' => $this->nextGameNumber($session),
+                'started_at' => $session->started_at ?? now(),
                 'prepared_at' => now(),
+                'ended_at' => null,
                 'initial_pool' => $this->serializeEntries($firstTen),
                 'initial_queue' => $this->serializeEntries($queue),
                 'rotation_state' => [
@@ -391,6 +492,9 @@ class LeagueArrivalService
                     'double_rotation_mode' => false,
                     'waiting_champion_team' => null,
                 ],
+                'clock_remaining_seconds' => $session->clock_duration_seconds,
+                'clock_state' => 'paused',
+                'clock_started_at' => null,
             ])->save();
         });
     }
@@ -414,23 +518,120 @@ class LeagueArrivalService
                 'current_game_number' => 1,
                 'started_at' => null,
                 'prepared_at' => null,
+                'ended_at' => null,
                 'initial_pool' => null,
                 'initial_queue' => null,
                 'rotation_state' => null,
+                'clock_remaining_seconds' => $session->clock_duration_seconds,
+                'clock_state' => 'paused',
+                'clock_started_at' => null,
             ])->save();
         });
     }
 
-    private function resequenceEntries(LeagueSession $session): void
+    private function resequenceEntries(LeagueSession $session, LeagueCut $cut): void
     {
+        $isPastDue = $this->operations->hasPastDue($cut);
+
         $session->entries
-            ->sortBy('arrival_order')
+            ->where('session_state', '!=', 'removed')
+            ->sort(function (LeagueSessionEntry $left, LeagueSessionEntry $right) use ($isPastDue): int {
+                $priorityDiff = $this->entryPriorityRank($left, $isPastDue) <=> $this->entryPriorityRank($right, $isPastDue);
+
+                if ($priorityDiff !== 0) {
+                    return $priorityDiff;
+                }
+
+                return ($left->arrival_order ?? PHP_INT_MAX) <=> ($right->arrival_order ?? PHP_INT_MAX);
+            })
             ->values()
             ->each(function (LeagueSessionEntry $entry, int $index): void {
                 $entry->forceFill([
                     'arrival_order' => $index + 1,
                 ])->save();
             });
+    }
+
+    private function resequenceLiveQueue(LeagueSession $session, LeagueCut $cut): void
+    {
+        $isPastDue = $this->operations->hasPastDue($cut);
+
+        // Cuando la jornada ya arranco, las llegadas nuevas no desplazan el pool actual:
+        // entran directo a la cola y la recolocamos por prioridad operativa real.
+        $session->entries
+            ->where('session_state', 'queued')
+            ->sort(function (LeagueSessionEntry $left, LeagueSessionEntry $right) use ($isPastDue): int {
+                $priorityDiff = $this->entryPriorityRank($left, $isPastDue) <=> $this->entryPriorityRank($right, $isPastDue);
+
+                if ($priorityDiff !== 0) {
+                    return $priorityDiff;
+                }
+
+                return ($left->arrival_order ?? PHP_INT_MAX) <=> ($right->arrival_order ?? PHP_INT_MAX);
+            })
+            ->values()
+            ->each(function (LeagueSessionEntry $entry, int $index): void {
+                $entry->forceFill([
+                    'queue_position' => $index + 1,
+                ])->save();
+            });
+    }
+
+    private function playerPriorityBucket(LeagueCut $cut, bool $isPaid): string
+    {
+        return $this->operations->hasPastDue($cut) && ! $isPaid
+            ? 'member_unpaid'
+            : 'member_priority';
+    }
+
+    private function entryPriorityRank(LeagueSessionEntry $entry, bool $isPastDue): int
+    {
+        if (! $isPastDue) {
+            return $entry->entry_type === 'player' ? 0 : 1;
+        }
+
+        return match (true) {
+            $entry->entry_type === 'player' && $entry->current_cut_paid => 0,
+            $entry->entry_type === 'player' => 1,
+            $entry->entry_type === 'guest' && $entry->guest_fee_paid => 2,
+            default => 3,
+        };
+    }
+
+    private function nextGameNumber(LeagueSession $session): int
+    {
+        return max(1, ((int) $session->games()->max('game_number')) + 1);
+    }
+
+    private function reopenCompletedSession(LeagueSession $session): LeagueSession
+    {
+        DB::transaction(function () use ($session): void {
+            // Reabrimos la misma jornada del dia para continuar sobre su historial existente,
+            // sin crear otra jornada nueva ni perder los juegos ya guardados.
+            $session->entries()
+                ->where('session_state', '!=', 'removed')
+                ->update([
+                    'queue_seed' => null,
+                    'session_state' => 'arrival',
+                    'team_side' => null,
+                    'queue_position' => null,
+                ]);
+
+            $session->forceFill([
+                'status' => 'arrival_open',
+                'prepared_at' => null,
+                'ended_at' => null,
+                'initial_pool' => null,
+                'initial_queue' => null,
+                'rotation_state' => null,
+                'current_game_number' => $this->nextGameNumber($session),
+                'clock_remaining_seconds' => $session->clock_duration_seconds,
+                'clock_state' => 'paused',
+                'clock_started_at' => null,
+            ])->save();
+        });
+
+        return $session->fresh('entries');
     }
 
     /**
@@ -453,5 +654,30 @@ class LeagueArrivalService
             ])
             ->values()
             ->all();
+    }
+
+    private function pruneNonOperationalEntries(?LeagueSession $session, $league): ?LeagueSession
+    {
+        if ($session === null) {
+            return null;
+        }
+
+        $allowedPlayerIds = $this->operations->activeOperationalPlayersQuery($league)
+            ->pluck('league_players.id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        $query = $session->entries()
+            ->where('entry_type', 'player');
+
+        if ($allowedPlayerIds === []) {
+            $query->whereNotNull('league_player_id');
+        } else {
+            $query->whereNotIn('league_player_id', $allowedPlayerIds);
+        }
+
+        $query->delete();
+
+        return $session->fresh('entries.player');
     }
 }

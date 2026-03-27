@@ -2,6 +2,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import {
     CheckCircle2,
+    Flame,
     RotateCcw,
     SearchSlash,
     Swords,
@@ -9,7 +10,7 @@ import {
     UserMinus,
     Waves,
 } from 'lucide-vue-next';
-import { computed, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import LeagueShellLayout from '@/components/league/LeagueShellLayout.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,6 +45,14 @@ type ScoreFlashState = {
     side: TeamSide;
 };
 
+type RotationNotice = {
+    key: string;
+    title: string;
+    body: string[];
+    tone: string;
+    icon: string;
+};
+
 const props = defineProps<{
     league: { id: number; name: string; emoji: string | null; slug: string };
     role: { value: string; label: string; can_manage: boolean };
@@ -61,6 +70,13 @@ const props = defineProps<{
     game: {
         state: 'idle' | 'draft' | 'live' | 'completed';
         draft: { entries: PlayerCard[]; can_start: boolean };
+        clock: {
+            duration_seconds: number | null;
+            remaining_seconds: number | null;
+            state: 'paused' | 'running' | 'finished' | 'unconfigured';
+            started_at: string | null;
+        };
+        rotation_notice: RotationNotice | null;
         current: null | {
             id: number;
             game_number: number;
@@ -98,9 +114,16 @@ const manualAssignments = reactive<Record<number, 'A' | 'B'>>({});
 const selectedPlayer = ref<TeamPlayer | null>(null);
 const revertPlayer = ref<TeamPlayer | null>(null);
 const playerToRemove = ref<TeamPlayer | null>(null);
-const finishDialogOpen = ref(false);
 const scoreFlash = ref<ScoreFlashState | null>(null);
 const scoreBumpSide = ref<TeamSide | null>(null);
+const gameActionError = ref('');
+const rotationNotice = ref<RotationNotice | null>(props.game.rotation_notice);
+const clockForm = reactive({
+    minutes: '10',
+    seconds: '00',
+});
+const clockDisplaySeconds = ref<number | null>(props.game.clock.remaining_seconds);
+let lastRotationNoticeKey = props.game.rotation_notice?.key ?? null;
 
 const canManage = computed(() => props.role.can_manage);
 const teamACount = computed(() => Object.values(manualAssignments).filter((team) => team === 'A').length);
@@ -108,9 +131,106 @@ const teamBCount = computed(() => Object.values(manualAssignments).filter((team)
 const streakLabel = computed(() => props.game.current?.streak.team
     ? `EQ.${props.game.current.streak.team} - ${props.game.current.streak.count}`
     : 'Sin racha');
+const clockState = computed(() => props.game.clock.state);
+const clockDurationSeconds = computed(() => props.game.clock.duration_seconds);
+const formattedClock = computed(() => {
+    if (clockDisplaySeconds.value === null) {
+        return '--:--';
+    }
+
+    const minutes = Math.floor(clockDisplaySeconds.value / 60)
+        .toString()
+        .padStart(2, '0');
+    const seconds = (clockDisplaySeconds.value % 60)
+        .toString()
+        .padStart(2, '0');
+
+    return `${minutes}:${seconds}`;
+});
+const clockActionLabel = computed(() => {
+    if (clockState.value === 'running') {
+        return 'Pausar';
+    }
+
+    if (
+        clockDurationSeconds.value !== null
+        && clockDisplaySeconds.value !== null
+        && clockDisplaySeconds.value < clockDurationSeconds.value
+        && clockDisplaySeconds.value > 0
+    ) {
+        return 'Reanudar';
+    }
+
+    return 'Iniciar';
+});
 let scoreFeedbackNonce = 0;
 let scoreFlashTimer: ReturnType<typeof setTimeout> | null = null;
 let scoreBumpTimer: ReturnType<typeof setTimeout> | null = null;
+let clockTicker: ReturnType<typeof setInterval> | null = null;
+
+watch(
+    () => props.game.rotation_notice,
+    (notice) => {
+        if (notice === null) {
+            rotationNotice.value = null;
+
+            return;
+        }
+
+        if (notice.key !== lastRotationNoticeKey) {
+            rotationNotice.value = notice;
+            lastRotationNoticeKey = notice.key;
+        }
+    },
+    { immediate: true },
+);
+
+watch(
+    () => props.game.clock,
+    (clock) => {
+        const durationSeconds = clock.duration_seconds ?? 600;
+        clockForm.minutes = String(Math.floor(durationSeconds / 60)).padStart(2, '0');
+        clockForm.seconds = String(durationSeconds % 60).padStart(2, '0');
+        clockDisplaySeconds.value = clock.remaining_seconds;
+
+        if (clockTicker !== null) {
+            clearInterval(clockTicker);
+            clockTicker = null;
+        }
+
+        if (clock.state === 'running' && clock.remaining_seconds !== null) {
+            clockTicker = setInterval(() => {
+                if (clockDisplaySeconds.value === null || clockDisplaySeconds.value <= 0) {
+                    if (clockTicker !== null) {
+                        clearInterval(clockTicker);
+                        clockTicker = null;
+                    }
+
+                    clockDisplaySeconds.value = 0;
+
+                    return;
+                }
+
+                clockDisplaySeconds.value -= 1;
+            }, 1000);
+        }
+    },
+    { deep: true, immediate: true },
+);
+
+onBeforeUnmount(() => {
+    if (scoreFlashTimer !== null) {
+        clearTimeout(scoreFlashTimer);
+    }
+
+    if (scoreBumpTimer !== null) {
+        clearTimeout(scoreBumpTimer);
+    }
+
+    if (clockTicker !== null) {
+        clearInterval(clockTicker);
+    }
+});
 
 function teamSideForPlayer(entryId: number): TeamSide | null {
     if (props.game.current?.team_a.some((player) => player.id === entryId)) {
@@ -156,21 +276,31 @@ function setAssignment(entryId: number, team: 'A' | 'B') {
 
 function submitDraft() {
     if (!canManage.value) return;
+    gameActionError.value = '';
 
     const payload =
         draftMode.value === 'manual'
             ? { mode: draftMode.value, assignments: manualAssignments }
             : { mode: draftMode.value };
 
-    router.post('/liga/modulos/juego/draft', payload, { preserveScroll: true });
+    router.post('/liga/modulos/juego/draft', payload, {
+        preserveScroll: true,
+        onError: (errors) => {
+            gameActionError.value = String(errors.session ?? errors.assignments ?? 'No se pudo abrir el draft.');
+        },
+    });
 }
 
 function addTeamPoint(teamSide: 'A' | 'B') {
     if (!canManage.value) return;
+    gameActionError.value = '';
     router.post('/liga/modulos/juego/team-point', { team_side: teamSide }, {
         preserveScroll: true,
         onSuccess: () => {
             triggerScoreFeedback(teamSide, 1);
+        },
+        onError: (errors) => {
+            gameActionError.value = String(errors.session ?? 'No se pudo sumar el punto.');
         },
     });
 }
@@ -178,6 +308,7 @@ function addTeamPoint(teamSide: 'A' | 'B') {
 function addPlayerPoint(points: 1 | 2 | 3) {
     if (!selectedPlayer.value || !canManage.value) return;
     const teamSide = teamSideForPlayer(selectedPlayer.value.id);
+    gameActionError.value = '';
 
     router.post(
         `/liga/modulos/juego/players/${selectedPlayer.value.id}/point`,
@@ -191,12 +322,16 @@ function addPlayerPoint(points: 1 | 2 | 3) {
 
                 selectedPlayer.value = null;
             },
+            onError: (errors) => {
+                gameActionError.value = String(errors.points ?? errors.session ?? 'No se pudo registrar la jugada.');
+            },
         },
     );
 }
 
 function revertPlayerPoint(points: 1 | 2 | 3) {
     if (!revertPlayer.value || !canManage.value) return;
+    gameActionError.value = '';
 
     router.post(
         `/liga/modulos/juego/players/${revertPlayer.value.id}/revert`,
@@ -205,6 +340,9 @@ function revertPlayerPoint(points: 1 | 2 | 3) {
             preserveScroll: true,
             onSuccess: () => {
                 revertPlayer.value = null;
+            },
+            onError: (errors) => {
+                gameActionError.value = String(errors.points ?? errors.session ?? 'No se pudo revertir la jugada.');
             },
         },
     );
@@ -217,38 +355,162 @@ function openRemovePlayerModal(player: TeamPlayer) {
 
 function confirmRemovePlayer() {
     if (!playerToRemove.value || !canManage.value) return;
+    gameActionError.value = '';
 
     router.post(`/liga/modulos/juego/players/${playerToRemove.value.id}/remove`, {}, {
         preserveScroll: true,
         onSuccess: () => {
             playerToRemove.value = null;
         },
+        onError: (errors) => {
+            gameActionError.value = String(errors.session ?? 'No se pudo registrar la salida del jugador.');
+        },
     });
 }
 
 function undoLastAction() {
     if (!canManage.value) return;
-    router.post('/liga/modulos/juego/undo', {}, { preserveScroll: true });
+    gameActionError.value = '';
+    router.post('/liga/modulos/juego/undo', {}, {
+        preserveScroll: true,
+        onError: (errors) => {
+            gameActionError.value = String(errors.session ?? 'No hay una accion valida para deshacer.');
+        },
+    });
 }
 
-function finishGame(winnerSide?: 'A' | 'B') {
+function finishGame() {
     if (!canManage.value) return;
-    router.post('/liga/modulos/juego/finish', winnerSide ? { winner_side: winnerSide } : {}, {
+    gameActionError.value = '';
+    router.post('/liga/modulos/juego/finish', {}, {
         preserveScroll: true,
-        onSuccess: () => {
-            finishDialogOpen.value = false;
+        onError: (errors) => {
+            gameActionError.value = String(errors.winner_side ?? errors.session ?? 'No se pudo cerrar el juego.');
         },
     });
 }
 
 function endSession() {
     if (!canManage.value || !window.confirm('Cerrar la jornada del dia?')) return;
-    router.post('/liga/modulos/juego/end-session', {}, { preserveScroll: true });
+    gameActionError.value = '';
+    router.post('/liga/modulos/juego/end-session', {}, {
+        preserveScroll: true,
+        onError: (errors) => {
+            gameActionError.value = String(errors.session ?? 'No se pudo cerrar la jornada.');
+        },
+    });
 }
 
 function resetCurrentGame() {
     if (!canManage.value || !window.confirm('Limpiar por completo el juego actual?')) return;
-    router.post('/liga/modulos/juego/reset', {}, { preserveScroll: true });
+    gameActionError.value = '';
+    router.post('/liga/modulos/juego/reset', {}, {
+        preserveScroll: true,
+        onError: (errors) => {
+            gameActionError.value = String(errors.session ?? 'No se pudo reiniciar el juego actual.');
+        },
+    });
+}
+
+function parsedClockDuration(): number | null {
+    const minutes = Number(clockForm.minutes || 0);
+    const seconds = Number(clockForm.seconds || 0);
+
+    if (!Number.isFinite(minutes) || !Number.isFinite(seconds)) {
+        return null;
+    }
+
+    const total = (Math.max(0, Math.floor(minutes)) * 60) + Math.max(0, Math.floor(seconds));
+
+    return total > 0 ? total : null;
+}
+
+function saveClockDuration(): void {
+    if (!canManage.value) {
+        return;
+    }
+
+    const total = parsedClockDuration();
+
+    if (total === null) {
+        gameActionError.value = 'Configura un tiempo valido para el cronometro.';
+
+        return;
+    }
+
+    gameActionError.value = '';
+    router.post('/liga/modulos/juego/clock', {
+        duration_seconds: total,
+    }, {
+        preserveScroll: true,
+        onError: (errors) => {
+            gameActionError.value = String(errors.duration_seconds ?? errors.clock ?? 'No se pudo actualizar el cronometro.');
+        },
+    });
+}
+
+function toggleClock(): void {
+    if (!canManage.value) {
+        return;
+    }
+
+    if (clockState.value === 'running') {
+        gameActionError.value = '';
+        router.post('/liga/modulos/juego/clock/pause', {}, {
+            preserveScroll: true,
+            onError: (errors) => {
+                gameActionError.value = String(errors.clock ?? errors.session ?? 'No se pudo pausar el cronometro.');
+            },
+        });
+
+        return;
+    }
+
+    gameActionError.value = '';
+    router.post('/liga/modulos/juego/clock/start', {}, {
+        preserveScroll: true,
+        onError: (errors) => {
+            gameActionError.value = String(errors.clock ?? errors.session ?? 'No se pudo iniciar el cronometro.');
+        },
+    });
+}
+
+function resetClock(): void {
+    if (!canManage.value) {
+        return;
+    }
+
+    gameActionError.value = '';
+    router.post('/liga/modulos/juego/clock/reset', {}, {
+        preserveScroll: true,
+        onError: (errors) => {
+            gameActionError.value = String(errors.clock ?? errors.session ?? 'No se pudo reiniciar el cronometro.');
+        },
+    });
+}
+
+function rotationNoticeIcon(icon: string) {
+    if (icon === 'trophy') {
+        return Trophy;
+    }
+
+    if (icon === 'flame') {
+        return Flame;
+    }
+
+    return RotateCcw;
+}
+
+function rotationNoticeToneClasses(tone: string): string {
+    if (tone === 'success') {
+        return 'border-[rgba(74,222,128,0.24)] bg-[rgba(74,222,128,0.08)] text-[#4ADE80]';
+    }
+
+    if (tone === 'danger') {
+        return 'border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.08)] text-[#F87171]';
+    }
+
+    return 'border-[rgba(229,184,73,0.24)] bg-[rgba(229,184,73,0.08)] text-[#E5B849]';
 }
 </script>
 
@@ -407,7 +669,82 @@ function resetCurrentGame() {
             class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]"
         >
             <article class="app-surface space-y-5">
+                <div
+                    v-if="gameActionError"
+                    class="rounded-[16px] border border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] px-4 py-3 text-sm text-[#FCA5A5]"
+                >
+                    {{ gameActionError }}
+                </div>
+
                 <div class="relative overflow-hidden rounded-[24px] border border-white/6 bg-[radial-gradient(circle_at_top,_rgba(229,184,73,0.14),_rgba(14,22,40,0.98)_48%),linear-gradient(180deg,_rgba(19,27,47,0.98),_rgba(10,15,29,1))] p-5">
+                    <div class="mb-5 grid gap-3 rounded-[18px] border border-white/6 bg-[#131B2F]/85 p-4 xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:items-center">
+                        <div>
+                            <p class="app-kicker text-[#E5B849]">Cronometro</p>
+                            <p class="mt-2 font-['Bebas_Neue'] text-[clamp(2.5rem,8vw,3.75rem)] leading-none text-[#F8FAFC]">
+                                {{ formattedClock }}
+                            </p>
+                            <p class="mt-1 text-[12px] uppercase tracking-[0.22em] text-[#94A3B8]">
+                                {{
+                                    clockState === 'running'
+                                        ? 'Corriendo'
+                                        : clockState === 'finished'
+                                          ? 'Tiempo agotado'
+                                          : clockState === 'unconfigured'
+                                            ? 'Sin configurar'
+                                            : 'Listo'
+                                }}
+                            </p>
+                        </div>
+
+                        <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                            <input
+                                v-model="clockForm.minutes"
+                                type="number"
+                                min="0"
+                                max="120"
+                                class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none"
+                                placeholder="Min"
+                            >
+                            <input
+                                v-model="clockForm.seconds"
+                                type="number"
+                                min="0"
+                                max="59"
+                                class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none"
+                                placeholder="Seg"
+                            >
+                            <Button
+                                v-if="canManage"
+                                type="button"
+                                variant="secondary"
+                                class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 hover:bg-[#22304f]"
+                                @click="saveClockDuration"
+                            >
+                                Cargar
+                            </Button>
+                        </div>
+
+                        <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                            <Button
+                                v-if="canManage"
+                                type="button"
+                                class="min-h-12 rounded-[12px] bg-[#E5B849] text-[#0A0F1D] hover:bg-[#e8c25d]"
+                                @click="toggleClock"
+                            >
+                                {{ clockActionLabel }}
+                            </Button>
+                            <Button
+                                v-if="canManage"
+                                type="button"
+                                variant="secondary"
+                                class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] hover:bg-[#22304f]"
+                                @click="resetClock"
+                            >
+                                Reiniciar
+                            </Button>
+                        </div>
+                    </div>
+
                     <div class="grid gap-5 md:grid-cols-[1fr_auto_1fr] md:items-center">
                         <div class="text-center md:text-left">
                             <p class="app-kicker text-[#4ADE80]">Equipo A</p>
@@ -570,7 +907,7 @@ function resetCurrentGame() {
                         v-if="canManage"
                         type="button"
                         class="min-h-12 rounded-[12px] bg-[#E5B849] text-[#0A0F1D] hover:bg-[#e8c25d]"
-                        @click="finishDialogOpen = true"
+                        @click="finishGame"
                     >
                         Marcar fin de juego
                     </Button>
@@ -695,18 +1032,32 @@ function resetCurrentGame() {
             </DialogContent>
         </Dialog>
 
-        <Dialog :open="finishDialogOpen" @update:open="finishDialogOpen = false">
-            <DialogContent class="border-white/8 bg-[#1A243A] text-[#F8FAFC]">
+        <Dialog :open="rotationNotice !== null" @update:open="rotationNotice = null">
+            <DialogContent class="border-white/8 bg-[#1A243A] text-[#F8FAFC] sm:max-w-[460px]">
                 <DialogHeader>
-                    <DialogTitle class="app-display text-[30px]">Fin de juego</DialogTitle>
+                    <div
+                        v-if="rotationNotice"
+                        class="inline-flex size-12 items-center justify-center rounded-full border"
+                        :class="rotationNoticeToneClasses(rotationNotice.tone)"
+                    >
+                        <component :is="rotationNoticeIcon(rotationNotice.icon)" class="size-6" />
+                    </div>
+                    <DialogTitle class="mt-3 app-display text-[28px]">{{ rotationNotice?.title }}</DialogTitle>
                     <DialogDescription class="text-[13px] leading-6 text-[#94A3B8]">
-                        Confirma el ganador para aplicar la rotacion de cola y abrir el siguiente juego.
+                        Aviso operativo de la rotacion actual.
                     </DialogDescription>
                 </DialogHeader>
-                <DialogFooter class="grid gap-2 sm:grid-cols-3">
-                    <Button type="button" class="min-h-12 rounded-[12px] bg-[#4ADE80] text-[#0A0F1D]" @click="finishGame('A')">Gano A</Button>
-                    <Button type="button" class="min-h-12 rounded-[12px] bg-[#E5B849] text-[#0A0F1D]" @click="finishGame('B')">Gano B</Button>
-                    <Button type="button" variant="secondary" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F]" @click="finishGame()">Automatico</Button>
+                <div v-if="rotationNotice" class="grid gap-3">
+                    <div
+                        v-for="line in rotationNotice.body"
+                        :key="line"
+                        class="rounded-[14px] border border-white/6 bg-[#0E1628] px-4 py-3 text-[13px] leading-6 text-[#CBD5E1]"
+                    >
+                        {{ line }}
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button type="button" class="min-h-12 rounded-[12px]" @click="rotationNotice = null">Entendido</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

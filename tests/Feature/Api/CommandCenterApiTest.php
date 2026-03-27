@@ -204,7 +204,7 @@ class CommandCenterApiTest extends TestCase
         $this->assertDatabaseHas('league_players', [
             'league_id' => $league->id,
             'user_id' => $user->id,
-            'status' => 'active',
+            'status' => 'inactive',
         ]);
 
         $this->assertSame($league->id, $user->fresh()->active_league_id);

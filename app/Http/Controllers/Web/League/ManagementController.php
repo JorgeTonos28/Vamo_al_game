@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web\League;
 use App\Actions\Admin\InviteUser;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\League\InviteLeagueMemberRequest;
+use App\Http\Requests\Web\League\UpdateLeagueMemberRequest;
 use App\Models\LeagueCutExpense;
 use App\Models\LeaguePlayer;
 use App\Models\LeaguePlayerReferral;
@@ -140,29 +141,27 @@ class ManagementController extends Controller
     public function storePlayer(InviteLeagueMemberRequest $request, InviteUser $inviteUser): RedirectResponse
     {
         $context = $this->operationsService->requireAdminContext($request->user());
+        $validated = $request->validated();
         $inviteUser->handle(
             $request->user(),
             [
-                ...$request->validated(),
+                ...$validated,
                 'league_id' => $context['league']->id,
             ],
         );
 
-        return back()->with('status', 'Invitacion enviada y miembro agregado a la liga.');
+        return back()->with('status', filled($validated['email'] ?? null)
+            ? 'Invitacion enviada y miembro agregado a la liga.'
+            : 'Miembro agregado a la liga sin invitacion por correo.');
     }
 
-    public function updatePlayer(Request $request, LeaguePlayer $player): RedirectResponse
+    public function updatePlayer(UpdateLeagueMemberRequest $request, LeaguePlayer $player): RedirectResponse
     {
-        $validated = $request->validate([
-            'display_name' => ['required', 'string', 'max:120'],
-            'jersey_number' => ['nullable', 'integer', 'min:0', 'max:99'],
-        ]);
-
-        $this->managementService->updatePlayer(
+        $validated = $request->validated();
+        $this->managementService->updateRosterMember(
             $request->user(),
             $player,
-            $validated['display_name'],
-            $validated['jersey_number'] ?? null,
+            $validated,
         );
 
         return back()->with('status', 'Datos del miembro actualizados.');

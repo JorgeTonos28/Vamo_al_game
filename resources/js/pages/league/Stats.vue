@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { BarChart3, Target } from 'lucide-vue-next';
 import LeagueShellLayout from '@/components/league/LeagueShellLayout.vue';
 import type { BreadcrumbItem } from '@/types';
@@ -7,6 +7,17 @@ import type { BreadcrumbItem } from '@/types';
 const props = defineProps<{
     league: { id: number; name: string; emoji: string | null; slug: string };
     role: { value: string; label: string; can_manage: boolean };
+    session_selector: {
+        selected_session_id: number;
+        sessions: Array<{
+            id: number;
+            session_date: string | null;
+            status: string;
+            entries_count: number;
+            completed_games_count: number;
+            is_current: boolean;
+        }>;
+    };
     stats: {
         games_count: number;
         points_leaders: Array<{
@@ -25,6 +36,23 @@ const props = defineProps<{
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Stats', href: '/liga/modulos/stats' }];
+
+function changeSession(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+
+    router.get(
+        '/liga/modulos/stats',
+        { session_id: Number(target.value) },
+        { preserveScroll: true, preserveState: true },
+    );
+}
+
+function sessionLabel(session: { session_date: string | null; status: string; completed_games_count: number; is_current: boolean }): string {
+    const base = session.session_date ?? 'Sin fecha';
+    const suffix = session.is_current ? ' · actual' : session.status === 'completed' ? ' · cerrada' : ' · abierta';
+
+    return `${base}${suffix} · ${session.completed_games_count} juegos`;
+}
 </script>
 
 <template>
@@ -39,14 +67,29 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Stats', href: '/liga/modulos/st
         :can-manage-league="props.role.can_manage"
     >
         <section class="app-surface space-y-4">
-            <div class="flex items-center gap-3">
-                <BarChart3 class="size-5 text-[#E5B849]" />
-                <div>
-                    <p class="app-kicker text-[#E5B849]">Estadisticas del dia</p>
-                    <p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">
-                        Puntos y juegos completados durante la jornada actual. Se recalcula automaticamente con cada juego cerrado.
-                    </p>
+            <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div class="flex items-center gap-3">
+                    <BarChart3 class="size-5 text-[#E5B849]" />
+                    <div>
+                        <p class="app-kicker text-[#E5B849]">Estadisticas de jornada</p>
+                        <p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">
+                            Puntos y juegos completados durante la jornada seleccionada. Puedes revisar tambien dias anteriores.
+                        </p>
+                    </div>
                 </div>
+                <select
+                    :value="props.session_selector.selected_session_id"
+                    class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none"
+                    @change="changeSession"
+                >
+                    <option
+                        v-for="session in props.session_selector.sessions"
+                        :key="session.id"
+                        :value="session.id"
+                    >
+                        {{ sessionLabel(session) }}
+                    </option>
+                </select>
             </div>
         </section>
 

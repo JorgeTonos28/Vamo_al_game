@@ -89,6 +89,38 @@ class GameController extends Controller
         return ApiResponse::success($request, $this->competition->gamePageData($request->user()), 'Juego cerrado.');
     }
 
+    public function configureClock(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'duration_seconds' => ['required', 'integer', 'min:60', 'max:7200'],
+        ]);
+
+        $this->competition->configureClock($request->user(), $validated['duration_seconds']);
+
+        return ApiResponse::success($request, $this->competition->gamePageData($request->user()), 'Cronometro actualizado.');
+    }
+
+    public function startClock(Request $request): JsonResponse
+    {
+        $this->competition->startClock($request->user());
+
+        return ApiResponse::success($request, $this->competition->gamePageData($request->user()), 'Cronometro iniciado.');
+    }
+
+    public function pauseClock(Request $request): JsonResponse
+    {
+        $this->competition->pauseClock($request->user());
+
+        return ApiResponse::success($request, $this->competition->gamePageData($request->user()), 'Cronometro pausado.');
+    }
+
+    public function resetClock(Request $request): JsonResponse
+    {
+        $this->competition->resetClock($request->user());
+
+        return ApiResponse::success($request, $this->competition->gamePageData($request->user()), 'Cronometro reiniciado.');
+    }
+
     public function endSession(Request $request): JsonResponse
     {
         $this->competition->endSession($request->user());

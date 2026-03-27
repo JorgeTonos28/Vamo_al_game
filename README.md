@@ -73,10 +73,14 @@ La base de trabajo queda definida asi:
 - `POST /api/v1/league/modules/game/players/{entry}/remove`
 - `POST /api/v1/league/modules/game/undo`
 - `POST /api/v1/league/modules/game/finish`
+- `POST /api/v1/league/modules/game/clock`
+- `POST /api/v1/league/modules/game/clock/start`
+- `POST /api/v1/league/modules/game/clock/pause`
+- `POST /api/v1/league/modules/game/clock/reset`
 - `POST /api/v1/league/modules/game/end-session`
 - `POST /api/v1/league/modules/game/reset`
-- `GET /api/v1/league/modules/queue`
-- `GET /api/v1/league/modules/stats`
+- `GET /api/v1/league/modules/queue?session_id={id}`
+- `GET /api/v1/league/modules/stats?session_id={id}`
 - `GET /api/v1/league/modules/table`
 - `GET /api/v1/league/modules/season`
 - `GET /api/v1/league/modules/scout`
@@ -183,6 +187,8 @@ php artisan migrate
 php artisan db:seed
 ```
 
+La app usa `APP_TIMEZONE` para definir el dia operativo de cortes y jornadas. El `.env.example` ya viene con `America/Santo_Domingo`; mantenlo asi en Republica Dominicana para evitar cierres automaticos antes del fin del dia local.
+
 9. Inicia backend + web:
 
 ```bash
@@ -207,6 +213,8 @@ El proyecto ya no mezcla datos estructurales con datos demo dentro de `DatabaseS
 - En local, `APP_ENABLE_STARTER_DATA=true` permite mantener cuentas y ligas de prueba al correr `php artisan migrate --seed`.
 - En produccion, deja `APP_ENABLE_STARTER_DATA=false` para evitar insertar demos en cada despliegue.
 - Cuando el starter data esta activo, `Liga Aurora` tambien recibe roster, cortes, pagos, referidos y una jornada abierta de ejemplo para probar `Panel`, `Llegada` y `Gestion` sin pasos manuales adicionales.
+- El starter operativo ahora carga el roster completo usado como referencia en `legacy/`, junto con invitados y una jornada de muestra mas cercana al flujo real.
+- En ese modo de demo, los gastos fijos que se siembran para pruebas quedan como gastos editables y eliminables; en produccion los gastos base del sistema se siguen regenerando automaticamente.
 
 Flujo recomendado en terminal:
 
@@ -286,8 +294,10 @@ Ups! Lo sentimos, ha ocurrido un problema accediendo a la app. Comuniquese con l
 - Mantiene `Corte activo`, `Miembros`, `Invitados`, `Iniciar jornada` y `Reiniciar lista de llegada`.
 - Antes del vencimiento del corte, todos los miembros conservan prioridad por llegada.
 - Al vencer el corte, solo mantienen prioridad quienes estan al dia; los demas pasan detras de los que pagaron y quedan alineados con la cola que luego consumira `Juego`.
-- Los invitados sin pago confirmado salen automaticamente cuando se prepara la jornada.
+- Los invitados pagos cuentan para alcanzar el minimo de 10 jugadores habiles; los que no tienen pago confirmado salen automaticamente al preparar.
 - `Iniciar jornada` redirige al modulo `Juego` una vez la jornada queda preparada.
+- Si la jornada ya esta activa, las llegadas nuevas de miembros o invitados no rompen el juego actual: entran directo a la cola operativa y se reordenan segun prioridad real.
+- Los administradores de liga no aparecen como jugadores operativos en llegada ni en la cola.
 - Los miembros quedan en modo solo lectura: pueden ver cola, estados y lista de invitados, pero no pueden registrar llegadas ni ejecutar acciones operativas.
 - La gestion de miembros se puede abrir desde Llegada, pero solo para administradores.
 
@@ -298,19 +308,22 @@ Ups! Lo sentimos, ha ocurrido un problema accediendo a la app. Comuniquese con l
 - Soporta draft `auto`, `arrival` y `manual`.
 - El draft automatico combina rating manual de `Scout` con rendimiento de `Temporada`; respeta maximo 2 invitados por equipo.
 - Durante el juego se pueden registrar puntos por equipo, puntos por jugador, reversar puntos de jugador, marcar salida de jugador, deshacer la ultima accion, cerrar el juego, cerrar la jornada y limpiar el juego actual.
+- El ganador por defecto se determina automaticamente por el marcador al cerrar el juego.
+- El marcador incluye cronometro configurable con cargar, iniciar, pausar, reanudar y reiniciar; se resetea al preparar jornada, al limpiar el juego y al pasar al siguiente draft.
 - La rotacion posterior usa la cola activa, la racha del equipo ganador y la regla de doble rotacion cuando hay 20 o mas participantes.
 - Los miembros solo ven el marcador, las alineaciones, el historial de juegos y el resumen de la jornada.
 
 ### Cola
 
-- Muestra los jugadores en cancha, la cola de espera y el resumen operativo de la jornada activa.
+- Muestra los jugadores en cancha, la cola de espera y el resumen operativo de la jornada activa o de jornadas anteriores desde un selector de sesion.
 - Cada fila conserva informacion de orden de llegada, juegos jugados, puntos del dia y lado de cancha cuando aplica.
+- El resumen incluye `Racha actual` e `Invitados hoy`.
 - En web y mobile replica la cola consumida por `Juego`; no cierra jornada desde aqui.
 
 ### Stats
 
-- Resume la jornada actual con lideres de puntos, tiros y juegos disputados.
-- Los datos salen de los juegos completados de la jornada activa.
+- Resume la jornada actual o una jornada historica con lideres de puntos, tiros y juegos disputados.
+- Los datos salen de los juegos completados de la sesion seleccionada.
 - Es de solo lectura para administradores y miembros.
 
 ### Tabla
@@ -361,6 +374,8 @@ Los administradores generales acceden a un shell separado de la app regular. Por
 - Desde `Gestion de miembros` dentro del perfil de una liga, los administradores de liga usan el mismo flujo de invitacion por correo del Centro de mando, limitado a roles `league_admin` y `member`.
 - `Gestion de miembros` dentro de la liga ahora se divide por tabs (`Invitar`, `Editar`, `Activos`, `Inactivos`) para mantener el modal y el sheet utilizables en web y mobile.
 - El tab `Editar` usa un filtro por texto que busca coincidencias por nombre o numero antes de cargar el formulario del miembro seleccionado.
+- En `Invitar`, nombre, apellido y cedula son obligatorios; correo, telefono, direccion y numero de chaqueta son opcionales. Si no hay correo, el miembro se agrega sin enviar invitacion.
+- En `Editar`, el administrador puede actualizar nombre, apellido, cedula, rol, telefono, correo, direccion y numero de chaqueta. Si se agrega o cambia el correo, el sistema emite una nueva invitacion.
 - El sistema envia un correo con enlace para completar onboarding por password o continuar con Google.
 - Durante el onboarding, el usuario puede completar o corregir los datos basicos precargados.
 - Mientras la cuenta invitada no complete onboarding, no puede iniciar sesion ni usar recuperacion de contrasena fuera del flujo de aceptacion, aunque el enlace original ya haya expirado.

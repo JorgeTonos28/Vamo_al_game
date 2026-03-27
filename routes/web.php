@@ -148,6 +148,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     ->name('modules.game.undo');
                 Route::post('modulos/juego/finish', [LeagueGameController::class, 'finish'])
                     ->name('modules.game.finish');
+                Route::post('modulos/juego/clock', [LeagueGameController::class, 'configureClock'])
+                    ->name('modules.game.clock.configure');
+                Route::post('modulos/juego/clock/start', [LeagueGameController::class, 'startClock'])
+                    ->name('modules.game.clock.start');
+                Route::post('modulos/juego/clock/pause', [LeagueGameController::class, 'pauseClock'])
+                    ->name('modules.game.clock.pause');
+                Route::post('modulos/juego/clock/reset', [LeagueGameController::class, 'resetClock'])
+                    ->name('modules.game.clock.reset');
                 Route::post('modulos/juego/end-session', [LeagueGameController::class, 'endSession'])
                     ->name('modules.game.end-session');
                 Route::post('modulos/juego/reset', [LeagueGameController::class, 'reset'])

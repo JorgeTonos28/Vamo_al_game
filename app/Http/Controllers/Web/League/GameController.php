@@ -88,6 +88,38 @@ class GameController extends Controller
         return back();
     }
 
+    public function configureClock(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'duration_seconds' => ['required', 'integer', 'min:60', 'max:7200'],
+        ]);
+
+        $this->competition->configureClock($request->user(), $validated['duration_seconds']);
+
+        return back();
+    }
+
+    public function startClock(Request $request): RedirectResponse
+    {
+        $this->competition->startClock($request->user());
+
+        return back();
+    }
+
+    public function pauseClock(Request $request): RedirectResponse
+    {
+        $this->competition->pauseClock($request->user());
+
+        return back();
+    }
+
+    public function resetClock(Request $request): RedirectResponse
+    {
+        $this->competition->resetClock($request->user());
+
+        return back();
+    }
+
     public function endSession(Request $request): RedirectResponse
     {
         $this->competition->endSession($request->user());

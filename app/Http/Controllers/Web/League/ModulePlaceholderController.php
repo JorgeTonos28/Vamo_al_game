@@ -36,8 +36,8 @@ class ModulePlaceholderController extends Controller
         if (in_array($module, ['juego', 'cola', 'stats', 'tabla', 'temporada', 'scout'], true)) {
             $page = match ($module) {
                 'juego' => ['component' => 'league/Game', 'payload' => $this->competition->gamePageData($request->user())],
-                'cola' => ['component' => 'league/Queue', 'payload' => $this->competition->queuePageData($request->user())],
-                'stats' => ['component' => 'league/Stats', 'payload' => $this->competition->statsPageData($request->user())],
+                'cola' => ['component' => 'league/Queue', 'payload' => $this->competition->queuePageData($request->user(), $request->integer('session_id') ?: null)],
+                'stats' => ['component' => 'league/Stats', 'payload' => $this->competition->statsPageData($request->user(), $request->integer('session_id') ?: null)],
                 'tabla' => ['component' => 'league/Table', 'payload' => $this->competition->tablePageData($request->user())],
                 'temporada' => ['component' => 'league/Season', 'payload' => $this->competition->seasonPageData($request->user())],
                 'scout' => ['component' => 'league/Scout', 'payload' => $this->competition->scoutPageData($request->user())],

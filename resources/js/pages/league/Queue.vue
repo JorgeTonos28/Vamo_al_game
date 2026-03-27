@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { Clock3, Wallet } from 'lucide-vue-next';
 import LeagueShellLayout from '@/components/league/LeagueShellLayout.vue';
 import type { BreadcrumbItem } from '@/types';
@@ -7,14 +7,27 @@ import type { BreadcrumbItem } from '@/types';
 const props = defineProps<{
     league: { id: number; name: string; emoji: string | null; slug: string };
     role: { value: string; label: string; can_manage: boolean };
+    session_selector: {
+        selected_session_id: number;
+        sessions: Array<{
+            id: number;
+            session_date: string | null;
+            status: string;
+            entries_count: number;
+            completed_games_count: number;
+            is_current: boolean;
+        }>;
+    };
     queue: {
         on_court: Array<{ id: number; name: string; team_side: string | null; games_played: number; points_scored: number }>;
         waiting: Array<{ id: number; name: string; position: number | null; games_played: number; points_scored: number }>;
         summary: {
             games: number;
             streak_label: string;
+            current_streak: string;
             active_players: number;
             guests: number;
+            today_guests: number;
             cash_collected_cents: number;
             unpaid_members_count: number;
         };
@@ -23,6 +36,23 @@ const props = defineProps<{
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Cola', href: '/liga/modulos/cola' }];
+
+function changeSession(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+
+    router.get(
+        '/liga/modulos/cola',
+        { session_id: Number(target.value) },
+        { preserveScroll: true, preserveState: true },
+    );
+}
+
+function sessionLabel(session: { session_date: string | null; status: string; completed_games_count: number; is_current: boolean }): string {
+    const base = session.session_date ?? 'Sin fecha';
+    const suffix = session.is_current ? ' · actual' : session.status === 'completed' ? ' · cerrada' : ' · abierta';
+
+    return `${base}${suffix} · ${session.completed_games_count} juegos`;
+}
 </script>
 
 <template>
@@ -36,7 +66,31 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Cola', href: '/liga/modulos/col
         active-module="cola"
         :can-manage-league="props.role.can_manage"
     >
-        <section class="grid gap-4 md:grid-cols-2">
+        <section class="app-surface space-y-4">
+            <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                <div>
+                    <p class="app-kicker text-[#E5B849]">Jornada visible</p>
+                    <p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">
+                        Consulta la cola y el estado operativo de la jornada actual o de jornadas anteriores ya jugadas.
+                    </p>
+                </div>
+                <select
+                    :value="props.session_selector.selected_session_id"
+                    class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none"
+                    @change="changeSession"
+                >
+                    <option
+                        v-for="session in props.session_selector.sessions"
+                        :key="session.id"
+                        :value="session.id"
+                    >
+                        {{ sessionLabel(session) }}
+                    </option>
+                </select>
+            </div>
+        </section>
+
+        <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <article class="app-surface space-y-2">
                 <p class="app-kicker">Juegos</p>
                 <p class="text-[28px] font-semibold text-[#F8FAFC]">{{ props.queue.summary.games }}</p>
@@ -46,6 +100,16 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Cola', href: '/liga/modulos/col
                 <p class="app-kicker">Activos hoy</p>
                 <p class="text-[28px] font-semibold text-[#F8FAFC]">{{ props.queue.summary.active_players }}</p>
                 <p class="text-[12px] text-[#94A3B8]">{{ props.queue.summary.guests }} invitados incluidos</p>
+            </article>
+            <article class="app-surface space-y-2">
+                <p class="app-kicker">Racha actual</p>
+                <p class="text-[28px] font-semibold text-[#F8FAFC]">{{ props.queue.summary.current_streak }}</p>
+                <p class="text-[12px] text-[#94A3B8]">Secuencia vigente de la jornada seleccionada.</p>
+            </article>
+            <article class="app-surface space-y-2">
+                <p class="app-kicker">Invitados hoy</p>
+                <p class="text-[28px] font-semibold text-[#F8FAFC]">{{ props.queue.summary.today_guests }}</p>
+                <p class="text-[12px] text-[#94A3B8]">Invitados registrados en esta jornada.</p>
             </article>
         </section>
 

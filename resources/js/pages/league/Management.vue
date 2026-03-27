@@ -9,7 +9,37 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { formatMoney } from '@/lib/league';
 import type { BreadcrumbItem } from '@/types';
 
-type RosterManagement = { can_manage: boolean; active_players: Array<{ id: number; name: string; jersey_number: number | null }>; inactive_players: Array<{ id: number; name: string; jersey_number: number | null }>; referral_options: Array<{ id: number; name: string }>; referral_credit_amount_cents: number };
+type RosterManagement = {
+    can_manage: boolean;
+    active_players: Array<{
+        id: number;
+        name: string;
+        jersey_number: number | null;
+        first_name: string;
+        last_name: string;
+        document_id: string | null;
+        phone: string | null;
+        email: string | null;
+        address: string | null;
+        account_role: 'league_admin' | 'member';
+        invitation_pending: boolean;
+    }>;
+    inactive_players: Array<{
+        id: number;
+        name: string;
+        jersey_number: number | null;
+        first_name: string;
+        last_name: string;
+        document_id: string | null;
+        phone: string | null;
+        email: string | null;
+        address: string | null;
+        account_role: 'league_admin' | 'member';
+        invitation_pending: boolean;
+    }>;
+    referral_options: Array<{ id: number; name: string }>;
+    referral_credit_amount_cents: number;
+};
 type PaymentRow = { player: { id: number; name: string; jersey_number: number | null }; balance: { status: string; amount_paid_cents: number; extra_credit_cents: number; available_referral_credit_cents: number; previous_debt_cents: number; settlement_due_cents: number; status_tone: string; status_message: string } };
 type ExpenseRow = { id: number; name: string; amount_cents: number; is_system_generated: boolean; is_fixed: boolean };
 type ReferralGroup = { referrer: { id: number; name: string }; available_credit_cents: number; members: Array<{ id: number; name: string }> };

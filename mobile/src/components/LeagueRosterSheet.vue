@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { extractApiErrors } from '@/services/api'
 import {
   addLeaguePlayer,
   setLeaguePlayerStatus,
@@ -21,6 +22,9 @@ const tabs: Array<{ key: RosterTab; label: string }> = [
 
 const activeTab = ref<RosterTab>('invite')
 const touchStartX = ref<number | null>(null)
+const inviteSubmitting = ref(false)
+const editSubmitting = ref(false)
+const feedbackMessages = ref<string[]>([])
 const inviteForm = reactive({
   first_name: '',
   last_name: '',
@@ -28,11 +32,21 @@ const inviteForm = reactive({
   phone: '',
   address: '',
   email: '',
+  jersey_number: '',
   account_role: 'member' as 'league_admin' | 'member',
 })
 const editPlayerId = ref<number | null>(null)
 const editSearch = ref('')
-const editForm = reactive({ jersey_number: '' })
+const editForm = reactive({
+  first_name: '',
+  last_name: '',
+  document_id: '',
+  phone: '',
+  address: '',
+  email: '',
+  jersey_number: '',
+  account_role: 'member' as 'league_admin' | 'member',
+})
 const allPlayers = computed(() => [...props.rosterManagement.active_players, ...props.rosterManagement.inactive_players])
 const filteredPlayers = computed(() => {
   const tokens = editSearch.value
@@ -57,6 +71,7 @@ watch(
   (isOpen) => {
     if (isOpen) {
       activeTab.value = 'invite'
+      feedbackMessages.value = []
     }
   },
 )
@@ -107,26 +122,36 @@ function handleTouchEnd(event: TouchEvent): void {
 }
 
 async function submitInvite(): Promise<void> {
-  if (!inviteForm.first_name.trim() || !inviteForm.last_name.trim() || !inviteForm.email.trim()) return
+  inviteSubmitting.value = true
+  feedbackMessages.value = []
 
-  await addLeaguePlayer({
-    first_name: inviteForm.first_name,
-    last_name: inviteForm.last_name,
-    document_id: inviteForm.document_id || null,
-    phone: inviteForm.phone || null,
-    address: inviteForm.address || null,
-    email: inviteForm.email,
-    account_role: inviteForm.account_role,
-  })
+  try {
+    await addLeaguePlayer({
+      first_name: inviteForm.first_name,
+      last_name: inviteForm.last_name,
+      document_id: inviteForm.document_id || null,
+      phone: inviteForm.phone || null,
+      address: inviteForm.address || null,
+      email: inviteForm.email || null,
+      jersey_number: inviteForm.jersey_number ? Number(inviteForm.jersey_number) : null,
+      account_role: inviteForm.account_role,
+    })
 
-  inviteForm.first_name = ''
-  inviteForm.last_name = ''
-  inviteForm.document_id = ''
-  inviteForm.phone = ''
-  inviteForm.address = ''
-  inviteForm.email = ''
-  inviteForm.account_role = 'member'
-  emit('changed')
+    inviteForm.first_name = ''
+    inviteForm.last_name = ''
+    inviteForm.document_id = ''
+    inviteForm.phone = ''
+    inviteForm.address = ''
+    inviteForm.email = ''
+    inviteForm.jersey_number = ''
+    inviteForm.account_role = 'member'
+    emit('changed')
+    close()
+  } catch (error) {
+    feedbackMessages.value = extractApiErrors(error)
+  } finally {
+    inviteSubmitting.value = false
+  }
 }
 
 function loadEditPlayer(playerId: number): void {
@@ -136,27 +161,62 @@ function loadEditPlayer(playerId: number): void {
 
   editPlayerId.value = playerId
   editSearch.value = player.name
+  editForm.first_name = player.first_name
+  editForm.last_name = player.last_name
+  editForm.document_id = player.document_id ?? ''
+  editForm.phone = player.phone ?? ''
+  editForm.address = player.address ?? ''
+  editForm.email = player.email ?? ''
   editForm.jersey_number = player.jersey_number?.toString() ?? ''
+  editForm.account_role = player.account_role
   activeTab.value = 'edit'
+  feedbackMessages.value = []
 }
 
 async function submitEdit(): Promise<void> {
-  if (!editPlayerId.value || !editSearch.value.trim()) return
+  if (!editPlayerId.value) return
 
-  await updateLeaguePlayer(editPlayerId.value, {
-    display_name: editSearch.value.trim(),
-    jersey_number: editForm.jersey_number ? Number(editForm.jersey_number) : null,
-  })
+  editSubmitting.value = true
+  feedbackMessages.value = []
 
-  editPlayerId.value = null
-  editSearch.value = ''
-  editForm.jersey_number = ''
-  emit('changed')
+  try {
+    await updateLeaguePlayer(editPlayerId.value, {
+      first_name: editForm.first_name,
+      last_name: editForm.last_name,
+      document_id: editForm.document_id,
+      phone: editForm.phone || null,
+      address: editForm.address || null,
+      email: editForm.email || null,
+      jersey_number: editForm.jersey_number ? Number(editForm.jersey_number) : null,
+      account_role: editForm.account_role,
+    })
+
+    editPlayerId.value = null
+    editSearch.value = ''
+    editForm.first_name = ''
+    editForm.last_name = ''
+    editForm.document_id = ''
+    editForm.phone = ''
+    editForm.address = ''
+    editForm.email = ''
+    editForm.jersey_number = ''
+    editForm.account_role = 'member'
+    emit('changed')
+  } catch (error) {
+    feedbackMessages.value = extractApiErrors(error)
+  } finally {
+    editSubmitting.value = false
+  }
 }
 
 async function toggleStatus(playerId: number, active: boolean): Promise<void> {
-  await setLeaguePlayerStatus(playerId, active)
-  emit('changed')
+  feedbackMessages.value = []
+  try {
+    await setLeaguePlayerStatus(playerId, active)
+    emit('changed')
+  } catch (error) {
+    feedbackMessages.value = extractApiErrors(error)
+  }
 }
 </script>
 
@@ -181,25 +241,34 @@ async function toggleStatus(playerId: number, active: boolean): Promise<void> {
         </div>
 
         <div class="sheet-content" @touchstart="handleTouchStart" @touchend="handleTouchEnd">
+          <div v-if="feedbackMessages.length > 0" class="sheet-alert">
+            <p class="sheet-alert__title">No se pudo completar la accion.</p>
+            <p v-for="message in feedbackMessages" :key="message" class="sheet-note">{{ message }}</p>
+          </div>
+
           <div v-if="activeTab === 'invite'" class="sheet-block">
             <p class="sheet-label">Invitar miembro</p>
+            <p class="sheet-note">Nombre, apellido y cedula son obligatorios. El correo es opcional.</p>
             <div class="sheet-grid">
               <input v-model="inviteForm.first_name" type="text" class="sheet-input" placeholder="Nombre" />
               <input v-model="inviteForm.last_name" type="text" class="sheet-input" placeholder="Apellido" />
             </div>
             <div class="sheet-grid">
               <input v-model="inviteForm.document_id" type="text" class="sheet-input" placeholder="Cedula" />
-              <select v-model="inviteForm.account_role" class="sheet-input">
-                <option value="member">Miembro</option>
-                <option value="league_admin">Administrador</option>
-              </select>
+              <input v-model="inviteForm.jersey_number" type="number" min="0" max="99" class="sheet-input" placeholder="Chaqueta" />
             </div>
             <div class="sheet-grid">
               <input v-model="inviteForm.phone" type="text" class="sheet-input" placeholder="Telefono" />
               <input v-model="inviteForm.email" type="email" class="sheet-input" placeholder="Correo" />
             </div>
-            <input v-model="inviteForm.address" type="text" class="sheet-input" placeholder="Direccion" />
-            <button class="sheet-button sheet-button--primary" type="button" @click="submitInvite">Enviar invitacion</button>
+            <div class="sheet-grid sheet-grid--single">
+              <input v-model="inviteForm.address" type="text" class="sheet-input" placeholder="Direccion" />
+              <select v-model="inviteForm.account_role" class="sheet-input">
+                <option value="member">Miembro</option>
+                <option value="league_admin">Administrador</option>
+              </select>
+            </div>
+            <button class="sheet-button sheet-button--primary" type="button" :disabled="inviteSubmitting" @click="submitInvite">{{ inviteSubmitting ? 'Guardando...' : 'Agregar miembro' }}</button>
           </div>
 
           <div v-else-if="activeTab === 'edit'" class="sheet-block">
@@ -220,8 +289,28 @@ async function toggleStatus(playerId: number, active: boolean): Promise<void> {
               </button>
               <p v-if="filteredPlayers.length === 0" class="sheet-note">No encontramos miembros con ese filtro.</p>
             </div>
-            <input v-model="editForm.jersey_number" type="number" min="0" max="99" class="sheet-input" placeholder="Numero" />
-            <button class="sheet-button sheet-button--secondary" :disabled="!selectedPlayer || !editSearch.trim()" type="button" @click="submitEdit">Actualizar miembro</button>
+            <div v-if="selectedPlayer" class="sheet-block">
+              <div class="sheet-grid">
+                <input v-model="editForm.first_name" type="text" class="sheet-input" placeholder="Nombre" />
+                <input v-model="editForm.last_name" type="text" class="sheet-input" placeholder="Apellido" />
+              </div>
+              <div class="sheet-grid">
+                <input v-model="editForm.document_id" type="text" class="sheet-input" placeholder="Cedula" />
+                <input v-model="editForm.jersey_number" type="number" min="0" max="99" class="sheet-input" placeholder="Chaqueta" />
+              </div>
+              <div class="sheet-grid">
+                <input v-model="editForm.phone" type="text" class="sheet-input" placeholder="Telefono" />
+                <input v-model="editForm.email" type="email" class="sheet-input" placeholder="Correo" />
+              </div>
+              <div class="sheet-grid sheet-grid--single">
+                <input v-model="editForm.address" type="text" class="sheet-input" placeholder="Direccion" />
+                <select v-model="editForm.account_role" class="sheet-input">
+                  <option value="member">Miembro</option>
+                  <option value="league_admin">Administrador</option>
+                </select>
+              </div>
+              <button class="sheet-button sheet-button--secondary" :disabled="editSubmitting" type="button" @click="submitEdit">{{ editSubmitting ? 'Guardando...' : 'Guardar cambios' }}</button>
+            </div>
           </div>
 
           <div v-else-if="activeTab === 'active'" class="sheet-block">
@@ -285,7 +374,8 @@ async function toggleStatus(playerId: number, active: boolean): Promise<void> {
 .sheet-heading,
 .sheet-grid,
 .sheet-row__actions,
-.sheet-tabs {
+.sheet-tabs,
+.sheet-alert {
   display: flex;
 }
 
@@ -305,6 +395,16 @@ async function toggleStatus(playerId: number, active: boolean): Promise<void> {
   min-height: 0;
   flex-direction: column;
   gap: 12px;
+}
+
+.sheet-alert {
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  border-radius: 16px;
+  background: rgba(248, 113, 113, 0.12);
+  padding: 14px;
+  color: #fca5a5;
 }
 
 .sheet-handle {
@@ -381,6 +481,10 @@ async function toggleStatus(playerId: number, active: boolean): Promise<void> {
   gap: 12px;
 }
 
+.sheet-grid--single {
+  grid-template-columns: 1fr;
+}
+
 .sheet-list {
   max-height: 220px;
   overflow-y: auto;
@@ -396,6 +500,12 @@ async function toggleStatus(playerId: number, active: boolean): Promise<void> {
 .sheet-kicker,
 .sheet-label {
   color: #e5b849;
+}
+
+.sheet-alert__title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .sheet-copy,

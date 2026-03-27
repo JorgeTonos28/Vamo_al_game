@@ -94,6 +94,31 @@ class LeagueCompetitionModulesTest extends TestCase
             ->assertJsonCount(5, 'data.game.current.team_b');
     }
 
+    public function test_finishing_a_game_returns_the_rotation_notice_payload(): void
+    {
+        [$league, $admin, $players] = $this->makeLeagueContext();
+        $this->prepareLeagueSession($league, $admin, $players->take(10));
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/league/modules/game/draft', [
+                'mode' => 'arrival',
+            ])
+            ->assertOk();
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/league/modules/game/team-point', [
+                'team_side' => 'A',
+            ])
+            ->assertOk();
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/league/modules/game/finish')
+            ->assertOk()
+            ->assertJsonPath('data.game.rotation_notice.title', 'Eq. A gana')
+            ->assertJsonPath('data.game.rotation_notice.icon', 'rotate')
+            ->assertJsonPath('data.game.rotation_notice.body.0', 'Eq. A se queda completo en cancha.');
+    }
+
     /**
      * @return array{0: League, 1: User, 2: Collection<int, LeaguePlayer>}
      */

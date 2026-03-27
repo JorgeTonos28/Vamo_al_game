@@ -19,11 +19,15 @@ class InviteLeagueMemberRequest extends FormRequest
         $documentId = $this->input('document_id');
         $phone = $this->input('phone');
         $address = $this->input('address');
+        $email = $this->input('email');
+        $jerseyNumber = $this->input('jersey_number');
 
         $this->merge([
             'document_id' => $documentId !== '' ? $documentId : null,
             'phone' => $phone !== '' ? $phone : null,
             'address' => $address !== '' ? $address : null,
+            'email' => $email !== '' ? $email : null,
+            'jersey_number' => $jerseyNumber !== '' ? $jerseyNumber : null,
         ]);
     }
 
@@ -35,10 +39,11 @@ class InviteLeagueMemberRequest extends FormRequest
         return [
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
-            'document_id' => ['nullable', 'string', 'max:50', Rule::unique('users', 'document_id')],
+            'document_id' => ['required', 'string', 'max:50', Rule::unique('users', 'document_id')],
             'phone' => ['nullable', 'string', 'max:50'],
             'address' => ['nullable', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
+            'email' => ['nullable', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
+            'jersey_number' => ['nullable', 'integer', 'min:0', 'max:99'],
             'account_role' => [
                 'required',
                 Rule::in([

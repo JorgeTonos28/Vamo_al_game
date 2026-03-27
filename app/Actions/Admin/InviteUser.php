@@ -27,7 +27,8 @@ class InviteUser
      *     document_id?: string|null,
      *     phone?: string|null,
      *     address?: string|null,
-     *     email: string,
+     *     email?: string|null,
+     *     jersey_number?: int|null,
      *     account_role?: string|null,
      *     league_id?: int|null
      * }  $validated
@@ -49,7 +50,7 @@ class InviteUser
                 'document_id' => blank($validated['document_id'] ?? null) ? null : $validated['document_id'],
                 'phone' => blank($validated['phone'] ?? null) ? null : $validated['phone'],
                 'address' => blank($validated['address'] ?? null) ? null : $validated['address'],
-                'email' => $validated['email'],
+                'email' => blank($validated['email'] ?? null) ? null : $validated['email'],
                 'password' => Str::password(32),
                 'account_role' => $role,
                 'invited_by_user_id' => $inviter->id,
@@ -71,13 +72,24 @@ class InviteUser
                     $membershipRole,
                     $inviter,
                 );
+
+                if ($membershipRole === LeagueMembershipRole::Member) {
+                    $league->players()
+                        ->where('user_id', $user->id)
+                        ->update([
+                            'jersey_number' => $validated['jersey_number'] ?? null,
+                            'updated_by_user_id' => $inviter->id,
+                        ]);
+                }
             }
 
-            $issuedInvitation = $this->userInvitationService->issue($user);
-            $user->notify(new AppInvitationNotification(
-                $issuedInvitation['invitation'],
-                $issuedInvitation['token'],
-            ));
+            if (filled($user->email)) {
+                $issuedInvitation = $this->userInvitationService->issue($user);
+                $user->notify(new AppInvitationNotification(
+                    $issuedInvitation['invitation'],
+                    $issuedInvitation['token'],
+                ));
+            }
 
             return $user->fresh(['invitation']);
         });
