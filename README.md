@@ -341,7 +341,9 @@ Ups! Lo sentimos, ha ocurrido un problema accediendo a la app. Comuniquese con l
 ### Scout
 
 - Permite registrar perfil manual por jugador: posicion, rol, consistencia ofensiva y ratings de 0 a 5.
-- Combina ese perfil con la produccion de `Temporada` para calcular un rating consolidado y previsualizar el draft automatico cuando hay 10 jugadores en pool.
+- Combina ese perfil con la produccion de `Temporada` usando la misma logica de `legacy`: victorias (25%), anotacion por juego (20%), defensa por puntos permitidos (20%), triples (20%) y diversidad de tiros por entropia de Shannon (15%).
+- El rating consolidado respeta el mismo peso hibrido de `legacy`: menos de 5 juegos usa 80% manual / 20% stats, entre 5 y 15 usa 60% / 40%, y con 15+ juegos usa 40% / 60%.
+- El auto draft y la vista previa de Scout consumen exactamente ese rating combinado; los invitados sin perfil manual pueden entrar por stats si ya tienen historial de temporada.
 - Los hints y ayudas del flujo existen en web y mobile; solo administradores pueden editar perfiles.
 
 ### Gestion

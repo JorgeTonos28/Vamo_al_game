@@ -4,6 +4,8 @@ namespace Tests\Feature\Api\V1;
 
 use App\Models\League;
 use App\Models\LeaguePlayer;
+use App\Models\LeagueSession;
+use App\Models\LeagueSessionEntry;
 use App\Models\User;
 use App\Services\LeagueOperations\LeagueArrivalService;
 use App\Services\LeagueOperations\LeagueManagementService;
@@ -119,6 +121,78 @@ class LeagueCompetitionModulesTest extends TestCase
             ->assertJsonPath('data.game.rotation_notice.body.0', 'Eq. A se queda completo en cancha.');
     }
 
+    public function test_admin_can_fetch_scout_payload_with_legacy_stat_breakdown(): void
+    {
+        [$league, $admin, $players] = $this->makeLeagueContext();
+        $this->prepareLeagueSession($league, $admin, $players->take(10));
+
+        $session = $league->sessions()->with('entries.player')->latest('id')->firstOrFail();
+        $focusPlayer = $players->firstOrFail();
+
+        $this->createScoutProfile($focusPlayer, $admin, 3, 'Anotador');
+        $this->seedScoutSeasonHistory($session, $admin, $players);
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/league/modules/scout')
+            ->assertOk();
+
+        $row = collect($response->json('data.scout.players'))
+            ->firstWhere('player.id', $focusPlayer->id);
+
+        $this->assertNotNull($row);
+        $this->assertSame(true, $row['has_stats']);
+        $this->assertEquals(3.0, $row['manual_rating']);
+        $this->assertEquals(3.3, $row['combined_rating']);
+        $this->assertEquals(5.0, $row['stat_rating']['victories']);
+        $this->assertEquals(5.0, $row['stat_rating']['scoring']);
+        $this->assertEquals(5.0, $row['stat_rating']['defense']);
+        $this->assertEquals(5.0, $row['stat_rating']['triples']);
+        $this->assertEquals(0.0, $row['stat_rating']['diversity']);
+        $this->assertEquals(4.3, $row['stat_rating']['overall']);
+        $this->assertEquals(9.0, $row['stat_rating']['detail']['points_per_game']);
+        $this->assertEquals(100, $row['stat_rating']['detail']['win_rate']);
+        $this->assertEquals(10.3, $row['stat_rating']['detail']['points_allowed_per_game']);
+        $this->assertEquals(100, $row['stat_rating']['detail']['triple_rate']);
+        $this->assertEquals(0, $row['stat_rating']['detail']['diversity']);
+    }
+
+    public function test_admin_can_start_an_auto_draft_from_scout_ratings(): void
+    {
+        [$league, $admin, $players] = $this->makeLeagueContext();
+        $this->prepareLeagueSession($league, $admin, $players->take(10));
+
+        $ratings = [5, 1, 5, 1, 5, 1, 5, 1, 5, 1];
+
+        foreach ($players as $index => $player) {
+            $this->createScoutProfile($player, $admin, $ratings[$index] ?? 1, 'Equilibrado');
+        }
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/league/modules/game/draft', [
+                'mode' => 'auto',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.game.state', 'live');
+
+        $teamA = collect($response->json('data.game.current.team_a'))->pluck('name')->values()->all();
+        $teamB = collect($response->json('data.game.current.team_b'))->pluck('name')->values()->all();
+
+        $this->assertEqualsCanonicalizing([
+            $players[0]->display_name,
+            $players[4]->display_name,
+            $players[8]->display_name,
+            $players[7]->display_name,
+            $players[9]->display_name,
+        ], $teamA);
+        $this->assertEqualsCanonicalizing([
+            $players[2]->display_name,
+            $players[6]->display_name,
+            $players[1]->display_name,
+            $players[3]->display_name,
+            $players[5]->display_name,
+        ], $teamB);
+    }
+
     /**
      * @return array{0: League, 1: User, 2: Collection<int, LeaguePlayer>}
      */
@@ -170,5 +244,100 @@ class LeagueCompetitionModulesTest extends TestCase
         }
 
         $arrival->prepareSession($admin);
+    }
+
+    private function createScoutProfile(LeaguePlayer $player, User $admin, int $rating, string $role): void
+    {
+        $player->scoutProfile()->create([
+            'position' => 'Base',
+            'role' => $role,
+            'offensive_consistency' => 'Constante',
+            'speed_rating' => $rating,
+            'dribbling_rating' => $rating,
+            'scoring_rating' => $rating,
+            'team_play_rating' => $rating,
+            'court_knowledge_rating' => $rating,
+            'defense_rating' => $rating,
+            'triples_rating' => $rating,
+            'updated_by_user_id' => $admin->id,
+        ]);
+    }
+
+    /**
+     * @param  Collection<int, LeaguePlayer>  $players
+     */
+    private function seedScoutSeasonHistory(LeagueSession $session, User $admin, Collection $players): void
+    {
+        $entries = $session->entries->keyBy('league_player_id');
+        $teamA = $players->take(5)->map(fn (LeaguePlayer $player): LeagueSessionEntry => $entries->get($player->id));
+        $teamB = $players->slice(5, 5)->map(fn (LeaguePlayer $player): LeagueSessionEntry => $entries->get($player->id));
+
+        $games = [
+            [
+                'score_a' => 16,
+                'score_b' => 10,
+                'points' => [9, 2, 2, 2, 1, 3, 2, 2, 2, 1],
+            ],
+            [
+                'score_a' => 16,
+                'score_b' => 12,
+                'points' => [9, 2, 2, 2, 1, 4, 3, 2, 2, 1],
+            ],
+            [
+                'score_a' => 16,
+                'score_b' => 9,
+                'points' => [9, 2, 2, 2, 1, 2, 2, 2, 2, 1],
+            ],
+        ];
+
+        foreach ($games as $index => $game) {
+            $playerPoints = [];
+            $playerShots = [];
+            $pointList = $game['points'];
+
+            foreach ($teamA->values() as $teamIndex => $entry) {
+                $playerPoints[(string) $entry->id] = $pointList[$teamIndex];
+                $playerShots[(string) $entry->id] = $teamIndex === 0
+                    ? ['1' => 0, '2' => 0, '3' => 3]
+                    : ['1' => $pointList[$teamIndex], '2' => 0, '3' => 0];
+            }
+
+            foreach ($teamB->values() as $teamIndex => $entry) {
+                $playerPoints[(string) $entry->id] = $pointList[$teamIndex + 5];
+                $playerShots[(string) $entry->id] = ['1' => $pointList[$teamIndex + 5], '2' => 0, '3' => 0];
+            }
+
+            $session->games()->create([
+                'game_number' => $index + 1,
+                'draft_mode' => 'auto',
+                'status' => 'completed',
+                'phase' => 'standard',
+                'team_a_score' => $game['score_a'],
+                'team_b_score' => $game['score_b'],
+                'winner_side' => 'A',
+                'team_a_snapshot' => $teamA->map(fn (LeagueSessionEntry $entry): array => $this->snapshotForEntry($entry))->all(),
+                'team_b_snapshot' => $teamB->map(fn (LeagueSessionEntry $entry): array => $this->snapshotForEntry($entry))->all(),
+                'player_points' => $playerPoints,
+                'player_shots' => $playerShots,
+                'started_at' => now()->subMinutes(30 - $index),
+                'ended_at' => now()->subMinutes(29 - $index),
+                'created_by_user_id' => $admin->id,
+                'finished_by_user_id' => $admin->id,
+            ]);
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function snapshotForEntry(LeagueSessionEntry $entry): array
+    {
+        return [
+            'entry_id' => $entry->id,
+            'player_id' => $entry->league_player_id,
+            'name' => $entry->player?->display_name,
+            'is_guest' => false,
+            'jersey_number' => $entry->player?->jersey_number,
+        ];
     }
 }

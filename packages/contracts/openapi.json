@@ -7549,6 +7549,71 @@
           }
         }
       },
+      "LeagueScoutStatRatingDetail": {
+        "type": "object",
+        "required": [
+          "points_per_game",
+          "win_rate",
+          "points_allowed_per_game",
+          "triple_rate",
+          "diversity"
+        ],
+        "properties": {
+          "points_per_game": {
+            "type": "number"
+          },
+          "win_rate": {
+            "type": "integer"
+          },
+          "points_allowed_per_game": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "triple_rate": {
+            "type": "integer"
+          },
+          "diversity": {
+            "type": "integer"
+          }
+        }
+      },
+      "LeagueScoutStatRating": {
+        "type": "object",
+        "required": [
+          "victories",
+          "scoring",
+          "defense",
+          "triples",
+          "diversity",
+          "overall",
+          "detail"
+        ],
+        "properties": {
+          "victories": {
+            "type": "number"
+          },
+          "scoring": {
+            "type": "number"
+          },
+          "defense": {
+            "type": "number"
+          },
+          "triples": {
+            "type": "number"
+          },
+          "diversity": {
+            "type": "number"
+          },
+          "overall": {
+            "type": "number"
+          },
+          "detail": {
+            "$ref": "#/components/schemas/LeagueScoutStatRatingDetail"
+          }
+        }
+      },
       "LeagueScoutPlayerRow": {
         "type": "object",
         "required": [
@@ -7584,9 +7649,13 @@
             "type": "number"
           },
           "stat_rating": {
-            "type": [
-              "number",
-              "null"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeagueScoutStatRating"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "has_stats": {

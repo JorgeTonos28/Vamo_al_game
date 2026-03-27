@@ -487,6 +487,22 @@ export type LeagueScoutProfile = {
   triples_rating: number
 }
 
+export type LeagueScoutStatRating = {
+  victories: number
+  scoring: number
+  defense: number
+  triples: number
+  diversity: number
+  overall: number
+  detail: {
+    points_per_game: number
+    win_rate: number
+    points_allowed_per_game: number | null
+    triple_rate: number
+    diversity: number
+  }
+}
+
 export type LeagueScoutPayload = LeagueCompetitionBase & {
   scout: {
     meta: {
@@ -514,7 +530,7 @@ export type LeagueScoutPayload = LeagueCompetitionBase & {
       }
       combined_rating: number
       manual_rating: number
-      stat_rating: number | null
+      stat_rating: LeagueScoutStatRating | null
       has_stats: boolean
     }>
     ranking: Array<{

@@ -287,14 +287,14 @@ class LeagueCompetitionService
         $context = $this->operationalContext($user);
         $league = $context['league'];
         $session = $context['session'];
-        $season = $context['season'];
         $seasonStats = $this->seasonStats($context['season']->sessions)->keyBy('season_key');
+        $scoutStatBaseline = $this->scoutStatBaseline($seasonStats);
         $players = $this->operations->activeOperationalPlayersQuery($league)
             ->with('scoutProfile')
             ->orderBy('display_name')
             ->get();
 
-        $rows = $players->map(function (LeaguePlayer $player) use ($seasonStats): array {
+        $rows = $players->map(function (LeaguePlayer $player) use ($seasonStats, $scoutStatBaseline): array {
             $profile = $player->scoutProfile;
             $seasonKey = $this->seasonKeyForIdentity([
                 'player_id' => $player->id,
@@ -302,7 +302,7 @@ class LeagueCompetitionService
                 'is_guest' => false,
             ]);
             $seasonRow = $seasonStats->get($seasonKey);
-            $combined = $this->combinedScoutRating($profile, $seasonRow);
+            $combined = $this->combinedScoutRating($profile, $seasonRow, $scoutStatBaseline);
 
             return [
                 'player' => [
@@ -330,12 +330,12 @@ class LeagueCompetitionService
             ];
         })->values();
 
-        $profiledPlayers = $rows
-            ->filter(fn (array $row): bool => $row['combined_rating'] > 0)
+        $profiledPlayers = $players
+            ->filter(fn (LeaguePlayer $player): bool => $player->scoutProfile !== null)
             ->count();
         $autoPreviewPool = $this->pendingPoolEntries($session);
         $autoPreview = $autoPreviewPool->count() === 10
-            ? $this->scoutAutoPreview($autoPreviewPool, $season, $seasonStats)
+            ? $this->scoutAutoPreview($autoPreviewPool, $seasonStats, $scoutStatBaseline)
             : null;
 
         return array_merge($this->basePayload($context), [
@@ -353,6 +353,7 @@ class LeagueCompetitionService
                 ],
                 'players' => $rows->all(),
                 'ranking' => $rows
+                    ->filter(fn (array $row): bool => $row['manual_rating'] > 0 || $row['has_stats'])
                     ->sortByDesc('combined_rating')
                     ->values()
                     ->map(fn (array $row): array => [
@@ -386,7 +387,10 @@ class LeagueCompetitionService
         }
 
         $teams = match ($mode) {
-            'auto' => $this->autoDraft($pool, $context['season']),
+            'auto' => $this->autoDraft(
+                $pool,
+                $this->seasonStats($context['season']->sessions)->keyBy('season_key'),
+            ),
             'arrival' => $this->arrivalDraft($pool),
             'manual' => $this->manualDraft($pool, $assignments),
             default => throw ValidationException::withMessages([
@@ -1188,14 +1192,14 @@ class LeagueCompetitionService
      * @param  Collection<int, array<string, mixed>>  $seasonStats
      * @return array<string, mixed>
      */
-    private function scoutAutoPreview(Collection $pool, $season, Collection $seasonStats): array
+    private function scoutAutoPreview(Collection $pool, Collection $seasonStats, array $scoutStatBaseline): array
     {
-        $teams = $this->autoDraft($pool, $season);
+        $teams = $this->autoDraft($pool, $seasonStats, $scoutStatBaseline);
         $teamA = $teams['A']->map(
-            fn (LeagueSessionEntry $entry): array => $this->scoutPreviewCard($entry, $seasonStats)
+            fn (LeagueSessionEntry $entry): array => $this->scoutPreviewCard($entry, $seasonStats, $scoutStatBaseline)
         )->values();
         $teamB = $teams['B']->map(
-            fn (LeagueSessionEntry $entry): array => $this->scoutPreviewCard($entry, $seasonStats)
+            fn (LeagueSessionEntry $entry): array => $this->scoutPreviewCard($entry, $seasonStats, $scoutStatBaseline)
         )->values();
 
         return [
@@ -1212,7 +1216,7 @@ class LeagueCompetitionService
      * @param  Collection<int, array<string, mixed>>  $seasonStats
      * @return array<string, mixed>
      */
-    private function scoutPreviewCard(LeagueSessionEntry $entry, Collection $seasonStats): array
+    private function scoutPreviewCard(LeagueSessionEntry $entry, Collection $seasonStats, array $scoutStatBaseline): array
     {
         $seasonKey = $this->seasonKeyForIdentity([
             'player_id' => $entry->player?->id,
@@ -1220,7 +1224,7 @@ class LeagueCompetitionService
             'is_guest' => $entry->entry_type === 'guest',
         ]);
         $seasonRow = $seasonStats->get($seasonKey);
-        $combined = $this->combinedScoutRating($entry->player?->scoutProfile, $seasonRow);
+        $combined = $this->combinedScoutRating($entry->player?->scoutProfile, $seasonRow, $scoutStatBaseline);
 
         return [
             ...$this->entryCard($entry),
@@ -1293,51 +1297,90 @@ class LeagueCompetitionService
     /**
      * @return array<string, Collection<int, LeagueSessionEntry>>
      */
-    private function autoDraft(Collection $pool, $season): array
+    private function autoDraft(Collection $pool, Collection $seasonStats, ?array $scoutStatBaseline = null): array
     {
-        $seasonStats = $this->seasonStats($season->sessions)->keyBy('season_key');
-        $ordered = $pool->sortByDesc(function (LeagueSessionEntry $entry) use ($seasonStats): float {
-            $seasonKey = $this->seasonKeyForIdentity([
-                'player_id' => $entry->player?->id,
-                'name' => $entry->entry_type === 'guest' ? $entry->guest_name : $entry->player?->display_name,
-                'is_guest' => $entry->entry_type === 'guest',
-            ]);
-            $seasonRow = $seasonStats->get($seasonKey);
-            $combined = $this->combinedScoutRating($entry->player?->scoutProfile, $seasonRow);
+        $scoutStatBaseline ??= $this->scoutStatBaseline($seasonStats);
+        $ordered = $pool
+            ->map(fn (LeagueSessionEntry $entry): array => $this->scoutDraftCandidate($entry, $seasonStats, $scoutStatBaseline))
+            ->sort(function (array $left, array $right): int {
+                $ratingComparison = $right['rating'] <=> $left['rating'];
 
-            return $combined['rating'];
-        })->values();
+                if ($ratingComparison !== 0) {
+                    return $ratingComparison;
+                }
+
+                return $left['entry']->arrival_order <=> $right['entry']->arrival_order;
+            })
+            ->values();
 
         $teamA = collect();
         $teamB = collect();
         $scoreA = 0.0;
         $scoreB = 0.0;
 
-        foreach ($ordered as $entry) {
-            $seasonKey = $this->seasonKeyForIdentity([
-                'player_id' => $entry->player?->id,
-                'name' => $entry->entry_type === 'guest' ? $entry->guest_name : $entry->player?->display_name,
-                'is_guest' => $entry->entry_type === 'guest',
-            ]);
-            $seasonRow = $seasonStats->get($seasonKey);
-            $combined = $this->combinedScoutRating($entry->player?->scoutProfile, $seasonRow);
-            $weight = $combined['rating'];
+        foreach ($ordered as $candidate) {
+            /** @var LeagueSessionEntry $entry */
+            $entry = $candidate['entry'];
+            $weight = $candidate['rating'];
 
-            $guestCountA = $teamA->where('entry_type', 'guest')->count();
-            $guestCountB = $teamB->where('entry_type', 'guest')->count();
+            $guestCountA = $teamA->filter(
+                fn (array $item): bool => $item['entry']->entry_type === 'guest'
+            )->count();
+            $guestCountB = $teamB->filter(
+                fn (array $item): bool => $item['entry']->entry_type === 'guest'
+            )->count();
             $canA = $teamA->count() < 5 && ($entry->entry_type !== 'guest' || $guestCountA < 2);
             $canB = $teamB->count() < 5 && ($entry->entry_type !== 'guest' || $guestCountB < 2);
 
-            if ($canA && (! $canB || $scoreA <= $scoreB)) {
-                $teamA->push($entry);
-                $scoreA += $weight;
-            } else {
-                $teamB->push($entry);
-                $scoreB += $weight;
+            if (! $canA && ! $canB) {
+                throw ValidationException::withMessages([
+                    'session' => 'No se puede balancear el draft automatico con mas de 2 invitados por equipo.',
+                ]);
             }
+
+            if ($canA && ! $canB) {
+                $teamA->push($candidate);
+                $scoreA += $weight;
+
+                continue;
+            }
+
+            if ($canB && ! $canA) {
+                $teamB->push($candidate);
+                $scoreB += $weight;
+
+                continue;
+            }
+
+            $assignToA = false;
+
+            if ($teamA->count() < 5 && $teamB->count() < 5) {
+                if ($candidate['role'] === 'Anotador') {
+                    $scorersA = $teamA->filter(fn (array $item): bool => $item['role'] === 'Anotador')->count();
+                    $scorersB = $teamB->filter(fn (array $item): bool => $item['role'] === 'Anotador')->count();
+                    $assignToA = $scorersA === $scorersB ? $scoreA <= $scoreB : $scorersA <= $scorersB;
+                } else {
+                    $assignToA = $scoreA <= $scoreB;
+                }
+            } else {
+                $assignToA = $teamA->count() < 5;
+            }
+
+            if ($assignToA) {
+                $teamA->push($candidate);
+                $scoreA += $weight;
+
+                continue;
+            }
+
+            $teamB->push($candidate);
+            $scoreB += $weight;
         }
 
-        return ['A' => $teamA->values(), 'B' => $teamB->values()];
+        return [
+            'A' => $teamA->pluck('entry')->values(),
+            'B' => $teamB->pluck('entry')->values(),
+        ];
     }
 
     private function createOpenGameFromCurrentCourt(LeagueSession $session, User $user, ?string $draftMode, string $phase): ?LeagueSessionGame
@@ -1944,26 +1987,46 @@ class LeagueCompetitionService
     }
 
     /**
-     * @return array{rating: float, manual_rating: float, stat_rating: ?float, has_stats: bool}
+     * @param  array<string, mixed>  $scoutStatBaseline
+     * @return array{
+     *     rating: float,
+     *     manual_rating: float,
+     *     stat_rating: null|array{
+     *         victories: float,
+     *         scoring: float,
+     *         defense: float,
+     *         triples: float,
+     *         diversity: float,
+     *         overall: float,
+     *         detail: array{
+     *             points_per_game: float,
+     *             win_rate: int,
+     *             points_allowed_per_game: ?float,
+     *             triple_rate: int,
+     *             diversity: int
+     *         }
+     *     },
+     *     has_stats: bool
+     * }
      */
-    private function combinedScoutRating(?LeaguePlayerScoutProfile $profile, ?array $seasonRow): array
+    private function combinedScoutRating(?LeaguePlayerScoutProfile $profile, ?array $seasonRow, array $scoutStatBaseline): array
     {
         $manualRating = $this->manualScoutRating($profile);
-        $statRating = $this->seasonScoutRating($seasonRow);
+        $statRating = $this->seasonScoutRating($seasonRow, $scoutStatBaseline);
 
         if ($statRating === null) {
             return ['rating' => $manualRating, 'manual_rating' => $manualRating, 'stat_rating' => null, 'has_stats' => false];
         }
 
         if ($manualRating <= 0) {
-            return ['rating' => $statRating, 'manual_rating' => 0, 'stat_rating' => $statRating, 'has_stats' => true];
+            return ['rating' => $statRating['overall'], 'manual_rating' => 0, 'stat_rating' => $statRating, 'has_stats' => true];
         }
 
         $games = (int) ($seasonRow['games'] ?? 0);
         $statWeight = $games < 5 ? 0.2 : ($games < 15 ? 0.4 : 0.6);
 
         return [
-            'rating' => round(($manualRating * (1 - $statWeight)) + ($statRating * $statWeight), 1),
+            'rating' => round(($manualRating * (1 - $statWeight)) + ($statRating['overall'] * $statWeight), 1),
             'manual_rating' => $manualRating,
             'stat_rating' => $statRating,
             'has_stats' => true,
@@ -1981,26 +2044,184 @@ class LeagueCompetitionService
         return round($total / count(self::SCOUT_ATTRS), 1);
     }
 
-    private function seasonScoutRating(?array $seasonRow): ?float
+    /**
+     * @param  array<string, mixed>  $scoutStatBaseline
+     * @return null|array{
+     *     victories: float,
+     *     scoring: float,
+     *     defense: float,
+     *     triples: float,
+     *     diversity: float,
+     *     overall: float,
+     *     detail: array{
+     *         points_per_game: float,
+     *         win_rate: int,
+     *         points_allowed_per_game: ?float,
+     *         triple_rate: int,
+     *         diversity: int
+     *     }
+     * }
+     */
+    private function seasonScoutRating(?array $seasonRow, array $scoutStatBaseline): ?array
     {
         if ($seasonRow === null || ($seasonRow['games'] ?? 0) < 3) {
             return null;
         }
 
-        $pointsPerGame = (float) $seasonRow['points_per_game'];
-        $winRate = (float) ($seasonRow['win_rate'] ?? 0);
-        $pointsAllowed = (float) ($seasonRow['points_allowed_per_game'] ?? 18);
         $shots = $seasonRow['shots'] ?? ['1' => 0, '2' => 0, '3' => 0];
-        $totalShots = (int) $shots['1'] + (int) $shots['2'] + (int) $shots['3'];
-        $tripleRate = $totalShots > 0 ? ((int) $shots['3'] / $totalShots) * 5 : 0;
-        $diversity = $totalShots > 0
-            ? min(5.0, round((((int) $shots['1'] > 0 ? 1 : 0) + ((int) $shots['2'] > 0 ? 1 : 0) + ((int) $shots['3'] > 0 ? 1 : 0)) * 1.6, 1))
-            : 0;
-        $offense = min(5.0, round($pointsPerGame, 1));
-        $teamPlay = min(5.0, round(($winRate / 100) * 5, 1));
-        $defense = max(0.5, min(5.0, round((18 - $pointsAllowed) / 3, 1) + 2.5));
+        $games = (int) ($seasonRow['games'] ?? 0);
+        $wins = (int) ($seasonRow['wins'] ?? 0);
+        $gamesDefended = (int) ($seasonRow['games_defended'] ?? 0);
+        $pointsPerGame = $games > 0 ? round(((float) ($seasonRow['points'] ?? 0)) / $games, 1) : 0.0;
+        $winRate = $games > 0 ? $wins / $games : 0.0;
+        $pointsAllowedPerGame = $gamesDefended > 0
+            ? round(((float) ($seasonRow['points_allowed'] ?? 0)) / $gamesDefended, 1)
+            : null;
+        $tripleRate = $this->scoutTripleRate($shots);
+        $diversity = $this->scoutDiversityScore($shots);
 
-        return round((($teamPlay * 0.25) + ($offense * 0.2) + ($defense * 0.2) + ($tripleRate * 0.2) + ($diversity * 0.15)), 1);
+        $victoriesRating = round($winRate * 5, 1);
+        $scoringRating = $this->normalizeScoutValue($pointsPerGame, (float) ($scoutStatBaseline['max_points_per_game'] ?? 0));
+        $triplesRating = $this->normalizeScoutValue($tripleRate, (float) ($scoutStatBaseline['max_triple_rate'] ?? 0));
+        $defenseRating = 0.0;
+
+        if (
+            $pointsAllowedPerGame !== null
+            && $scoutStatBaseline['defense_min_points_allowed_per_game'] !== null
+            && $scoutStatBaseline['defense_max_points_allowed_per_game'] !== null
+        ) {
+            $range = (float) $scoutStatBaseline['defense_max_points_allowed_per_game']
+                - (float) $scoutStatBaseline['defense_min_points_allowed_per_game'];
+            $defenseRating = $range > 0
+                ? round((((float) $scoutStatBaseline['defense_max_points_allowed_per_game'] - $pointsAllowedPerGame) / $range) * 5, 1)
+                : 2.5;
+        }
+
+        $overall = round(
+            ($victoriesRating * 0.25)
+            + ($scoringRating * 0.20)
+            + ($defenseRating * 0.20)
+            + ($triplesRating * 0.20)
+            + ($diversity * 0.15),
+            1,
+        );
+
+        return [
+            'victories' => $victoriesRating,
+            'scoring' => $scoringRating,
+            'defense' => $defenseRating,
+            'triples' => $triplesRating,
+            'diversity' => $diversity,
+            'overall' => $overall,
+            'detail' => [
+                'points_per_game' => $pointsPerGame,
+                'win_rate' => (int) round($winRate * 100),
+                'points_allowed_per_game' => $pointsAllowedPerGame,
+                'triple_rate' => (int) round($tripleRate * 100),
+                'diversity' => (int) round(($diversity / 5) * 100),
+            ],
+        ];
+    }
+
+    /**
+     * @param  Collection<int|string, array<string, mixed>>  $seasonStats
+     * @return array<string, float|null>
+     */
+    private function scoutStatBaseline(Collection $seasonStats): array
+    {
+        $eligibleRows = $seasonStats
+            ->filter(fn (array $row): bool => (int) ($row['games'] ?? 0) >= 3)
+            ->values();
+
+        $defenseRows = $eligibleRows
+            ->filter(fn (array $row): bool => (int) ($row['games_defended'] ?? 0) > 0)
+            ->values();
+
+        return [
+            'max_points_per_game' => $eligibleRows
+                ->map(fn (array $row): float => (float) ($row['points_per_game'] ?? 0))
+                ->max() ?? 0.0,
+            'max_triple_rate' => $eligibleRows
+                ->map(fn (array $row): float => $this->scoutTripleRate($row['shots'] ?? ['1' => 0, '2' => 0, '3' => 0]))
+                ->max() ?? 0.0,
+            'defense_min_points_allowed_per_game' => $defenseRows
+                ->map(fn (array $row): float => (float) (($row['points_allowed_per_game'] ?? 0)))
+                ->min(),
+            'defense_max_points_allowed_per_game' => $defenseRows
+                ->map(fn (array $row): float => (float) (($row['points_allowed_per_game'] ?? 0)))
+                ->max(),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $shots
+     */
+    private function scoutTripleRate(array $shots): float
+    {
+        $totalShots = (int) ($shots['1'] ?? 0) + (int) ($shots['2'] ?? 0) + (int) ($shots['3'] ?? 0);
+
+        if ($totalShots <= 0) {
+            return 0.0;
+        }
+
+        return ((int) ($shots['3'] ?? 0)) / $totalShots;
+    }
+
+    /**
+     * @param  array<string, mixed>  $shots
+     */
+    private function scoutDiversityScore(array $shots): float
+    {
+        $onePointShots = (int) ($shots['1'] ?? 0);
+        $twoPointShots = (int) ($shots['2'] ?? 0);
+        $threePointShots = (int) ($shots['3'] ?? 0);
+        $totalShots = $onePointShots + $twoPointShots + $threePointShots;
+
+        if ($totalShots <= 0) {
+            return 0.0;
+        }
+
+        $entropy = collect([$onePointShots, $twoPointShots, $threePointShots])
+            ->map(fn (int $count): float => $count / $totalShots)
+            ->reduce(function (float $carry, float $probability): float {
+                if ($probability <= 0) {
+                    return $carry;
+                }
+
+                return $carry - ($probability * log($probability));
+            }, 0.0);
+
+        return round(($entropy / log(3.0)) * 5, 1);
+    }
+
+    private function normalizeScoutValue(float $value, float $max): float
+    {
+        if ($max <= 0) {
+            return 0.0;
+        }
+
+        return min(5.0, round(($value / $max) * 5, 1));
+    }
+
+    /**
+     * @param  array<string, mixed>  $scoutStatBaseline
+     * @return array{entry: LeagueSessionEntry, rating: float, role: ?string}
+     */
+    private function scoutDraftCandidate(LeagueSessionEntry $entry, Collection $seasonStats, array $scoutStatBaseline): array
+    {
+        $seasonKey = $this->seasonKeyForIdentity([
+            'player_id' => $entry->player?->id,
+            'name' => $entry->entry_type === 'guest' ? $entry->guest_name : $entry->player?->display_name,
+            'is_guest' => $entry->entry_type === 'guest',
+        ]);
+        $seasonRow = $seasonStats->get($seasonKey);
+        $combined = $this->combinedScoutRating($entry->player?->scoutProfile, $seasonRow, $scoutStatBaseline);
+
+        return [
+            'entry' => $entry,
+            'rating' => $combined['rating'],
+            'role' => $entry->player?->scoutProfile?->role,
+        ];
     }
 
     /**

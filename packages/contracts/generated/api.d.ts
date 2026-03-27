@@ -1939,13 +1939,29 @@ export interface components {
             auto_preview_ready: boolean;
             auto_preview_pool_count: number;
         };
+        LeagueScoutStatRatingDetail: {
+            points_per_game: number;
+            win_rate: number;
+            points_allowed_per_game: number | null;
+            triple_rate: number;
+            diversity: number;
+        };
+        LeagueScoutStatRating: {
+            victories: number;
+            scoring: number;
+            defense: number;
+            triples: number;
+            diversity: number;
+            overall: number;
+            detail: components["schemas"]["LeagueScoutStatRatingDetail"];
+        };
         LeagueScoutPlayerRow: {
             player: components["schemas"]["LeagueRosterPlayer"];
             profile: components["schemas"]["LeagueScoutProfile"];
             season_stats: components["schemas"]["LeagueSeasonProfile"] | null;
             combined_rating: number;
             manual_rating: number;
-            stat_rating: number | null;
+            stat_rating: components["schemas"]["LeagueScoutStatRating"] | null;
             has_stats: boolean;
         };
         LeagueScoutRankingRow: {
