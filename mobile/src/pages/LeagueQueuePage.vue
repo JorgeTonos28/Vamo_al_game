@@ -25,6 +25,29 @@ async function handleRefresh(event: CustomEvent): Promise<void> {
 }
 
 onIonViewWillEnter(loadPage)
+
+async function changeSession(event: Event): Promise<void> {
+  const target = event.target as HTMLSelectElement
+  const sessionId = Number(target.value)
+
+  if (!Number.isFinite(sessionId) || sessionId <= 0) {
+    return
+  }
+
+  isLoading.value = true
+  try {
+    payload.value = await fetchLeagueQueue(sessionId)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+function sessionLabel(session: LeagueQueuePayload['session_selector']['sessions'][number]): string {
+  const base = session.session_date ?? 'Sin fecha'
+  const suffix = session.is_current ? 'actual' : session.status === 'completed' ? 'cerrada' : 'abierta'
+
+  return `${base} · ${suffix}`
+}
 </script>
 
 <template>
@@ -38,6 +61,16 @@ onIonViewWillEnter(loadPage)
         <div class="mobile-stack">
           <MobileAppTopbar :title="payload?.league.name ?? 'Cola'" description="Vista viva de cancha, espera y rotacion actual." />
 
+          <section class="app-surface section-stack">
+            <p class="app-kicker section-kicker">Jornada visible</p>
+            <p class="body-copy">Revisa la cola actual o consulta jornadas anteriores desde el mismo modulo.</p>
+            <select class="sheet-input" :value="payload?.session_selector.selected_session_id" @change="changeSession">
+              <option v-for="session in payload?.session_selector.sessions ?? []" :key="session.id" :value="session.id">
+                {{ sessionLabel(session) }}
+              </option>
+            </select>
+          </section>
+
           <section class="summary-grid">
             <article class="app-surface summary-card">
               <p class="app-kicker">Juegos</p>
@@ -48,6 +81,16 @@ onIonViewWillEnter(loadPage)
               <p class="app-kicker">Activos hoy</p>
               <p class="summary-card__value">{{ payload?.queue.summary.active_players ?? 0 }}</p>
               <p class="body-copy">{{ payload?.queue.summary.guests ?? 0 }} invitados incluidos</p>
+            </article>
+            <article class="app-surface summary-card">
+              <p class="app-kicker">Racha actual</p>
+              <p class="summary-card__value">{{ payload?.queue.summary.current_streak ?? '-' }}</p>
+              <p class="body-copy">Racha viva de la jornada seleccionada.</p>
+            </article>
+            <article class="app-surface summary-card">
+              <p class="app-kicker">Invitados hoy</p>
+              <p class="summary-card__value">{{ payload?.queue.summary.today_guests ?? 0 }}</p>
+              <p class="body-copy">Invitados registrados en la jornada.</p>
             </article>
           </section>
 
@@ -103,6 +146,7 @@ onIonViewWillEnter(loadPage)
 .data-row__name{font-size:15px}
 .body-copy{font-size:13px;line-height:1.6;color:#94a3b8}
 .section-kicker{color:#e5b849}
+.sheet-input{width:100%;min-height:48px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:#0e1628;padding:0 14px;color:#f8fafc}
 .member-chip{display:inline-flex;align-items:center;justify-content:center;min-height:42px;border-radius:12px;border:1px solid rgba(255,255,255,.06);padding:0 12px;font-size:12px;font-weight:700}
 .member-chip--neutral{background:#131b2f;color:#f8fafc}
 .member-chip--positive{background:rgba(74,222,128,.12);border-color:rgba(74,222,128,.28);color:#4ade80}

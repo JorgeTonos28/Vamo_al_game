@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests\Web\Auth;
 
+use App\Concerns\PasswordValidationRules;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class AcceptInvitationRequest extends FormRequest
 {
+    use PasswordValidationRules;
+
     protected function prepareForValidation(): void
     {
         $documentId = $this->input('document_id');
@@ -35,7 +38,17 @@ class AcceptInvitationRequest extends FormRequest
             'document_id' => ['nullable', 'string', 'max:50', Rule::unique('users', 'document_id')->ignore($userId)],
             'phone' => ['nullable', 'string', 'max:50'],
             'address' => ['nullable', 'string', 'max:255'],
-            'password' => ['required', 'confirmed'],
+            'password' => $this->passwordRules(),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'password.confirmed' => 'La confirmacion de la contrasena no coincide.',
         ];
     }
 }

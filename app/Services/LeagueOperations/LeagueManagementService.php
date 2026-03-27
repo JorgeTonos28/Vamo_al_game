@@ -2,22 +2,34 @@
 
 namespace App\Services\LeagueOperations;
 
+use App\Enums\AccountRole;
+use App\Enums\LeagueMembershipRole;
 use App\Models\League;
 use App\Models\LeagueCut;
 use App\Models\LeagueCutExpense;
 use App\Models\LeagueCutPlayerBalance;
 use App\Models\LeagueFeeSchedule;
+use App\Models\LeagueMembership;
 use App\Models\LeaguePlayer;
 use App\Models\LeaguePlayerReferral;
 use App\Models\User;
+use App\Notifications\AppInvitationNotification;
+use App\Services\Invitations\UserInvitationService;
+use App\Services\LeagueMemberships\LeagueMembershipManager;
+use App\Support\UserName;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class LeagueManagementService
 {
     public function __construct(
         private readonly LeagueOperationsService $operations,
+        private readonly LeagueMembershipManager $membershipManager,
+        private readonly UserInvitationService $userInvitationService,
     ) {}
 
     /**
@@ -34,7 +46,7 @@ class LeagueManagementService
             : $activeCut;
         $selectedCut ??= $activeCut;
 
-        $players = $league->activePlayers()
+        $players = $this->operations->activeOperationalPlayersQuery($league)
             ->orderBy('display_name')
             ->get();
         $expenses = $selectedCut->expenses()
@@ -159,7 +171,10 @@ class LeagueManagementService
         }
 
         $league = $context['league'];
-        $players = $league->players()
+        $players = $this->rosterPlayersQuery($league)
+            ->with([
+                'user.leagueMemberships' => fn ($query) => $query->where('league_id', $league->id),
+            ])
             ->orderBy('status')
             ->orderBy('display_name')
             ->get();
@@ -170,21 +185,16 @@ class LeagueManagementService
             'active_players' => $players
                 ->where('status', 'active')
                 ->values()
-                ->map(fn (LeaguePlayer $player): array => [
-                    'id' => $player->id,
-                    'name' => $player->display_name,
-                    'jersey_number' => $player->jersey_number,
-                ])->all(),
+                ->map(fn (LeaguePlayer $player): array => $this->serializeRosterPlayer($league, $player))
+                ->all(),
             'inactive_players' => $players
                 ->where('status', 'inactive')
                 ->values()
-                ->map(fn (LeaguePlayer $player): array => [
-                    'id' => $player->id,
-                    'name' => $player->display_name,
-                    'jersey_number' => $player->jersey_number,
-                ])->all(),
+                ->map(fn (LeaguePlayer $player): array => $this->serializeRosterPlayer($league, $player))
+                ->all(),
             'referral_options' => $players
                 ->where('status', 'active')
+                ->filter(fn (LeaguePlayer $player): bool => $this->resolveRosterRole($league, $player) === LeagueMembershipRole::Member)
                 ->values()
                 ->map(fn (LeaguePlayer $player): array => [
                     'id' => $player->id,
@@ -458,12 +468,29 @@ class LeagueManagementService
         });
     }
 
-    public function updatePlayer(User $user, LeaguePlayer $player, string $displayName, ?int $jerseyNumber = null): LeaguePlayer
+    /**
+     * @param  array{
+     *     first_name: string,
+     *     last_name: string,
+     *     document_id: string,
+     *     phone?: string|null,
+     *     address?: string|null,
+     *     email?: string|null,
+     *     jersey_number?: int|null,
+     *     account_role: string
+     * }  $data
+     */
+    public function updateRosterMember(User $user, LeaguePlayer $player, array $data): LeaguePlayer
     {
         $context = $this->operations->requireAdminContext($user);
         $this->ensurePlayerBelongsToLeague($player, $context['league']);
+        $league = $context['league'];
+        $displayName = UserName::displayName($data['first_name'], $data['last_name']);
+        $membershipRole = $data['account_role'] === AccountRole::LeagueAdmin->value
+            ? LeagueMembershipRole::Admin
+            : LeagueMembershipRole::Member;
 
-        $exists = $context['league']->players()
+        $exists = $league->players()
             ->whereKeyNot($player->id)
             ->whereRaw('lower(display_name) = ?', [mb_strtolower($displayName)])
             ->exists();
@@ -474,19 +501,102 @@ class LeagueManagementService
             ]);
         }
 
-        $player->forceFill([
-            'display_name' => $displayName,
-            'jersey_number' => $jerseyNumber,
-            'updated_by_user_id' => $user->id,
-        ])->save();
+        return DB::transaction(function () use ($user, $player, $data, $displayName, $membershipRole, $league): LeaguePlayer {
+            if ($player->user === null && $membershipRole === LeagueMembershipRole::Member) {
+                // Keep the same roster row when a member without account details is completed later.
+                $player->forceFill([
+                    'display_name' => $displayName,
+                    'jersey_number' => $data['jersey_number'] ?? null,
+                    'updated_by_user_id' => $user->id,
+                ])->save();
+            }
 
-        return $player->fresh();
+            $linkedUser = $player->user;
+            $previousEmail = $linkedUser?->email;
+
+            if ($linkedUser === null) {
+                $linkedUser = User::query()->create([
+                    'first_name' => $data['first_name'],
+                    'last_name' => $data['last_name'],
+                    'name' => $displayName,
+                    'document_id' => $data['document_id'],
+                    'phone' => blank($data['phone'] ?? null) ? null : $data['phone'],
+                    'address' => blank($data['address'] ?? null) ? null : $data['address'],
+                    'email' => blank($data['email'] ?? null) ? null : $data['email'],
+                    'password' => Str::password(32),
+                    'account_role' => $membershipRole === LeagueMembershipRole::Admin
+                        ? AccountRole::LeagueAdmin
+                        : AccountRole::Member,
+                    'invited_by_user_id' => $user->id,
+                    'invited_at' => now(),
+                    'onboarded_at' => null,
+                ]);
+            } else {
+                $linkedUser->forceFill([
+                    'first_name' => $data['first_name'],
+                    'last_name' => $data['last_name'],
+                    'name' => $displayName,
+                    'document_id' => $data['document_id'],
+                    'phone' => blank($data['phone'] ?? null) ? null : $data['phone'],
+                    'address' => blank($data['address'] ?? null) ? null : $data['address'],
+                    'email' => blank($data['email'] ?? null) ? null : $data['email'],
+                    'account_role' => $membershipRole === LeagueMembershipRole::Admin
+                        ? AccountRole::LeagueAdmin
+                        : AccountRole::Member,
+                ])->save();
+            }
+
+            $this->membershipManager->assign($linkedUser, $league, $membershipRole, $user);
+
+            /** @var LeaguePlayer|null $resolvedPlayer */
+            $resolvedPlayer = $league->players()
+                ->where('user_id', $linkedUser->id)
+                ->orderByDesc('status')
+                ->first();
+
+            if ($resolvedPlayer === null) {
+                $resolvedPlayer = $player->fresh();
+            }
+
+            $resolvedPlayer->forceFill([
+                'display_name' => $displayName,
+                'jersey_number' => $data['jersey_number'] ?? null,
+                'updated_by_user_id' => $user->id,
+                'status' => $membershipRole === LeagueMembershipRole::Member ? 'active' : 'inactive',
+                'removed_at' => $membershipRole === LeagueMembershipRole::Member ? null : now(),
+            ])->save();
+
+            $newEmail = blank($data['email'] ?? null) ? null : $data['email'];
+            $shouldIssueInvitation = filled($newEmail) && $newEmail !== $previousEmail;
+
+            if ($shouldIssueInvitation) {
+                $linkedUser->forceFill([
+                    'invited_at' => now(),
+                    'email_verified_at' => null,
+                ])->save();
+
+                $issuedInvitation = $this->userInvitationService->issue($linkedUser);
+                $linkedUser->notify(new AppInvitationNotification(
+                    $issuedInvitation['invitation'],
+                    $issuedInvitation['token'],
+                ));
+            }
+
+            return $resolvedPlayer->fresh(['user']);
+        });
     }
 
     public function setPlayerActive(User $user, LeaguePlayer $player, bool $active): LeaguePlayer
     {
         $context = $this->operations->requireAdminContext($user);
         $this->ensurePlayerBelongsToLeague($player, $context['league']);
+        $role = $this->resolveRosterRole($context['league'], $player);
+
+        if ($active && $role === LeagueMembershipRole::Admin) {
+            throw ValidationException::withMessages([
+                'player_id' => 'Los administradores no forman parte del roster operativo de juego.',
+            ]);
+        }
 
         DB::transaction(function () use ($user, $player, $active): void {
             $player->forceFill([
@@ -734,5 +844,56 @@ class LeagueManagementService
         );
 
         return $selectedBalance ?? $this->operations->balanceForPlayer($selectedCut, $balances->first()->player);
+    }
+
+    private function rosterPlayersQuery(League $league): Builder|HasMany
+    {
+        return $league->players()
+            ->where(function (Builder $query) use ($league): void {
+                $query->whereNull('user_id')
+                    ->orWhereHas('user.leagueMemberships', function (Builder $membershipQuery) use ($league): void {
+                        $membershipQuery
+                            ->where('league_id', $league->id)
+                            ->whereIn('role', [
+                                LeagueMembershipRole::Member,
+                                LeagueMembershipRole::Admin,
+                            ]);
+                    });
+            });
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serializeRosterPlayer(League $league, LeaguePlayer $player): array
+    {
+        $membership = $player->user?->leagueMemberships
+            ?->first(fn (LeagueMembership $membership): bool => $membership->league_id === $league->id);
+        $nameParts = UserName::fromFullName($player->display_name);
+        $role = $membership?->role ?? LeagueMembershipRole::Member;
+
+        return [
+            'id' => $player->id,
+            'name' => $player->display_name,
+            'jersey_number' => $player->jersey_number,
+            'first_name' => $player->user?->first_name ?? $nameParts['first_name'],
+            'last_name' => $player->user?->last_name ?? $nameParts['last_name'],
+            'document_id' => $player->user?->document_id,
+            'phone' => $player->user?->phone,
+            'email' => $player->user?->email,
+            'address' => $player->user?->address,
+            'account_role' => $role === LeagueMembershipRole::Admin
+                ? AccountRole::LeagueAdmin->value
+                : AccountRole::Member->value,
+            'invitation_pending' => $player->user?->hasPendingInvitation() ?? false,
+        ];
+    }
+
+    private function resolveRosterRole(League $league, LeaguePlayer $player): LeagueMembershipRole
+    {
+        return $player->user?->leagueMemberships
+            ?->first(fn (LeagueMembership $membership): bool => $membership->league_id === $league->id)
+            ?->role
+            ?? LeagueMembershipRole::Member;
     }
 }

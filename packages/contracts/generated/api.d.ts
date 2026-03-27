@@ -931,6 +931,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/league/modules/game/clock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Configura la duracion del cronometro del juego */
+        post: operations["configureLeagueGameClock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/modules/game/clock/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Inicia o reanuda el cronometro del juego */
+        post: operations["startLeagueGameClock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/modules/game/clock/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pausa el cronometro del juego */
+        post: operations["pauseLeagueGameClock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/modules/game/clock/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reinicia el cronometro del juego */
+        post: operations["resetLeagueGameClock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/league/modules/game/end-session": {
         parameters: {
             query?: never;
@@ -1615,6 +1683,7 @@ export interface components {
         LeagueCompetitionPayload: {
             league: components["schemas"]["LeagueHomeLeague"];
             role: components["schemas"]["LeagueHomeRole"];
+            session_selector: components["schemas"]["LeagueCompetitionSessionSelector"];
             session: components["schemas"]["LeagueCompetitionSession"];
         };
         LeagueCompetitionSession: {
@@ -1626,6 +1695,18 @@ export interface components {
             participants_count: number;
             pending_pool_count: number;
             queue_count: number;
+        };
+        LeagueCompetitionSessionSelector: {
+            selected_session_id: number;
+            sessions: components["schemas"]["LeagueCompetitionSessionSelectorItem"][];
+        };
+        LeagueCompetitionSessionSelectorItem: {
+            id: number;
+            session_date: string | null;
+            status: string;
+            entries_count: number;
+            completed_games_count: number;
+            is_current: boolean;
         };
         LeagueCompetitionStreak: {
             team: ("A" | "B") | null;
@@ -1648,8 +1729,10 @@ export interface components {
         LeagueCompetitionSummary: {
             games: number;
             streak_label: string;
+            current_streak: string;
             active_players: number;
             guests: number;
+            today_guests: number;
             cash_collected_cents: number;
             unpaid_members_count: number;
         };
@@ -1663,6 +1746,7 @@ export interface components {
             /** @enum {string} */
             state: "idle" | "draft" | "live" | "completed";
             draft: components["schemas"]["LeagueGameDraft"];
+            clock: components["schemas"]["LeagueGameClock"];
             current: components["schemas"]["LeagueGameCurrent"] | null;
             history: components["schemas"]["LeagueGameHistoryItem"][];
             summary: components["schemas"]["LeagueCompetitionSummary"];
@@ -1670,6 +1754,13 @@ export interface components {
         LeagueGameDraft: {
             entries: components["schemas"]["LeagueCompetitionEntryCard"][];
             can_start: boolean;
+        };
+        LeagueGameClock: {
+            duration_seconds: number | null;
+            remaining_seconds: number | null;
+            /** @enum {string} */
+            state: "paused" | "running" | "finished" | "unconfigured";
+            started_at: string | null;
         };
         LeagueGameCurrent: {
             id: number;
@@ -2049,20 +2140,32 @@ export interface components {
         LeagueManagementPlayerStoreRequest: {
             first_name: string;
             last_name: string;
-            document_id?: string | null;
+            document_id: string;
             phone?: string | null;
             address?: string | null;
             /** Format: email */
-            email: string;
+            email?: string | null;
+            jersey_number?: number | null;
             /** @enum {string} */
             account_role: "league_admin" | "member";
         };
         LeagueManagementPlayerUpdateRequest: {
-            display_name: string;
+            first_name: string;
+            last_name: string;
+            document_id: string;
+            phone?: string | null;
+            address?: string | null;
+            /** Format: email */
+            email?: string | null;
             jersey_number?: number | null;
+            /** @enum {string} */
+            account_role: "league_admin" | "member";
         };
         LeagueManagementPlayerStatusRequest: {
             active: boolean;
+        };
+        LeagueGameClockRequest: {
+            duration_seconds: number;
         };
     };
     responses: never;
@@ -4287,7 +4390,9 @@ export interface operations {
     };
     leagueQueue: {
         parameters: {
-            query?: never;
+            query?: {
+                session_id?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4334,7 +4439,9 @@ export interface operations {
     };
     leagueStats: {
         parameters: {
-            query?: never;
+            query?: {
+                session_id?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4836,6 +4943,198 @@ export interface operations {
                 "application/json": components["schemas"]["LeagueGameFinishRequest"];
             };
         };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueGameResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    configureLeagueGameClock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeagueGameClockRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueGameResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    startLeagueGameClock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueGameResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    pauseLeagueGameClock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueGameResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    resetLeagueGameClock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Solicitud completada */
             200: {

@@ -33,8 +33,32 @@ export type LeagueHomePayload = {
 
 export type LeagueRosterManagement = {
   can_manage: boolean
-  active_players: Array<{ id: number; name: string; jersey_number: number | null }>
-  inactive_players: Array<{ id: number; name: string; jersey_number: number | null }>
+  active_players: Array<{
+    id: number
+    name: string
+    jersey_number: number | null
+    first_name: string
+    last_name: string
+    document_id: string | null
+    phone: string | null
+    email: string | null
+    address: string | null
+    account_role: 'league_admin' | 'member'
+    invitation_pending: boolean
+  }>
+  inactive_players: Array<{
+    id: number
+    name: string
+    jersey_number: number | null
+    first_name: string
+    last_name: string
+    document_id: string | null
+    phone: string | null
+    email: string | null
+    address: string | null
+    account_role: 'league_admin' | 'member'
+    invitation_pending: boolean
+  }>
   referral_options: Array<{ id: number; name: string }>
   referral_credit_amount_cents: number
 }
@@ -212,7 +236,8 @@ export async function addLeaguePlayer(payload: {
   document_id?: string | null
   phone?: string | null
   address?: string | null
-  email: string
+  email?: string | null
+  jersey_number?: number | null
   account_role: 'league_admin' | 'member'
 }): Promise<LeagueManagementPayload> {
   const { data } = await api.post<ApiSuccess<LeagueManagementPayload>>('/league/management/players', payload)
@@ -221,7 +246,16 @@ export async function addLeaguePlayer(payload: {
 
 export async function updateLeaguePlayer(
   playerId: number,
-  payload: { display_name: string; jersey_number?: number | null },
+  payload: {
+    first_name: string
+    last_name: string
+    document_id: string
+    phone?: string | null
+    address?: string | null
+    email?: string | null
+    jersey_number?: number | null
+    account_role: 'league_admin' | 'member'
+  },
 ): Promise<LeagueManagementPayload> {
   const { data } = await api.patch<ApiSuccess<LeagueManagementPayload>>(`/league/management/players/${playerId}`, payload)
   return data.data
@@ -262,9 +296,22 @@ export type LeagueCompetitionSession = {
   queue_count: number
 }
 
+export type LeagueCompetitionSessionSelector = {
+  selected_session_id: number
+  sessions: Array<{
+    id: number
+    session_date: string | null
+    status: string
+    entries_count: number
+    completed_games_count: number
+    is_current: boolean
+  }>
+}
+
 export type LeagueCompetitionBase = {
   league: { id: number; name: string; emoji: string | null; slug: string }
   role: { value: string; label: string; can_manage: boolean }
+  session_selector: LeagueCompetitionSessionSelector
   session: LeagueCompetitionSession
 }
 
@@ -285,6 +332,19 @@ export type LeagueGamePayload = LeagueCompetitionBase & {
   game: {
     state: 'idle' | 'draft' | 'live' | 'completed'
     draft: { entries: LeagueEntryCard[]; can_start: boolean }
+    clock: {
+      duration_seconds: number | null
+      remaining_seconds: number | null
+      state: 'paused' | 'running' | 'finished' | 'unconfigured'
+      started_at: string | null
+    }
+    rotation_notice: null | {
+      key: string
+      title: string
+      body: string[]
+      tone: string
+      icon: string
+    }
     current: null | {
       id: number
       game_number: number
@@ -313,13 +373,15 @@ export type LeagueGamePayload = LeagueCompetitionBase & {
 
 export type LeagueQueuePayload = LeagueCompetitionBase & {
   queue: {
-    on_court: Array<{ id: number; name: string; team_side: string | null; games_played: number; points_scored: number }>
-    waiting: Array<{ id: number; name: string; position: number | null; games_played: number; points_scored: number }>
+    on_court: Array<LeagueEntryCard & { team_side: string | null; games_played: number; points_scored: number }>
+    waiting: Array<LeagueEntryCard & { position: number | null; games_played: number; points_scored: number }>
     summary: {
       games: number
       streak_label: string
+      current_streak: string
       active_players: number
       guests: number
+      today_guests: number
       cash_collected_cents: number
       unpaid_members_count: number
     }
@@ -497,13 +559,17 @@ export async function fetchLeagueGame(): Promise<LeagueGamePayload> {
   return data.data
 }
 
-export async function fetchLeagueQueue(): Promise<LeagueQueuePayload> {
-  const { data } = await api.get<ApiSuccess<LeagueQueuePayload>>('/league/modules/queue')
+export async function fetchLeagueQueue(sessionId?: number): Promise<LeagueQueuePayload> {
+  const { data } = await api.get<ApiSuccess<LeagueQueuePayload>>('/league/modules/queue', {
+    params: sessionId ? { session_id: sessionId } : undefined,
+  })
   return data.data
 }
 
-export async function fetchLeagueStats(): Promise<LeagueStatsPayload> {
-  const { data } = await api.get<ApiSuccess<LeagueStatsPayload>>('/league/modules/stats')
+export async function fetchLeagueStats(sessionId?: number): Promise<LeagueStatsPayload> {
+  const { data } = await api.get<ApiSuccess<LeagueStatsPayload>>('/league/modules/stats', {
+    params: sessionId ? { session_id: sessionId } : undefined,
+  })
   return data.data
 }
 
@@ -562,6 +628,28 @@ export async function finishLeagueGame(winnerSide?: 'A' | 'B'): Promise<LeagueGa
   const { data } = await api.post<ApiSuccess<LeagueGamePayload>>('/league/modules/game/finish', {
     winner_side: winnerSide,
   })
+  return data.data
+}
+
+export async function configureLeagueGameClock(durationSeconds: number): Promise<LeagueGamePayload> {
+  const { data } = await api.post<ApiSuccess<LeagueGamePayload>>('/league/modules/game/clock', {
+    duration_seconds: durationSeconds,
+  })
+  return data.data
+}
+
+export async function startLeagueGameClock(): Promise<LeagueGamePayload> {
+  const { data } = await api.post<ApiSuccess<LeagueGamePayload>>('/league/modules/game/clock/start')
+  return data.data
+}
+
+export async function pauseLeagueGameClock(): Promise<LeagueGamePayload> {
+  const { data } = await api.post<ApiSuccess<LeagueGamePayload>>('/league/modules/game/clock/pause')
+  return data.data
+}
+
+export async function resetLeagueGameClock(): Promise<LeagueGamePayload> {
+  const { data } = await api.post<ApiSuccess<LeagueGamePayload>>('/league/modules/game/clock/reset')
   return data.data
 }
 

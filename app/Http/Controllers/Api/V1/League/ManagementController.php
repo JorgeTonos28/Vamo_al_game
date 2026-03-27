@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\League;
 use App\Actions\Admin\InviteUser;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\League\InviteLeagueMemberRequest;
+use App\Http\Requests\Api\V1\League\UpdateLeagueMemberRequest;
 use App\Models\LeagueCutExpense;
 use App\Models\LeaguePlayer;
 use App\Models\LeaguePlayerReferral;
@@ -180,10 +181,11 @@ class ManagementController extends Controller
     public function storePlayer(InviteLeagueMemberRequest $request, InviteUser $inviteUser): JsonResponse
     {
         $context = $this->operationsService->requireAdminContext($request->user());
+        $validated = $request->validated();
         $inviteUser->handle(
             $request->user(),
             [
-                ...$request->validated(),
+                ...$validated,
                 'league_id' => $context['league']->id,
             ],
         );
@@ -191,23 +193,19 @@ class ManagementController extends Controller
         return ApiResponse::success(
             $request,
             $this->managementService->pageData($request->user()),
-            'Invitacion enviada y miembro agregado a la liga.',
+            filled($validated['email'] ?? null)
+                ? 'Invitacion enviada y miembro agregado a la liga.'
+                : 'Miembro agregado a la liga sin invitacion por correo.',
             201,
         );
     }
 
-    public function updatePlayer(Request $request, LeaguePlayer $player): JsonResponse
+    public function updatePlayer(UpdateLeagueMemberRequest $request, LeaguePlayer $player): JsonResponse
     {
-        $validated = $request->validate([
-            'display_name' => ['required', 'string', 'max:120'],
-            'jersey_number' => ['nullable', 'integer', 'min:0', 'max:99'],
-        ]);
-
-        $this->managementService->updatePlayer(
+        $this->managementService->updateRosterMember(
             $request->user(),
             $player,
-            $validated['display_name'],
-            $validated['jersey_number'] ?? null,
+            $request->validated(),
         );
 
         return ApiResponse::success(

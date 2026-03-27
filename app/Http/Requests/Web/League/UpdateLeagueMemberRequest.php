@@ -1,13 +1,14 @@
 <?php
 
-namespace App\Http\Requests\Api\V1\League;
+namespace App\Http\Requests\Web\League;
 
 use App\Enums\AccountRole;
+use App\Models\LeaguePlayer;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class InviteLeagueMemberRequest extends FormRequest
+class UpdateLeagueMemberRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -36,13 +37,17 @@ class InviteLeagueMemberRequest extends FormRequest
      */
     public function rules(): array
     {
+        /** @var LeaguePlayer|null $player */
+        $player = $this->route('player');
+        $userId = $player?->user_id;
+
         return [
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
-            'document_id' => ['required', 'string', 'max:50', Rule::unique('users', 'document_id')],
+            'document_id' => ['required', 'string', 'max:50', Rule::unique('users', 'document_id')->ignore($userId)],
             'phone' => ['nullable', 'string', 'max:50'],
             'address' => ['nullable', 'string', 'max:255'],
-            'email' => ['nullable', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
+            'email' => ['nullable', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
             'jersey_number' => ['nullable', 'integer', 'min:0', 'max:99'],
             'account_role' => [
                 'required',

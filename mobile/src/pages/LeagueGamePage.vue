@@ -1,17 +1,23 @@
 <script setup lang="ts">
 import { IonContent, IonPage, IonRefresher, IonRefresherContent, onIonViewWillEnter } from '@ionic/vue'
-import { computed, reactive, ref } from 'vue'
+import { Flame, RotateCcw, Trophy } from 'lucide-vue-next'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
+import { extractApiError } from '@/services/api'
 import {
   addLeaguePlayerPoint,
   addLeagueTeamPoint,
+  configureLeagueGameClock,
   draftLeagueGame,
   endLeagueSession,
   fetchLeagueGame,
   finishLeagueGame,
+  pauseLeagueGameClock,
   removeLeagueGamePlayer,
   resetLeagueGame,
+  resetLeagueGameClock,
   revertLeaguePlayerPoint,
+  startLeagueGameClock,
   type LeagueGamePayload,
   type LeagueTeamPlayer,
   undoLeagueGameAction,
@@ -25,6 +31,8 @@ type ScoreFlashState = {
   side: TeamSide
 }
 
+type RotationNotice = NonNullable<LeagueGamePayload['game']['rotation_notice']>
+
 const payload = ref<LeagueGamePayload | null>(null)
 const isLoading = ref(false)
 const draftMode = ref<'auto' | 'arrival' | 'manual'>('auto')
@@ -32,9 +40,13 @@ const manualAssignments = reactive<Record<number, 'A' | 'B'>>({})
 const selectedPlayer = ref<LeagueTeamPlayer | null>(null)
 const revertPlayer = ref<LeagueTeamPlayer | null>(null)
 const playerToRemove = ref<LeagueTeamPlayer | null>(null)
-const finishOpen = ref(false)
 const scoreFlash = ref<ScoreFlashState | null>(null)
 const scoreBumpSide = ref<TeamSide | null>(null)
+const actionError = ref('')
+const rotationNotice = ref<RotationNotice | null>(null)
+const clockForm = reactive({ minutes: '10', seconds: '00' })
+const clockDisplaySeconds = ref<number | null>(null)
+let lastRotationNoticeKey: string | null = null
 
 const canManage = computed(() => payload.value?.role.can_manage ?? false)
 const teamACount = computed(() => Object.values(manualAssignments).filter((team) => team === 'A').length)
@@ -43,9 +55,86 @@ const streakLabel = computed(() => {
   const streak = payload.value?.game.current?.streak
   return streak?.team ? `EQ.${streak.team} - ${streak.count}` : 'Sin racha'
 })
+const clockState = computed(() => payload.value?.game.clock.state ?? 'unconfigured')
+const clockDurationSeconds = computed(() => payload.value?.game.clock.duration_seconds ?? null)
+const formattedClock = computed(() => {
+  if (clockDisplaySeconds.value === null) return '--:--'
+  const minutes = Math.floor(clockDisplaySeconds.value / 60).toString().padStart(2, '0')
+  const seconds = (clockDisplaySeconds.value % 60).toString().padStart(2, '0')
+  return `${minutes}:${seconds}`
+})
+const clockActionLabel = computed(() => {
+  if (clockState.value === 'running') return 'Pausar'
+
+  if (
+    clockDurationSeconds.value !== null
+    && clockDisplaySeconds.value !== null
+    && clockDisplaySeconds.value < clockDurationSeconds.value
+    && clockDisplaySeconds.value > 0
+  ) {
+    return 'Reanudar'
+  }
+
+  return 'Iniciar'
+})
 let scoreFeedbackNonce = 0
 let scoreFlashTimer: ReturnType<typeof setTimeout> | null = null
 let scoreBumpTimer: ReturnType<typeof setTimeout> | null = null
+let clockTicker: ReturnType<typeof setInterval> | null = null
+
+watch(
+  () => payload.value?.game.rotation_notice,
+  (notice) => {
+    if (notice === null || notice === undefined) {
+      rotationNotice.value = null
+      return
+    }
+
+    if (notice.key !== lastRotationNoticeKey) {
+      rotationNotice.value = notice
+      lastRotationNoticeKey = notice.key
+    }
+  },
+  { immediate: true },
+)
+
+watch(
+  () => payload.value?.game.clock,
+  (clock) => {
+    const durationSeconds = clock?.duration_seconds ?? 600
+    clockForm.minutes = String(Math.floor(durationSeconds / 60)).padStart(2, '0')
+    clockForm.seconds = String(durationSeconds % 60).padStart(2, '0')
+    clockDisplaySeconds.value = clock?.remaining_seconds ?? null
+
+    if (clockTicker !== null) {
+      clearInterval(clockTicker)
+      clockTicker = null
+    }
+
+    if (clock?.state === 'running' && clock.remaining_seconds !== null) {
+      clockTicker = setInterval(() => {
+        if (clockDisplaySeconds.value === null || clockDisplaySeconds.value <= 0) {
+          if (clockTicker !== null) {
+            clearInterval(clockTicker)
+            clockTicker = null
+          }
+
+          clockDisplaySeconds.value = 0
+          return
+        }
+
+        clockDisplaySeconds.value -= 1
+      }, 1000)
+    }
+  },
+  { deep: true, immediate: true },
+)
+
+onBeforeUnmount(() => {
+  if (scoreFlashTimer !== null) clearTimeout(scoreFlashTimer)
+  if (scoreBumpTimer !== null) clearTimeout(scoreBumpTimer)
+  if (clockTicker !== null) clearInterval(clockTicker)
+})
 
 function teamSideForPlayer(entryId: number): TeamSide | null {
   if (payload.value?.game.current?.team_a.some((player) => player.id === entryId)) return 'A'
@@ -95,31 +184,51 @@ function setAssignment(entryId: number, team: 'A' | 'B'): void {
 
 async function submitDraft(): Promise<void> {
   if (!canManage.value) return
-  payload.value = await draftLeagueGame(
-    draftMode.value === 'manual'
-      ? { mode: draftMode.value, assignments: manualAssignments }
-      : { mode: draftMode.value },
-  )
+  actionError.value = ''
+  try {
+    payload.value = await draftLeagueGame(
+      draftMode.value === 'manual'
+        ? { mode: draftMode.value, assignments: manualAssignments }
+        : { mode: draftMode.value },
+    )
+  } catch (error) {
+    actionError.value = extractApiError(error)
+  }
 }
 
 async function addTeamPoint(teamSide: TeamSide): Promise<void> {
   if (!canManage.value) return
-  payload.value = await addLeagueTeamPoint(teamSide)
-  triggerScoreFeedback(teamSide, 1)
+  actionError.value = ''
+  try {
+    payload.value = await addLeagueTeamPoint(teamSide)
+    triggerScoreFeedback(teamSide, 1)
+  } catch (error) {
+    actionError.value = extractApiError(error)
+  }
 }
 
 async function addPlayerPoint(points: 1 | 2 | 3): Promise<void> {
   if (!selectedPlayer.value || !canManage.value) return
   const teamSide = teamSideForPlayer(selectedPlayer.value.id)
-  payload.value = await addLeaguePlayerPoint(selectedPlayer.value.id, points)
-  if (teamSide !== null) triggerScoreFeedback(teamSide, points)
-  selectedPlayer.value = null
+  actionError.value = ''
+  try {
+    payload.value = await addLeaguePlayerPoint(selectedPlayer.value.id, points)
+    if (teamSide !== null) triggerScoreFeedback(teamSide, points)
+    selectedPlayer.value = null
+  } catch (error) {
+    actionError.value = extractApiError(error)
+  }
 }
 
 async function revertPlayerPoint(points: 1 | 2 | 3): Promise<void> {
   if (!revertPlayer.value || !canManage.value) return
-  payload.value = await revertLeaguePlayerPoint(revertPlayer.value.id, points)
-  revertPlayer.value = null
+  actionError.value = ''
+  try {
+    payload.value = await revertLeaguePlayerPoint(revertPlayer.value.id, points)
+    revertPlayer.value = null
+  } catch (error) {
+    actionError.value = extractApiError(error)
+  }
 }
 
 function openRemovePlayerModal(player: LeagueTeamPlayer): void {
@@ -129,29 +238,110 @@ function openRemovePlayerModal(player: LeagueTeamPlayer): void {
 
 async function confirmRemovePlayer(): Promise<void> {
   if (!canManage.value || !playerToRemove.value) return
-  payload.value = await removeLeagueGamePlayer(playerToRemove.value.id)
-  playerToRemove.value = null
+  actionError.value = ''
+  try {
+    payload.value = await removeLeagueGamePlayer(playerToRemove.value.id)
+    playerToRemove.value = null
+  } catch (error) {
+    actionError.value = extractApiError(error)
+  }
 }
 
 async function undoAction(): Promise<void> {
   if (!canManage.value) return
-  payload.value = await undoLeagueGameAction()
+  actionError.value = ''
+  try {
+    payload.value = await undoLeagueGameAction()
+  } catch (error) {
+    actionError.value = extractApiError(error)
+  }
 }
 
-async function finishGame(winnerSide?: 'A' | 'B'): Promise<void> {
+async function finishGame(): Promise<void> {
   if (!canManage.value) return
-  payload.value = await finishLeagueGame(winnerSide)
-  finishOpen.value = false
+  actionError.value = ''
+  try {
+    payload.value = await finishLeagueGame()
+  } catch (error) {
+    actionError.value = extractApiError(error)
+  }
 }
 
 async function endSession(): Promise<void> {
   if (!canManage.value || !window.confirm('Cerrar la jornada del dia?')) return
-  payload.value = await endLeagueSession()
+  actionError.value = ''
+  try {
+    payload.value = await endLeagueSession()
+  } catch (error) {
+    actionError.value = extractApiError(error)
+  }
 }
 
 async function resetGame(): Promise<void> {
   if (!canManage.value || !window.confirm('Limpiar por completo el juego actual?')) return
-  payload.value = await resetLeagueGame()
+  actionError.value = ''
+  try {
+    payload.value = await resetLeagueGame()
+  } catch (error) {
+    actionError.value = extractApiError(error)
+  }
+}
+
+function parsedClockDuration(): number | null {
+  const minutes = Number(clockForm.minutes || 0)
+  const seconds = Number(clockForm.seconds || 0)
+
+  if (!Number.isFinite(minutes) || !Number.isFinite(seconds)) return null
+
+  const total = (Math.max(0, Math.floor(minutes)) * 60) + Math.max(0, Math.floor(seconds))
+  return total > 0 ? total : null
+}
+
+async function saveClockDuration(): Promise<void> {
+  if (!canManage.value) return
+  const total = parsedClockDuration()
+
+  if (total === null) {
+    actionError.value = 'Configura un tiempo valido para el cronometro.'
+    return
+  }
+
+  actionError.value = ''
+  try {
+    payload.value = await configureLeagueGameClock(total)
+  } catch (error) {
+    actionError.value = extractApiError(error)
+  }
+}
+
+async function toggleClock(): Promise<void> {
+  if (!canManage.value) return
+
+  actionError.value = ''
+  try {
+    payload.value = clockState.value === 'running'
+      ? await pauseLeagueGameClock()
+      : await startLeagueGameClock()
+  } catch (error) {
+    actionError.value = extractApiError(error)
+  }
+}
+
+async function resetClock(): Promise<void> {
+  if (!canManage.value) return
+
+  actionError.value = ''
+  try {
+    payload.value = await resetLeagueGameClock()
+  } catch (error) {
+    actionError.value = extractApiError(error)
+  }
+}
+
+function rotationNoticeIcon(icon: string) {
+  if (icon === 'trophy') return Trophy
+  if (icon === 'flame') return Flame
+  return RotateCcw
 }
 </script>
 
@@ -227,6 +417,33 @@ async function resetGame(): Promise<void> {
 
           <template v-else-if="payload?.game.current">
             <section class="app-surface section-stack">
+              <div v-if="actionError" class="error-banner">{{ actionError }}</div>
+
+              <div class="clock-card">
+                <div>
+                  <p class="app-kicker section-kicker">Cronometro</p>
+                  <p class="clock-card__value">{{ formattedClock }}</p>
+                  <p class="body-copy">
+                    {{
+                      clockState === 'running'
+                        ? 'Corriendo'
+                        : clockState === 'finished'
+                          ? 'Tiempo agotado'
+                          : clockState === 'unconfigured'
+                            ? 'Sin configurar'
+                            : 'Listo'
+                    }}
+                  </p>
+                </div>
+                <div class="clock-card__controls">
+                  <input v-model="clockForm.minutes" type="number" min="0" max="120" class="sheet-input" placeholder="Min" />
+                  <input v-model="clockForm.seconds" type="number" min="0" max="59" class="sheet-input" placeholder="Seg" />
+                  <button v-if="canManage" class="action-button action-button--secondary" type="button" @click="saveClockDuration">Cargar</button>
+                  <button v-if="canManage" class="action-button action-button--warning" type="button" @click="toggleClock">{{ clockActionLabel }}</button>
+                  <button v-if="canManage" class="action-button action-button--secondary" type="button" @click="resetClock">Reiniciar</button>
+                </div>
+              </div>
+
               <div class="scoreboard">
                 <div class="scoreboard__team">
                   <p class="app-kicker">Equipo A</p>
@@ -293,7 +510,7 @@ async function resetGame(): Promise<void> {
             <section class="app-surface section-stack">
               <p class="app-kicker section-kicker">Acciones</p>
               <div class="action-grid">
-                <button v-if="canManage" class="action-button action-button--warning" type="button" @click="finishOpen = true">Marcar fin de juego</button>
+                <button v-if="canManage" class="action-button action-button--warning" type="button" @click="finishGame">Marcar fin de juego</button>
                 <button v-if="canManage" class="action-button action-button--secondary" type="button" @click="undoAction">Deshacer ultima accion</button>
                 <button v-if="canManage" class="action-button action-button--danger" type="button" @click="resetGame">Limpiar juego actual</button>
                 <button v-if="canManage" class="action-button action-button--primary" type="button" @click="endSession">Dar fin a la jornada</button>
@@ -355,17 +572,19 @@ async function resetGame(): Promise<void> {
         </section>
       </div>
 
-      <div v-if="finishOpen" class="overlay" @click.self="finishOpen = false">
+      <div v-if="rotationNotice !== null" class="overlay" @click.self="rotationNotice = null">
         <section class="overlay__panel">
-          <p class="app-kicker overlay__kicker">Fin de juego</p>
-          <p class="body-copy">Confirma el ganador para aplicar la rotacion de cola y abrir el siguiente juego.</p>
-          <div class="action-grid">
-            <button class="action-button action-button--primary" type="button" @click="finishGame('A')">Gano A</button>
-            <button class="action-button action-button--warning" type="button" @click="finishGame('B')">Gano B</button>
-            <button class="action-button action-button--secondary" type="button" @click="finishGame()">Automatico</button>
+          <div class="notice-icon" :class="rotationNotice.tone === 'success' ? 'notice-icon--success' : 'notice-icon--warning'">
+            <component :is="rotationNoticeIcon(rotationNotice.icon)" class="size-5" />
           </div>
+          <p class="app-kicker overlay__kicker">{{ rotationNotice.title }}</p>
+          <div class="section-stack">
+            <p v-for="line in rotationNotice.body" :key="line" class="body-copy notice-line">{{ line }}</p>
+          </div>
+          <button class="action-button action-button--warning" type="button" @click="rotationNotice = null">Entendido</button>
         </section>
       </div>
+
     </IonContent>
   </IonPage>
 </template>
@@ -386,6 +605,11 @@ async function resetGame(): Promise<void> {
 .summary-grid--two{grid-template-columns:repeat(2,minmax(0,1fr))}
 .action-grid--two{grid-template-columns:repeat(2,minmax(0,1fr))}
 .action-grid--three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.clock-card,.clock-card__controls,.error-banner{display:flex;flex-direction:column}
+.clock-card,.error-banner{gap:12px;border:1px solid rgba(255,255,255,.06);border-radius:16px;background:#0e1628;padding:14px}
+.clock-card__controls{gap:10px}
+.clock-card__value{margin:6px 0 0;font-family:'Bebas Neue',sans-serif;font-size:52px;line-height:1;color:#f8fafc}
+.error-banner{border-color:rgba(248,113,113,.28);background:rgba(248,113,113,.12);font-size:13px;line-height:1.6;color:#fca5a5}
 .summary-card,.data-row,.team-card{border:1px solid rgba(255,255,255,.06);border-radius:16px;background:#0e1628;padding:14px}
 .summary-card__value{margin-top:10px;font-size:22px;line-height:1;font-weight:700;color:#f8fafc}
 .team-card{display:flex;flex-direction:column;gap:12px}
@@ -407,6 +631,7 @@ async function resetGame(): Promise<void> {
 .draft-actions,.player-actions{flex-direction:row;flex-wrap:wrap;justify-content:flex-end}
 .member-chip,.action-button{display:inline-flex;align-items:center;justify-content:center;min-height:42px;border-radius:12px;border:1px solid rgba(255,255,255,.06);padding:0 12px;font-size:12px;font-weight:700}
 .action-button{width:100%}
+.sheet-input{width:100%;min-height:48px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:#0e1628;padding:0 14px;color:#f8fafc}
 .member-chip--neutral,.action-button--secondary{background:#131b2f;color:#f8fafc}
 .member-chip--positive,.action-button--primary{background:rgba(74,222,128,.12);border-color:rgba(74,222,128,.28);color:#4ade80}
 .member-chip--warning,.action-button--warning{background:rgba(229,184,73,.12);border-color:rgba(229,184,73,.28);color:#f8fafc}
@@ -417,6 +642,9 @@ async function resetGame(): Promise<void> {
 .overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:flex-end;justify-content:center;background:rgba(3,7,18,.72);padding:16px}
 .overlay__panel{width:min(100%,480px);border:1px solid rgba(255,255,255,.06);border-radius:28px 28px 20px 20px;background:#1a243a;padding:18px 16px 20px}
 .overlay__kicker--danger{color:#f87171}
+.notice-icon{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid rgba(229,184,73,.24);border-radius:999px;background:rgba(229,184,73,.08);color:#e5b849}
+.notice-icon--success{border-color:rgba(74,222,128,.24);background:rgba(74,222,128,.08);color:#4ade80}
+.notice-line{margin:0;border:1px solid rgba(255,255,255,.06);border-radius:14px;background:#0e1628;padding:12px 14px}
 @keyframes score-flash{0%{opacity:.9;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(2.4)}}
 @keyframes scoreboard-bump{0%,100%{transform:scale(1)}40%{transform:scale(1.18)}}
 </style>

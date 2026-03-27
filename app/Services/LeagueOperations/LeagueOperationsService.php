@@ -14,6 +14,8 @@ use App\Models\LeaguePlayer;
 use App\Models\LeagueSession;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -182,7 +184,7 @@ class LeagueOperationsService
 
     public function currentSessionForLeague(League $league, LeagueCut $cut, bool $createIfMissing = true): ?LeagueSession
     {
-        $today = now()->toImmutable()->startOfDay()->toDateString();
+        $today = $this->today()->toDateString();
 
         $session = LeagueSession::query()
             ->with(['entries.player'])
@@ -202,6 +204,43 @@ class LeagueOperationsService
         ])->fresh(['entries.player']);
     }
 
+    public function findSessionForLeague(League $league, int $sessionId): ?LeagueSession
+    {
+        /** @var LeagueSession|null $session */
+        $session = LeagueSession::query()
+            ->with(['entries.player', 'cut'])
+            ->where('league_id', $league->id)
+            ->find($sessionId);
+
+        return $session;
+    }
+
+    /**
+     * @return Collection<int, LeagueSession>
+     */
+    public function sessionHistoryForLeague(League $league, int $limit = 20): Collection
+    {
+        return $league->sessions()
+            ->with('cut')
+            ->withCount([
+                'entries',
+                'games as completed_games_count' => fn (Builder $query) => $query->where('status', 'completed'),
+            ])
+            ->orderByDesc('session_date')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get();
+    }
+
+    public function today(?CarbonImmutable $now = null): CarbonImmutable
+    {
+        $timezone = (string) config('app.timezone', 'America/Santo_Domingo');
+
+        return ($now ?? CarbonImmutable::now($timezone))
+            ->setTimezone($timezone)
+            ->startOfDay();
+    }
+
     public function currentConfigurationForLeague(League $league, ?CarbonImmutable $today = null): LeagueCutConfiguration
     {
         $today ??= now()->toImmutable()->startOfDay();
@@ -214,6 +253,19 @@ class LeagueOperationsService
         $today ??= now()->toImmutable()->startOfDay();
 
         return $this->activeFeeScheduleForLeague($league, $feeType, $today);
+    }
+
+    public function activeOperationalPlayersQuery(League $league): Builder|HasMany
+    {
+        return $league->activePlayers()
+            ->where(function (Builder $query) use ($league): void {
+                $query->whereNull('user_id')
+                    ->orWhereHas('user.leagueMemberships', function (Builder $membershipQuery) use ($league): void {
+                        $membershipQuery
+                            ->where('league_id', $league->id)
+                            ->where('role', LeagueMembershipRole::Member);
+                    });
+            });
     }
 
     /**
@@ -343,6 +395,10 @@ class LeagueOperationsService
 
     private function ensureSystemExpenses(LeagueCut $cut): void
     {
+        if (config('starter-data.enabled')) {
+            return;
+        }
+
         $definitions = [
             [
                 'expense_type' => 'court_rent',

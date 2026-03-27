@@ -2722,6 +2722,16 @@
             "sanctumBearer": []
           }
         ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Solicitud completada",
@@ -2773,6 +2783,16 @@
         "security": [
           {
             "sanctumBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -3385,6 +3405,228 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueGameResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/modules/game/clock": {
+      "post": {
+        "operationId": "configureLeagueGameClock",
+        "summary": "Configura la duracion del cronometro del juego",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueGameClockRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueGameResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/modules/game/clock/start": {
+      "post": {
+        "operationId": "startLeagueGameClock",
+        "summary": "Inicia o reanuda el cronometro del juego",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueGameResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/modules/game/clock/pause": {
+      "post": {
+        "operationId": "pauseLeagueGameClock",
+        "summary": "Pausa el cronometro del juego",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueGameResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/modules/game/clock/reset": {
+      "post": {
+        "operationId": "resetLeagueGameClock",
+        "summary": "Reinicia el cronometro del juego",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Solicitud completada",
@@ -6085,6 +6327,7 @@
         "required": [
           "league",
           "role",
+          "session_selector",
           "session"
         ],
         "properties": {
@@ -6093,6 +6336,9 @@
           },
           "role": {
             "$ref": "#/components/schemas/LeagueHomeRole"
+          },
+          "session_selector": {
+            "$ref": "#/components/schemas/LeagueCompetitionSessionSelector"
           },
           "session": {
             "$ref": "#/components/schemas/LeagueCompetitionSession"
@@ -6138,6 +6384,58 @@
           },
           "queue_count": {
             "type": "integer"
+          }
+        }
+      },
+      "LeagueCompetitionSessionSelector": {
+        "type": "object",
+        "required": [
+          "selected_session_id",
+          "sessions"
+        ],
+        "properties": {
+          "selected_session_id": {
+            "type": "integer"
+          },
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueCompetitionSessionSelectorItem"
+            }
+          }
+        }
+      },
+      "LeagueCompetitionSessionSelectorItem": {
+        "type": "object",
+        "required": [
+          "id",
+          "session_date",
+          "status",
+          "entries_count",
+          "completed_games_count",
+          "is_current"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "session_date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "entries_count": {
+            "type": "integer"
+          },
+          "completed_games_count": {
+            "type": "integer"
+          },
+          "is_current": {
+            "type": "boolean"
           }
         }
       },
@@ -6243,8 +6541,10 @@
         "required": [
           "games",
           "streak_label",
+          "current_streak",
           "active_players",
           "guests",
+          "today_guests",
           "cash_collected_cents",
           "unpaid_members_count"
         ],
@@ -6255,10 +6555,16 @@
           "streak_label": {
             "type": "string"
           },
+          "current_streak": {
+            "type": "string"
+          },
           "active_players": {
             "type": "integer"
           },
           "guests": {
+            "type": "integer"
+          },
+          "today_guests": {
             "type": "integer"
           },
           "cash_collected_cents": {
@@ -6303,6 +6609,7 @@
         "required": [
           "state",
           "draft",
+          "clock",
           "current",
           "history",
           "summary"
@@ -6319,6 +6626,9 @@
           },
           "draft": {
             "$ref": "#/components/schemas/LeagueGameDraft"
+          },
+          "clock": {
+            "$ref": "#/components/schemas/LeagueGameClock"
           },
           "current": {
             "anyOf": [
@@ -6356,6 +6666,44 @@
           },
           "can_start": {
             "type": "boolean"
+          }
+        }
+      },
+      "LeagueGameClock": {
+        "type": "object",
+        "required": [
+          "duration_seconds",
+          "remaining_seconds",
+          "state",
+          "started_at"
+        ],
+        "properties": {
+          "duration_seconds": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "remaining_seconds": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "paused",
+              "running",
+              "finished",
+              "unconfigured"
+            ]
+          },
+          "started_at": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },
@@ -7977,7 +8325,7 @@
         "required": [
           "first_name",
           "last_name",
-          "email",
+          "document_id",
           "account_role"
         ],
         "properties": {
@@ -7990,10 +8338,7 @@
             "maxLength": 255
           },
           "document_id": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": "string",
             "maxLength": 50
           },
           "phone": {
@@ -8011,9 +8356,20 @@
             "maxLength": 255
           },
           "email": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "email",
             "maxLength": 255
+          },
+          "jersey_number": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 99
           },
           "account_role": {
             "type": "string",
@@ -8027,16 +8383,59 @@
       "LeagueManagementPlayerUpdateRequest": {
         "type": "object",
         "required": [
-          "display_name"
+          "first_name",
+          "last_name",
+          "document_id",
+          "account_role"
         ],
         "properties": {
-          "display_name": {
-            "type": "string"
+          "first_name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "last_name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "document_id": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 50
+          },
+          "address": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 255
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "email",
+            "maxLength": 255
           },
           "jersey_number": {
             "type": [
               "integer",
               "null"
+            ],
+            "minimum": 0,
+            "maximum": 99
+          },
+          "account_role": {
+            "type": "string",
+            "enum": [
+              "league_admin",
+              "member"
             ]
           }
         }
@@ -8049,6 +8448,18 @@
         "properties": {
           "active": {
             "type": "boolean"
+          }
+        }
+      },
+      "LeagueGameClockRequest": {
+        "type": "object",
+        "required": [
+          "duration_seconds"
+        ],
+        "properties": {
+          "duration_seconds": {
+            "type": "integer",
+            "minimum": 1
           }
         }
       }

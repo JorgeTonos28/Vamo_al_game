@@ -31,8 +31,10 @@ class LeagueMembershipManager
                 ],
             );
 
-            if ($role->canAccessOperationalModules()) {
+            if ($role === LeagueMembershipRole::Member) {
                 $this->ensureOperationalPlayer($league, $user, $actor);
+            } else {
+                $this->disableOperationalPlayer($league, $user, $actor);
             }
 
             if ($user->active_league_id === null || ! $user->leagueMemberships()
@@ -98,6 +100,48 @@ class LeagueMembershipManager
         ])->save();
 
         return $player->fresh();
+    }
+
+    private function disableOperationalPlayer(League $league, User $user, ?User $actor = null): void
+    {
+        $displayName = $this->baseDisplayName($user);
+
+        /** @var LeaguePlayer|null $player */
+        $player = LeaguePlayer::query()
+            ->where('league_id', $league->id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if ($player === null) {
+            $player = LeaguePlayer::query()
+                ->where('league_id', $league->id)
+                ->whereRaw('lower(display_name) = ?', [mb_strtolower($displayName)])
+                ->orderByRaw('case when user_id is null then 0 else 1 end')
+                ->first();
+        }
+
+        if ($player === null) {
+            LeaguePlayer::query()->create([
+                'league_id' => $league->id,
+                'user_id' => $user->id,
+                'display_name' => $this->uniqueDisplayName($league, $displayName),
+                'status' => 'inactive',
+                'created_by_user_id' => $actor?->id,
+                'updated_by_user_id' => $actor?->id,
+                'joined_at' => now(),
+                'removed_at' => now(),
+            ]);
+
+            return;
+        }
+
+        $player->forceFill([
+            'user_id' => $user->id,
+            'display_name' => $this->uniqueDisplayName($league, $displayName, $player->id),
+            'status' => 'inactive',
+            'removed_at' => now(),
+            'updated_by_user_id' => $actor?->id,
+        ])->save();
     }
 
     private function syncPrimaryAccountRole(User $user): void

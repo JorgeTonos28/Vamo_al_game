@@ -2,18 +2,14 @@
 
 namespace App\Actions\Auth;
 
-use App\Concerns\PasswordValidationRules;
 use App\Models\User;
 use App\Models\UserInvitation;
 use App\Services\Invitations\UserInvitationService;
 use App\Support\UserName;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 class AcceptInvitation
 {
-    use PasswordValidationRules;
-
     public function __construct(
         private readonly UserInvitationService $userInvitationService,
     ) {}
@@ -33,13 +29,9 @@ class AcceptInvitation
     {
         if (! $this->userInvitationService->isValid($invitation, $token)) {
             throw ValidationException::withMessages([
-                'token' => 'La invitacion no es valida o ya expiró.',
+                'token' => 'La invitacion no es valida o ya expiro.',
             ]);
         }
-
-        Validator::make($validated, [
-            'password' => $this->passwordRules(),
-        ])->validate();
 
         $user = $invitation->user;
 

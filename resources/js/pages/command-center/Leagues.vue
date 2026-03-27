@@ -36,6 +36,7 @@ const form = useForm({
     name: '',
     emoji: '',
 });
+const emojiOptions = ['🏀', '🏆', '🔥', '⚡', '🎯', '💪', '🛡️', '🎽', '👟', '🚀', '🌟', '🏟️'];
 
 const submit = () => {
     form.post('/command-center/leagues', {
@@ -106,14 +107,26 @@ const toggleLeague = (league: LeagueRow) => {
 
                     <div class="grid gap-2">
                         <Label for="league_emoji">Emoji</Label>
+                        <div class="grid grid-cols-6 gap-2 rounded-[16px] border border-white/6 bg-[#0E1628] p-3 sm:grid-cols-12">
+                            <button
+                                v-for="option in emojiOptions"
+                                :key="option"
+                                type="button"
+                                class="flex min-h-12 items-center justify-center rounded-[12px] border text-[22px] transition active:scale-[0.97] active:opacity-80"
+                                :class="form.emoji === option ? 'border-[rgba(229,184,73,0.32)] bg-[rgba(229,184,73,0.14)]' : 'border-white/6 bg-[#131B2F] hover:bg-[#1B2740]'"
+                                @click="form.emoji = option"
+                            >
+                                {{ option }}
+                            </button>
+                        </div>
                         <Input
                             id="league_emoji"
                             v-model="form.emoji"
                             maxlength="16"
-                            placeholder="⚽"
+                            placeholder="🏀"
                         />
                         <p class="text-[13px] text-[#94A3B8]">
-                            Opcional. Se mostrara junto al nombre de la liga en el shell.
+                            Opcional. Puedes elegir uno del selector o escribir otro manualmente.
                         </p>
                         <InputError :message="form.errors.emoji" />
                     </div>

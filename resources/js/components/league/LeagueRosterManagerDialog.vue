@@ -18,6 +18,14 @@ type RosterPlayer = {
     id: number;
     name: string;
     jersey_number: number | null;
+    first_name: string;
+    last_name: string;
+    document_id: string | null;
+    phone: string | null;
+    email: string | null;
+    address: string | null;
+    account_role: 'league_admin' | 'member';
+    invitation_pending: boolean;
 };
 
 type ReferralOption = {
@@ -54,6 +62,13 @@ const tabs: Array<{ key: RosterTab; label: string }> = [
 
 const dialogOpen = ref(false);
 const activeTab = ref<RosterTab>('invite');
+const inviteSubmitting = ref(false);
+const editSubmitting = ref(false);
+const feedbackTone = ref<'error' | null>(null);
+const feedbackMessages = ref<string[]>([]);
+const editPlayerId = ref<number | null>(null);
+const editSearch = ref('');
+
 const inviteForm = reactive({
     first_name: '',
     last_name: '',
@@ -61,12 +76,18 @@ const inviteForm = reactive({
     phone: '',
     address: '',
     email: '',
-    account_role: 'member',
-});
-const editPlayerId = ref<number | null>(null);
-const editSearch = ref('');
-const editForm = reactive({
     jersey_number: '',
+    account_role: 'member' as 'league_admin' | 'member',
+});
+const editForm = reactive({
+    first_name: '',
+    last_name: '',
+    document_id: '',
+    phone: '',
+    address: '',
+    email: '',
+    jersey_number: '',
+    account_role: 'member' as 'league_admin' | 'member',
 });
 
 const allPlayers = computed(() => [
@@ -85,7 +106,15 @@ const filteredPlayers = computed(() => {
     }
 
     return allPlayers.value.filter((player) => {
-        const searchable = `${player.name} ${player.jersey_number ?? ''}`.toLocaleLowerCase();
+        const searchable = [
+            player.name,
+            player.document_id ?? '',
+            player.email ?? '',
+            player.phone ?? '',
+            player.jersey_number ?? '',
+        ]
+            .join(' ')
+            .toLocaleLowerCase();
 
         return tokens.every((token) => searchable.includes(token));
     });
@@ -103,10 +132,32 @@ const showFilteredPlayers = computed(
 );
 
 watch(dialogOpen, (open) => {
-    if (open) {
-        activeTab.value = 'invite';
+    if (!open) {
+        clearFeedback();
+
+        return;
     }
+
+    activeTab.value = 'invite';
+    clearFeedback();
 });
+
+function clearFeedback(): void {
+    feedbackTone.value = null;
+    feedbackMessages.value = [];
+}
+
+function feedbackFromErrors(errors: Record<string, string | string[]>): void {
+    const messages = Object.values(errors)
+        .flatMap((value) => Array.isArray(value) ? value : [value])
+        .map((value) => String(value))
+        .filter((value) => value.trim().length > 0);
+
+    feedbackTone.value = 'error';
+    feedbackMessages.value = messages.length > 0
+        ? messages
+        : ['No se pudo completar la accion. Verifica los datos e intenta de nuevo.'];
+}
 
 function resetInviteForm(): void {
     inviteForm.first_name = '';
@@ -115,31 +166,64 @@ function resetInviteForm(): void {
     inviteForm.phone = '';
     inviteForm.address = '';
     inviteForm.email = '';
+    inviteForm.jersey_number = '';
     inviteForm.account_role = 'member';
+}
+
+function resetEditForm(): void {
+    editPlayerId.value = null;
+    editSearch.value = '';
+    editForm.first_name = '';
+    editForm.last_name = '';
+    editForm.document_id = '';
+    editForm.phone = '';
+    editForm.address = '';
+    editForm.email = '';
+    editForm.jersey_number = '';
+    editForm.account_role = 'member';
 }
 
 function openEdit(player: RosterPlayer): void {
     editPlayerId.value = player.id;
     editSearch.value = player.name;
+    editForm.first_name = player.first_name;
+    editForm.last_name = player.last_name;
+    editForm.document_id = player.document_id ?? '';
+    editForm.phone = player.phone ?? '';
+    editForm.address = player.address ?? '';
+    editForm.email = player.email ?? '';
     editForm.jersey_number = player.jersey_number?.toString() ?? '';
+    editForm.account_role = player.account_role;
     activeTab.value = 'edit';
+    clearFeedback();
 }
 
 function submitInvite(): void {
+    clearFeedback();
+    inviteSubmitting.value = true;
+
     router.post(
         '/liga/gestion/players',
         {
             first_name: inviteForm.first_name,
             last_name: inviteForm.last_name,
-            document_id: inviteForm.document_id || null,
+            document_id: inviteForm.document_id,
             phone: inviteForm.phone || null,
             address: inviteForm.address || null,
-            email: inviteForm.email,
+            email: inviteForm.email || null,
+            jersey_number: inviteForm.jersey_number ? Number(inviteForm.jersey_number) : null,
             account_role: inviteForm.account_role,
         },
         {
             preserveScroll: true,
-            onSuccess: resetInviteForm,
+            onSuccess: () => {
+                resetInviteForm();
+                dialogOpen.value = false;
+            },
+            onError: feedbackFromErrors,
+            onFinish: () => {
+                inviteSubmitting.value = false;
+            },
         },
     );
 }
@@ -149,31 +233,44 @@ function submitEdit(): void {
         return;
     }
 
+    clearFeedback();
+    editSubmitting.value = true;
+
     router.patch(
         `/liga/gestion/players/${editPlayerId.value}`,
         {
-            display_name: editSearch.value.trim(),
-            jersey_number: editForm.jersey_number
-                ? Number(editForm.jersey_number)
-                : null,
+            first_name: editForm.first_name,
+            last_name: editForm.last_name,
+            document_id: editForm.document_id,
+            phone: editForm.phone || null,
+            address: editForm.address || null,
+            email: editForm.email || null,
+            jersey_number: editForm.jersey_number ? Number(editForm.jersey_number) : null,
+            account_role: editForm.account_role,
         },
         {
             preserveScroll: true,
             onSuccess: () => {
-                editPlayerId.value = null;
-                editSearch.value = '';
-                editForm.jersey_number = '';
+                resetEditForm();
+                activeTab.value = 'active';
+            },
+            onError: feedbackFromErrors,
+            onFinish: () => {
+                editSubmitting.value = false;
             },
         },
     );
 }
 
 function toggleStatus(playerId: number, active: boolean): void {
+    clearFeedback();
+
     router.patch(
         `/liga/gestion/players/${playerId}/status`,
         { active },
         {
             preserveScroll: true,
+            onError: feedbackFromErrors,
         },
     );
 }
@@ -202,7 +299,7 @@ function toggleStatus(playerId: number, active: boolean): void {
                         Gestion de miembros
                     </DialogTitle>
                     <DialogDescription class="text-[13px] leading-6 text-[#94A3B8]">
-                        Invita usuarios reales a la liga y administra el roster operativo desde un mismo panel.
+                        Registra miembros de la liga, envia invitaciones cuando exista correo y administra el roster desde un mismo panel.
                     </DialogDescription>
 
                     <div class="flex flex-wrap gap-2 pt-1">
@@ -224,72 +321,49 @@ function toggleStatus(playerId: number, active: boolean): void {
                 </DialogHeader>
 
                 <div class="dialog-scroll min-h-0 flex-1 overflow-y-auto px-5 py-5">
+                    <div
+                        v-if="feedbackTone === 'error' && feedbackMessages.length > 0"
+                        class="mb-4 rounded-[16px] border border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] p-4 text-sm text-[#FCA5A5]"
+                    >
+                        <p class="font-semibold">No se pudo completar la accion.</p>
+                        <ul class="mt-2 space-y-1">
+                            <li v-for="message in feedbackMessages" :key="message">
+                                {{ message }}
+                            </li>
+                        </ul>
+                    </div>
+
                     <article
                         v-if="activeTab === 'invite'"
                         class="rounded-[18px] border border-white/6 bg-[#0E1628] p-4"
                     >
                         <p class="app-kicker text-[#E5B849]">Invitar miembro</p>
+                        <p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">
+                            Nombre, apellido y cedula son obligatorios. Si no agregas correo, el miembro entra a la liga sin invitacion por email.
+                        </p>
                         <div class="mt-4 grid gap-3">
                             <div class="grid gap-3 sm:grid-cols-2">
-                                <input
-                                    v-model="inviteForm.first_name"
-                                    type="text"
-                                    placeholder="Nombre"
-                                    class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none"
-                                />
-                                <input
-                                    v-model="inviteForm.last_name"
-                                    type="text"
-                                    placeholder="Apellido"
-                                    class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none"
-                                />
+                                <input v-model="inviteForm.first_name" type="text" placeholder="Nombre" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none">
+                                <input v-model="inviteForm.last_name" type="text" placeholder="Apellido" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none">
+                            </div>
+                            <div class="grid gap-3 sm:grid-cols-3">
+                                <input v-model="inviteForm.document_id" type="text" placeholder="Cedula" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none sm:col-span-2">
+                                <input v-model="inviteForm.jersey_number" type="number" min="0" max="99" placeholder="Chaqueta" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none">
                             </div>
                             <div class="grid gap-3 sm:grid-cols-2">
-                                <input
-                                    v-model="inviteForm.document_id"
-                                    type="text"
-                                    placeholder="Cedula"
-                                    class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none"
-                                />
-                                <select
-                                    v-model="inviteForm.account_role"
-                                    class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none"
-                                >
-                                    <option
-                                        v-for="role in roleOptions"
-                                        :key="role.value"
-                                        :value="role.value"
-                                    >
+                                <input v-model="inviteForm.phone" type="text" placeholder="Telefono" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none">
+                                <input v-model="inviteForm.email" type="email" placeholder="Correo" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none">
+                            </div>
+                            <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px]">
+                                <input v-model="inviteForm.address" type="text" placeholder="Direccion" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none">
+                                <select v-model="inviteForm.account_role" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none">
+                                    <option v-for="role in roleOptions" :key="role.value" :value="role.value">
                                         {{ role.label }}
                                     </option>
                                 </select>
                             </div>
-                            <div class="grid gap-3 sm:grid-cols-2">
-                                <input
-                                    v-model="inviteForm.phone"
-                                    type="text"
-                                    placeholder="Telefono"
-                                    class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none"
-                                />
-                                <input
-                                    v-model="inviteForm.email"
-                                    type="email"
-                                    placeholder="Correo"
-                                    class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none"
-                                />
-                            </div>
-                            <input
-                                v-model="inviteForm.address"
-                                type="text"
-                                placeholder="Direccion"
-                                class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none"
-                            />
-                            <Button
-                                type="button"
-                                class="min-h-12 rounded-[12px] bg-[#E5B849] text-[#0A0F1D] hover:bg-[#e8c25d]"
-                                @click="submitInvite"
-                            >
-                                Enviar invitacion
+                            <Button type="button" class="min-h-12 rounded-[12px] bg-[#E5B849] text-[#0A0F1D] hover:bg-[#e8c25d]" :disabled="inviteSubmitting" @click="submitInvite">
+                                {{ inviteSubmitting ? 'Guardando...' : 'Agregar miembro' }}
                             </Button>
                         </div>
                     </article>
@@ -300,22 +374,12 @@ function toggleStatus(playerId: number, active: boolean): void {
                     >
                         <p class="app-kicker text-[#E5B849]">Editar miembro</p>
                         <div class="mt-4 grid gap-3">
-                            <div
-                                class="flex min-h-12 items-center gap-3 rounded-[12px] border border-white/8 bg-[#131B2F] px-4"
-                            >
+                            <div class="flex min-h-12 items-center gap-3 rounded-[12px] border border-white/8 bg-[#131B2F] px-4">
                                 <Search class="size-4 text-[#94A3B8]" />
-                                <input
-                                    v-model="editSearch"
-                                    type="text"
-                                    placeholder="Busca por nombre o numero"
-                                    class="h-full w-full bg-transparent text-sm text-[#F8FAFC] outline-none"
-                                />
+                                <input v-model="editSearch" type="text" placeholder="Busca por nombre, cedula, correo o numero" class="h-full w-full bg-transparent text-sm text-[#F8FAFC] outline-none">
                             </div>
 
-                            <div
-                                v-if="showFilteredPlayers"
-                                class="dialog-scroll max-h-[220px] space-y-2 overflow-y-auto pr-1"
-                            >
+                            <div v-if="showFilteredPlayers" class="dialog-scroll max-h-[220px] space-y-2 overflow-y-auto pr-1">
                                 <button
                                     v-for="player in filteredPlayers"
                                     :key="player.id"
@@ -329,135 +393,108 @@ function toggleStatus(playerId: number, active: boolean): void {
                                     @click="openEdit(player)"
                                 >
                                     <span>{{ player.name }}</span>
-                                    <span class="text-[12px] text-[#94A3B8]">
-                                        #{{ player.jersey_number ?? 'S/N' }}
-                                    </span>
+                                    <span class="text-[12px] text-[#94A3B8]">#{{ player.jersey_number ?? 'S/N' }}</span>
                                 </button>
 
-                                <div
-                                    v-if="filteredPlayers.length === 0"
-                                    class="rounded-[12px] border border-dashed border-white/8 bg-[#131B2F] p-4 text-sm text-[#94A3B8]"
-                                >
+                                <div v-if="filteredPlayers.length === 0" class="rounded-[12px] border border-dashed border-white/8 bg-[#131B2F] p-4 text-sm text-[#94A3B8]">
                                     No encontramos miembros con ese filtro.
                                 </div>
                             </div>
 
-                            <input
-                                v-model="editForm.jersey_number"
-                                type="number"
-                                min="0"
-                                max="99"
-                                placeholder="Numero"
-                                class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none"
-                            />
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] hover:bg-[#22304f]"
-                                :disabled="!selectedPlayer || !editSearch.trim()"
-                                @click="submitEdit"
-                            >
-                                Actualizar miembro
-                            </Button>
+                            <div v-if="selectedPlayer" class="grid gap-3">
+                                <div class="grid gap-3 sm:grid-cols-2">
+                                    <input v-model="editForm.first_name" type="text" placeholder="Nombre" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none">
+                                    <input v-model="editForm.last_name" type="text" placeholder="Apellido" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none">
+                                </div>
+                                <div class="grid gap-3 sm:grid-cols-3">
+                                    <input v-model="editForm.document_id" type="text" placeholder="Cedula" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none sm:col-span-2">
+                                    <input v-model="editForm.jersey_number" type="number" min="0" max="99" placeholder="Chaqueta" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none">
+                                </div>
+                                <div class="grid gap-3 sm:grid-cols-2">
+                                    <input v-model="editForm.phone" type="text" placeholder="Telefono" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none">
+                                    <input v-model="editForm.email" type="email" placeholder="Correo" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none">
+                                </div>
+                                <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px]">
+                                    <input v-model="editForm.address" type="text" placeholder="Direccion" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none">
+                                    <select v-model="editForm.account_role" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] px-4 text-sm text-[#F8FAFC] outline-none">
+                                        <option v-for="role in roleOptions" :key="role.value" :value="role.value">
+                                            {{ role.label }}
+                                        </option>
+                                    </select>
+                                </div>
+                                <Button type="button" variant="secondary" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] hover:bg-[#22304f]" :disabled="editSubmitting" @click="submitEdit">
+                                    {{ editSubmitting ? 'Guardando...' : 'Guardar cambios' }}
+                                </Button>
+                            </div>
                         </div>
                     </article>
 
-                    <article
-                        v-else-if="activeTab === 'active'"
-                        class="rounded-[18px] border border-white/6 bg-[#0E1628] p-4"
-                    >
+                    <article v-else-if="activeTab === 'active'" class="rounded-[18px] border border-white/6 bg-[#0E1628] p-4">
                         <div class="flex items-center justify-between gap-3">
                             <p class="app-kicker text-[#E5B849]">Miembros activos</p>
-                            <span class="text-[12px] text-[#94A3B8]">
-                                {{ props.rosterManagement.active_players.length }}
-                            </span>
+                            <span class="text-[12px] text-[#94A3B8]">{{ props.rosterManagement.active_players.length }}</span>
                         </div>
 
                         <div class="mt-4 space-y-3">
-                            <div
-                                v-for="player in props.rosterManagement.active_players"
-                                :key="player.id"
-                                class="rounded-[14px] border border-white/6 bg-[#131B2F] p-3"
-                            >
+                            <div v-for="player in props.rosterManagement.active_players" :key="player.id" class="rounded-[14px] border border-white/6 bg-[#131B2F] p-3">
                                 <div class="flex items-start justify-between gap-3">
                                     <div>
-                                        <p class="text-sm font-semibold text-[#F8FAFC]">
-                                            {{ player.name }}
-                                        </p>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <p class="text-sm font-semibold text-[#F8FAFC]">{{ player.name }}</p>
+                                            <span class="rounded-full border border-white/6 bg-[#0E1628] px-2 py-0.5 text-[11px] text-[#94A3B8]">#{{ player.jersey_number ?? 'S/N' }}</span>
+                                            <span class="rounded-full border border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] px-2 py-0.5 text-[11px] text-[#F8FAFC]">
+                                                {{ player.account_role === 'league_admin' ? 'Admin' : 'Miembro' }}
+                                            </span>
+                                        </div>
                                         <p class="mt-1 text-[12px] text-[#94A3B8]">
-                                            #{{ player.jersey_number ?? 'Sin numero' }}
+                                            {{ player.document_id ?? 'Sin cedula' }}<span v-if="player.email"> · {{ player.email }}</span>
                                         </p>
+                                        <p v-if="player.invitation_pending" class="mt-1 text-[11px] text-[#E5B849]">Invitacion pendiente.</p>
                                     </div>
 
                                     <div class="flex gap-2">
-                                        <button
-                                            type="button"
-                                            class="min-h-10 rounded-[10px] border border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] px-3 text-xs font-semibold text-[#F8FAFC]"
-                                            @click="openEdit(player)"
-                                        >
-                                            Editar
-                                        </button>
-                                        <button
-                                            type="button"
-                                            class="min-h-10 rounded-[10px] border border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] px-3 text-xs font-semibold text-[#FCA5A5]"
-                                            @click="toggleStatus(player.id, false)"
-                                        >
-                                            Dar de baja
-                                        </button>
+                                        <button type="button" class="min-h-10 rounded-[10px] border border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] px-3 text-xs font-semibold text-[#F8FAFC]" @click="openEdit(player)">Editar</button>
+                                        <button type="button" class="min-h-10 rounded-[10px] border border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] px-3 text-xs font-semibold text-[#FCA5A5]" @click="toggleStatus(player.id, false)">Dar de baja</button>
                                     </div>
                                 </div>
                             </div>
 
-                            <div
-                                v-if="props.rosterManagement.active_players.length === 0"
-                                class="rounded-[14px] border border-dashed border-white/8 bg-[#131B2F] p-4 text-sm text-[#94A3B8]"
-                            >
+                            <div v-if="props.rosterManagement.active_players.length === 0" class="rounded-[14px] border border-dashed border-white/8 bg-[#131B2F] p-4 text-sm text-[#94A3B8]">
                                 No hay miembros activos registrados todavia.
                             </div>
                         </div>
                     </article>
 
-                    <article
-                        v-else
-                        class="rounded-[18px] border border-white/6 bg-[#0E1628] p-4"
-                    >
+                    <article v-else class="rounded-[18px] border border-white/6 bg-[#0E1628] p-4">
                         <div class="flex items-center justify-between gap-3">
                             <p class="app-kicker text-[#E5B849]">Miembros inactivos</p>
-                            <span class="text-[12px] text-[#94A3B8]">
-                                {{ props.rosterManagement.inactive_players.length }}
-                            </span>
+                            <span class="text-[12px] text-[#94A3B8]">{{ props.rosterManagement.inactive_players.length }}</span>
                         </div>
 
                         <div class="mt-4 space-y-3">
-                            <div
-                                v-for="player in props.rosterManagement.inactive_players"
-                                :key="player.id"
-                                class="rounded-[14px] border border-white/6 bg-[#131B2F] p-3"
-                            >
+                            <div v-for="player in props.rosterManagement.inactive_players" :key="player.id" class="rounded-[14px] border border-white/6 bg-[#131B2F] p-3">
                                 <div class="flex items-center justify-between gap-3">
                                     <div>
-                                        <p class="text-sm font-semibold text-[#F8FAFC]">
-                                            {{ player.name }}
-                                        </p>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <p class="text-sm font-semibold text-[#F8FAFC]">{{ player.name }}</p>
+                                            <span class="rounded-full border border-white/6 bg-[#0E1628] px-2 py-0.5 text-[11px] text-[#94A3B8]">#{{ player.jersey_number ?? 'S/N' }}</span>
+                                            <span class="rounded-full border border-white/6 bg-[#0E1628] px-2 py-0.5 text-[11px] text-[#94A3B8]">
+                                                {{ player.account_role === 'league_admin' ? 'Admin' : 'Miembro' }}
+                                            </span>
+                                        </div>
                                         <p class="mt-1 text-[12px] text-[#94A3B8]">
-                                            #{{ player.jersey_number ?? 'Sin numero' }}
+                                            {{ player.document_id ?? 'Sin cedula' }}<span v-if="player.email"> · {{ player.email }}</span>
                                         </p>
                                     </div>
 
-                                    <button
-                                        type="button"
-                                        class="min-h-10 rounded-[10px] border border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] px-3 text-xs font-semibold text-[#4ADE80]"
-                                        @click="toggleStatus(player.id, true)"
-                                    >
-                                        Reactivar
-                                    </button>
+                                    <div class="flex gap-2">
+                                        <button type="button" class="min-h-10 rounded-[10px] border border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] px-3 text-xs font-semibold text-[#F8FAFC]" @click="openEdit(player)">Editar</button>
+                                        <button type="button" class="min-h-10 rounded-[10px] border border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] px-3 text-xs font-semibold text-[#4ADE80]" @click="toggleStatus(player.id, true)">Reactivar</button>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div
-                                v-if="props.rosterManagement.inactive_players.length === 0"
-                                class="rounded-[14px] border border-dashed border-white/8 bg-[#131B2F] p-4 text-sm text-[#94A3B8]"
-                            >
+                            <div v-if="props.rosterManagement.inactive_players.length === 0" class="rounded-[14px] border border-dashed border-white/8 bg-[#131B2F] p-4 text-sm text-[#94A3B8]">
                                 No hay miembros dados de baja.
                             </div>
                         </div>

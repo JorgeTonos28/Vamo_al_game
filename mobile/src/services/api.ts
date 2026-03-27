@@ -35,3 +35,33 @@ api.interceptors.response.use(
     return Promise.reject(error)
   },
 )
+
+export function extractApiErrors(error: unknown): string[] {
+  if (!axios.isAxiosError(error)) {
+    return ['Ocurrio un error inesperado.']
+  }
+
+  const responseData = error.response?.data as
+    | { message?: string; errors?: Record<string, string[] | string> }
+    | undefined
+
+  const fieldErrors = responseData?.errors
+    ? Object.values(responseData.errors)
+        .flatMap((value) => Array.isArray(value) ? value : [value])
+        .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    : []
+
+  if (fieldErrors.length > 0) {
+    return fieldErrors
+  }
+
+  if (responseData?.message) {
+    return [responseData.message]
+  }
+
+  return ['Ocurrio un error inesperado.']
+}
+
+export function extractApiError(error: unknown): string {
+  return extractApiErrors(error)[0] ?? 'Ocurrio un error inesperado.'
+}

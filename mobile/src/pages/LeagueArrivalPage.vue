@@ -4,6 +4,7 @@ import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import LeagueRosterSheet from '@/components/LeagueRosterSheet.vue'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
+import { extractApiErrors } from '@/services/api'
 import { addLeagueArrivalGuest, deleteLeagueArrivalGuest, fetchLeagueArrival, prepareLeagueArrival, resetLeagueArrival, toggleLeagueArrivalPlayer, type LeagueArrivalPayload, updateLeagueArrivalGuest } from '@/services/league'
 
 const router = useRouter()
@@ -14,26 +15,124 @@ const selectedPlayerId = ref<number | null>(null)
 const prepareOpen = ref(false)
 const rosterOpen = ref(false)
 const guestPayments = reactive<Record<number, boolean>>({})
+const actionErrors = ref<string[]>([])
 const canManageArrival = computed(() => payload.value?.role.can_manage ?? false)
 const sortedPlayers = computed(() => payload.value?.players ?? [])
+const liveArrivalLocked = computed(() => ['prepared', 'in_progress'].includes(payload.value?.session.status ?? ''))
+const prepareLocked = computed(() => ['prepared', 'in_progress'].includes(payload.value?.session.status ?? ''))
 
-async function loadPage(): Promise<void> { isLoading.value = true; try { payload.value = await fetchLeagueArrival() } finally { isLoading.value = false } }
-async function handleRefresh(event: CustomEvent): Promise<void> { try { await loadPage() } finally { await (event.target as HTMLIonRefresherElement).complete() } }
+async function loadPage(): Promise<void> {
+  isLoading.value = true
+  actionErrors.value = []
+
+  try {
+    payload.value = await fetchLeagueArrival()
+  } catch (error) {
+    actionErrors.value = extractApiErrors(error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+async function handleRefresh(event: CustomEvent): Promise<void> {
+  try {
+    await loadPage()
+  } finally {
+    await (event.target as HTMLIonRefresherElement).complete()
+  }
+}
+
 onIonViewWillEnter(loadPage)
 
-async function togglePlayer(playerId: number, paid?: boolean): Promise<void> { if (!canManageArrival.value) return; payload.value = await toggleLeagueArrivalPlayer(playerId, paid); selectedPlayerId.value = null }
-async function addGuest(): Promise<void> { if (!canManageArrival.value || !guestName.value.trim()) return; payload.value = await addLeagueArrivalGuest(guestName.value); guestName.value = '' }
-async function toggleGuest(guestId: number, paid: boolean): Promise<void> { if (!canManageArrival.value) return; payload.value = await updateLeagueArrivalGuest(guestId, !paid) }
-async function removeGuest(guestId: number): Promise<void> { if (!canManageArrival.value) return; payload.value = await deleteLeagueArrivalGuest(guestId) }
-function openPrepare(): void { if (!canManageArrival.value) return; (payload.value?.guests ?? []).forEach((guest) => { guestPayments[guest.id] = guest.guest_fee_paid }); prepareOpen.value = true }
+async function togglePlayer(playerId: number, paid?: boolean): Promise<void> {
+  if (!canManageArrival.value) return
+
+  actionErrors.value = []
+
+  try {
+    payload.value = await toggleLeagueArrivalPlayer(playerId, paid)
+    selectedPlayerId.value = null
+  } catch (error) {
+    actionErrors.value = extractApiErrors(error)
+  }
+}
+
+async function addGuest(): Promise<void> {
+  if (!canManageArrival.value || !guestName.value.trim()) return
+
+  actionErrors.value = []
+
+  try {
+    payload.value = await addLeagueArrivalGuest(guestName.value)
+    guestName.value = ''
+  } catch (error) {
+    actionErrors.value = extractApiErrors(error)
+  }
+}
+
+async function toggleGuest(guestId: number, paid: boolean): Promise<void> {
+  if (!canManageArrival.value) return
+
+  actionErrors.value = []
+
+  try {
+    payload.value = await updateLeagueArrivalGuest(guestId, !paid)
+  } catch (error) {
+    actionErrors.value = extractApiErrors(error)
+  }
+}
+
+async function removeGuest(guestId: number): Promise<void> {
+  if (!canManageArrival.value) return
+
+  actionErrors.value = []
+
+  try {
+    payload.value = await deleteLeagueArrivalGuest(guestId)
+  } catch (error) {
+    actionErrors.value = extractApiErrors(error)
+  }
+}
+
+function openPrepare(): void {
+  if (!canManageArrival.value || prepareLocked.value) return
+
+  actionErrors.value = []
+  ;(payload.value?.guests ?? []).forEach((guest) => {
+    guestPayments[guest.id] = guest.guest_fee_paid
+  })
+  prepareOpen.value = true
+}
+
 async function prepareSession(): Promise<void> {
   if (!canManageArrival.value) return
-  payload.value = await prepareLeagueArrival((payload.value?.guests ?? []).map((guest) => ({ id: guest.id, paid: Boolean(guestPayments[guest.id]) })))
-  prepareOpen.value = false
-  await router.push({ name: 'league-game' })
+
+  actionErrors.value = []
+
+  try {
+    payload.value = await prepareLeagueArrival((payload.value?.guests ?? []).map((guest) => ({ id: guest.id, paid: Boolean(guestPayments[guest.id]) })))
+    prepareOpen.value = false
+    await router.push({ name: 'league-game' })
+  } catch (error) {
+    actionErrors.value = extractApiErrors(error)
+  }
 }
-async function resetSession(): Promise<void> { if (!canManageArrival.value) return; payload.value = await resetLeagueArrival() }
-function money(amountCents: number): string { return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 0 }).format(amountCents / 100) }
+
+async function resetSession(): Promise<void> {
+  if (!canManageArrival.value) return
+
+  actionErrors.value = []
+
+  try {
+    payload.value = await resetLeagueArrival()
+  } catch (error) {
+    actionErrors.value = extractApiErrors(error)
+  }
+}
+
+function money(amountCents: number): string {
+  return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP', maximumFractionDigits: 0 }).format(amountCents / 100)
+}
 </script>
 
 <template>
@@ -53,19 +152,31 @@ function money(amountCents: number): string { return new Intl.NumberFormat('es-D
             <article class="summary-card"><p class="app-kicker">Invitados</p><p class="summary-card__value">{{ payload?.session.counts.guests ?? 0 }}</p></article>
           </section>
 
+          <section v-if="actionErrors.length > 0" class="app-surface section-stack error-block">
+            <p class="app-kicker">Error</p>
+            <p v-for="message in actionErrors" :key="message" class="body-copy body-copy--error">{{ message }}</p>
+          </section>
+
           <section class="app-surface section-stack">
             <div class="section-head">
               <p class="app-kicker section-head__kicker">Miembros</p>
               <div v-if="canManageArrival" class="section-head__actions">
                 <button v-if="payload?.roster_management.can_manage" class="action-button action-button--secondary" type="button" @click="rosterOpen = true">Miembros</button>
-                <button class="action-button action-button--primary" type="button" @click="openPrepare">Iniciar</button>
+                <button class="action-button action-button--primary" :disabled="prepareLocked" type="button" @click="openPrepare">Iniciar</button>
               </div>
             </div>
             <p v-if="!canManageArrival" class="body-copy">Modo solo lectura para miembros de la liga.</p>
             <p v-if="isLoading" class="body-copy">Cargando llegada...</p>
-            <button v-for="player in sortedPlayers" :key="player.id" class="member-row" :disabled="!canManageArrival" type="button" @click="player.has_arrived || player.current_cut_paid ? togglePlayer(player.id) : (selectedPlayerId = player.id)">
+            <button
+              v-for="player in sortedPlayers"
+              :key="player.id"
+              class="member-row"
+              :disabled="!canManageArrival || (player.has_arrived && liveArrivalLocked)"
+              type="button"
+              @click="player.has_arrived ? (liveArrivalLocked ? null : togglePlayer(player.id)) : player.current_cut_paid ? togglePlayer(player.id) : (selectedPlayerId = player.id)"
+            >
               <div><p class="member-row__name">{{ player.name }}</p><p class="member-row__copy">{{ player.status_message }}</p></div>
-              <span :class="['member-chip', player.has_arrived ? 'member-chip--negative' : player.current_cut_paid ? 'member-chip--positive' : 'member-chip--warning']">{{ player.has_arrived ? `#${player.arrival_order}` : player.current_cut_paid ? 'Al dia' : canManageArrival ? 'Pendiente' : 'Ver' }}</span>
+              <span :class="['member-chip', player.has_arrived && !liveArrivalLocked ? 'member-chip--negative' : player.has_arrived ? 'member-chip--neutral' : player.current_cut_paid ? 'member-chip--positive' : 'member-chip--warning']">{{ player.has_arrived ? (liveArrivalLocked ? 'Registrado' : `#${player.arrival_order}`) : player.current_cut_paid ? 'Al dia' : canManageArrival ? 'Pendiente' : 'Ver' }}</span>
             </button>
           </section>
 
@@ -112,7 +223,7 @@ function money(amountCents: number): string { return new Intl.NumberFormat('es-D
       <div v-if="prepareOpen && canManageArrival" class="overlay" @click.self="prepareOpen = false">
         <section class="overlay__panel">
           <p class="app-kicker overlay__kicker">Iniciar jornada</p>
-          <p class="body-copy">Confirma el cobro de invitados. Los pendientes saldran de la lista.</p>
+          <p class="body-copy">Confirma el cobro de invitados. Solo los pagos quedaran habilitados y necesitas 10 jugadores habiles para iniciar.</p>
           <div class="section-stack">
             <article v-for="guest in payload?.guests ?? []" :key="guest.id" class="guest-row">
               <p class="member-row__name">{{ guest.name }}</p>
@@ -132,7 +243,7 @@ function money(amountCents: number): string { return new Intl.NumberFormat('es-D
 </template>
 
 <style scoped>
-.summary-grid,.section-stack,.summary-card,.guest-row__actions,.overlay__panel,.overlay__actions{display:flex;flex-direction:column}
+.summary-grid,.section-stack,.summary-card,.guest-row__actions,.overlay__panel,.overlay__actions,.error-block{display:flex;flex-direction:column}
 .summary-grid,.section-stack,.overlay__panel,.overlay__actions{gap:12px}
 .summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
 .summary-card,.member-row,.guest-row,.queue-row{background:#0e1628;border:1px solid rgba(255,255,255,.06);border-radius:16px}
@@ -140,10 +251,12 @@ function money(amountCents: number): string { return new Intl.NumberFormat('es-D
 .summary-card__value,.member-row__name,.member-row__copy,.queue-row,.body-copy{margin:0}
 .summary-card__value{margin-top:10px;font-size:22px;line-height:1;font-weight:700;color:#f8fafc}
 .body-copy,.member-row__copy{font-size:13px;line-height:1.6;color:#94a3b8}
+.body-copy--error{color:#fca5a5}
 .section-head,.member-row,.guest-row,.guest-form,.section-head__actions{display:flex;align-items:center;gap:12px}
 .section-head{justify-content:space-between}
 .section-head__actions{justify-content:flex-end}
 .section-head__kicker,.overlay__kicker{color:#e5b849}
+.error-block{gap:8px;border-color:rgba(248,113,113,.28);background:rgba(248,113,113,.12)}
 .member-row,.guest-row{padding:14px;text-align:left}
 .member-row__name{font-size:15px;font-weight:700;color:#f8fafc}
 .member-chip,.action-button{min-height:42px;border-radius:12px;border:1px solid rgba(255,255,255,.06);font-size:12px;font-weight:700}
