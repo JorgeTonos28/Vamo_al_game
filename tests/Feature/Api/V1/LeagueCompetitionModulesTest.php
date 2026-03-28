@@ -167,7 +167,7 @@ class LeagueCompetitionModulesTest extends TestCase
         ]);
 
         $benchPlayers = LeaguePlayer::factory()
-            ->count(5)
+            ->count(7)
             ->for($league)
             ->create([
                 'created_by_user_id' => $admin->id,
@@ -225,14 +225,17 @@ class LeagueCompetitionModulesTest extends TestCase
             ->where('entry_type', 'guest')
             ->sortBy('queue_position')
             ->values();
+        $queueCount = $session->fresh('entries')->entries
+            ->where('session_state', 'queued')
+            ->count();
 
         $this->assertCount(2, $queuedGuests);
         $this->assertSame('queued', $queuedGuests[0]->session_state);
         $this->assertSame('queued', $queuedGuests[1]->session_state);
         $this->assertNull($queuedGuests[0]->team_side);
         $this->assertNull($queuedGuests[1]->team_side);
-        $this->assertSame(4, $queuedGuests[0]->queue_position);
-        $this->assertSame(5, $queuedGuests[1]->queue_position);
+        $this->assertSame($queueCount - 1, $queuedGuests[0]->queue_position);
+        $this->assertSame($queueCount, $queuedGuests[1]->queue_position);
     }
 
     public function test_admin_can_fetch_scout_payload_with_legacy_stat_breakdown(): void
