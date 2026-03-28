@@ -101,6 +101,7 @@ class ManagementController extends Controller
     {
         $validated = $request->validate([
             'name' => ['nullable', 'string', 'min:2', 'max:120'],
+            'emoji' => ['nullable', 'string', 'max:16'],
             'sessions_limit' => ['required', 'integer', 'min:1', 'max:12'],
             'game_days' => ['required', 'array', 'min:1'],
             'game_days.*' => ['required', 'string', 'max:20'],

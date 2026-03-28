@@ -169,6 +169,7 @@ export type LeagueManagementPayload = {
     };
     settings: {
         name?: string;
+        emoji?: string | null;
         sessions_limit: number;
         game_days: string[];
         cut_day: number;
@@ -340,6 +341,7 @@ export async function deleteLeagueExpense(
 
 export async function updateLeagueSettings(payload: {
     name?: string;
+    emoji?: string | null;
     sessions_limit: number;
     game_days: string[];
     cut_day: number;

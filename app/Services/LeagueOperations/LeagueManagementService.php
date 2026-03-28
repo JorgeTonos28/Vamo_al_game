@@ -341,6 +341,7 @@ class LeagueManagementService
     /**
      * @param  array{
      *      name?: string|null,
+     *      emoji?: string|null,
      *      sessions_limit: int,
      *      game_days: array<int, string>,
      *      cut_day: int,
@@ -361,6 +362,7 @@ class LeagueManagementService
         DB::transaction(function () use ($user, $league, $data, $todayString, $yesterday): void {
             $league->forceFill([
                 'name' => filled($data['name'] ?? null) ? $data['name'] : $league->name,
+                'emoji' => filled($data['emoji'] ?? null) ? $data['emoji'] : null,
                 'incoming_team_guest_limit' => $data['incoming_team_guest_limit'],
             ])->save();
 

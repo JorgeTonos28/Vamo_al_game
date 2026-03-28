@@ -32,7 +32,7 @@ class LeagueArrivalService
             $league,
         );
         $attendanceCounts = $this->operations->attendanceCounts($league);
-        $players = $this->operations->activeOperationalPlayersQuery($league)
+        $players = $this->operations->activePlayablePlayersQuery($league)
             ->orderBy('display_name')
             ->get();
         $operationalPlayerIds = $players
@@ -667,7 +667,7 @@ class LeagueArrivalService
             return null;
         }
 
-        $allowedPlayerIds = $this->operations->activeOperationalPlayersQuery($league)
+        $allowedPlayerIds = $this->operations->activePlayablePlayersQuery($league)
             ->pluck('league_players.id')
             ->map(fn ($id): int => (int) $id)
             ->all();

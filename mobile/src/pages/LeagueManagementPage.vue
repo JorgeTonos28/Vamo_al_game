@@ -38,6 +38,7 @@ const referralForm = reactive({
 });
 const settingsForm = reactive({
     name: '',
+    emoji: '',
     sessions_limit: 4,
     cut_day: 15,
     game_days: ['Sábado'],
@@ -73,6 +74,7 @@ async function loadPage(cutId?: number): Promise<void> {
         if (payload.value) {
             settingsForm.sessions_limit = payload.value.settings.sessions_limit;
             settingsForm.name = payload.value.league.name;
+            settingsForm.emoji = payload.value.league.emoji ?? '';
             settingsForm.cut_day = payload.value.settings.cut_day;
             settingsForm.game_days = [...payload.value.settings.game_days];
             settingsForm.incoming_team_guest_limit =
@@ -185,6 +187,7 @@ function toggleGameDay(day: string): void {
 async function saveSettings(): Promise<void> {
     payload.value = await updateLeagueSettings({
         name: settingsForm.name,
+        emoji: settingsForm.emoji,
         sessions_limit: settingsForm.sessions_limit,
         cut_day: settingsForm.cut_day,
         game_days: settingsForm.game_days,
@@ -541,6 +544,15 @@ return;
                                     v-model="settingsForm.name"
                                     type="text"
                                     maxlength="120"
+                                    class="sheet-input"
+                            /></label>
+                            <label class="field-block"
+                                ><span>Emoji de la liga</span
+                                ><input
+                                    v-model="settingsForm.emoji"
+                                    type="text"
+                                    maxlength="16"
+                                    placeholder="🏀"
                                     class="sheet-input"
                             /></label>
                             <label class="field-block"

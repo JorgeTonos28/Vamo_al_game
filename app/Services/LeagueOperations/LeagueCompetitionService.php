@@ -294,7 +294,7 @@ class LeagueCompetitionService
         $session = $context['session'];
         $seasonStats = $this->seasonStats($context['season']->sessions)->keyBy('season_key');
         $scoutStatBaseline = $this->scoutStatBaseline($seasonStats);
-        $players = $this->operations->activeOperationalPlayersQuery($league)
+        $players = $this->operations->activePlayablePlayersQuery($league)
             ->with('scoutProfile')
             ->orderBy('display_name')
             ->get();
@@ -883,7 +883,7 @@ class LeagueCompetitionService
 
     private function filterOperationalEntries(LeagueSession $session, $league): LeagueSession
     {
-        $allowedPlayerIds = $this->operations->activeOperationalPlayersQuery($league)
+        $allowedPlayerIds = $this->operations->activePlayablePlayersQuery($league)
             ->pluck('league_players.id')
             ->map(fn ($id): int => (int) $id)
             ->all();
@@ -1074,7 +1074,9 @@ class LeagueCompetitionService
                 return $entry->guest_fee_paid ? (int) $cut->guest_fee_amount_cents : 0;
             }
 
-            return $entry->current_cut_paid ? (int) $cut->member_fee_amount_cents : 0;
+            return $entry->current_cut_paid
+                ? (int) $cut->member_fee_amount_cents
+                : 0;
         });
 
         return [

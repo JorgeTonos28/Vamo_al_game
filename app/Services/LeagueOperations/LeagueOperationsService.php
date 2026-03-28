@@ -285,6 +285,22 @@ class LeagueOperationsService
             });
     }
 
+    public function activePlayablePlayersQuery(League $league): Builder|HasMany
+    {
+        return $league->activePlayers()
+            ->where(function (Builder $query) use ($league): void {
+                $query->whereNull('user_id')
+                    ->orWhereHas('user.leagueMemberships', function (Builder $membershipQuery) use ($league): void {
+                        $membershipQuery
+                            ->where('league_id', $league->id)
+                            ->whereIn('role', [
+                                LeagueMembershipRole::Admin,
+                                LeagueMembershipRole::Member,
+                            ]);
+                    });
+            });
+    }
+
     /**
      * @return Collection<int, LeagueCutPlayerBalance>
      */
