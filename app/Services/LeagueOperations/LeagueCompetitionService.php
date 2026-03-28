@@ -1678,8 +1678,11 @@ class LeagueCompetitionService
     private function sendLosersToQueue(LeagueSession $session, Collection $entries): void
     {
         $nextPosition = (int) $this->queueEntries($session)->max('queue_position');
+        $orderedEntries = $entries
+            ->sortBy(fn (LeagueSessionEntry $entry): int => $entry->entry_type === 'guest' ? 1 : 0)
+            ->values();
 
-        foreach ($entries as $entry) {
+        foreach ($orderedEntries as $entry) {
             $nextPosition++;
             $entry->forceFill([
                 'session_state' => 'queued',
