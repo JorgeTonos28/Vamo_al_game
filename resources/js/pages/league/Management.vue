@@ -141,6 +141,7 @@ const referralForm = reactive({
 });
 const settingsForm = reactive({
     name: props.module.league.name,
+    emoji: props.module.league.emoji ?? '',
     sessions_limit: props.module.settings.sessions_limit,
     cut_day: props.module.settings.cut_day,
     game_days: [...props.module.settings.game_days],
@@ -281,6 +282,7 @@ function updateSettings(): void {
         '/liga/gestion/settings',
         {
             name: settingsForm.name,
+            emoji: settingsForm.emoji,
             sessions_limit: settingsForm.sessions_limit,
             cut_day: settingsForm.cut_day,
             game_days: settingsForm.game_days,
@@ -763,6 +765,15 @@ function downloadReport(): void {
                             v-model="settingsForm.name"
                             type="text"
                             maxlength="120"
+                            class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none"
+                    /></label>
+                    <label class="grid gap-2 text-sm text-[#F8FAFC]"
+                        ><span>Emoji de la liga</span
+                        ><input
+                            v-model="settingsForm.emoji"
+                            type="text"
+                            maxlength="16"
+                            placeholder="🏀"
                             class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none"
                     /></label>
                     <label class="grid gap-2 text-sm text-[#F8FAFC]"

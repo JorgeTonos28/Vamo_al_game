@@ -167,6 +167,56 @@ class LeagueArrivalQueueTest extends TestCase
         $this->assertContains('Zorro', $playerNames);
     }
 
+    public function test_league_admin_players_can_arrive_and_count_for_the_session_once_paid(): void
+    {
+        [$league, $admin, $players] = $this->makeLeagueContext();
+        $operations = app(LeagueOperationsService::class);
+        $management = app(LeagueManagementService::class);
+        $arrival = app(LeagueArrivalService::class);
+
+        $league->cutConfigurations()->create([
+            'sessions_limit' => 4,
+            'game_days' => ['Sabado'],
+            'cut_day' => CarbonImmutable::now()->addDay()->day,
+            'effective_from' => now()->startOfMonth()->toDateString(),
+            'created_by_user_id' => $admin->id,
+        ]);
+
+        $adminPlayer = LeaguePlayer::factory()->for($league)->create([
+            'user_id' => $admin->id,
+            'display_name' => 'Admin en cancha',
+            'created_by_user_id' => $admin->id,
+            'updated_by_user_id' => $admin->id,
+            'status' => 'active',
+        ]);
+
+        $cut = $operations->activeCutForLeague($league);
+
+        foreach ($players->take(9) as $player) {
+            $management->recordPayment($admin, $player, 60000, false, $cut->id);
+            $arrival->togglePlayerArrival($admin, $player);
+        }
+
+        $management->recordPayment($admin, $adminPlayer, 60000, false, $cut->id);
+        $arrival->togglePlayerArrival($admin, $adminPlayer);
+
+        $balance = $operations->balanceForPlayer($cut, $adminPlayer);
+        $pageData = $arrival->pageData($admin);
+
+        $this->assertSame('paid', $balance->status);
+        $this->assertTrue(
+            collect($pageData['players'])
+                ->contains(fn (array $player): bool => $player['id'] === $adminPlayer->id && $player['current_cut_paid'] === true && $player['has_arrived'] === true),
+        );
+
+        $arrival->prepareSession($admin);
+
+        $session = $operations->currentSessionForLeague($league, $cut, false);
+
+        $this->assertNotNull($session);
+        $this->assertContains('Admin en cancha', array_column($session->initial_pool, 'name'));
+    }
+
     /**
      * @return array{0: League, 1: User, 2: Collection<int, LeaguePlayer>}
      */
