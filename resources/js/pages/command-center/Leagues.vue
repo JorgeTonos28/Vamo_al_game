@@ -5,13 +5,14 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import CommandCenterLayout from '@/layouts/CommandCenterLayout.vue';
 
-type LeagueAdmin = {
-    id: number | null;
-    name: string;
-};
-
+type LeagueAdmin = { id: number | null; name: string };
 type LeagueRow = {
     id: number;
     name: string;
@@ -23,22 +24,28 @@ type LeagueRow = {
     created_at: string | null;
 };
 
-const props = defineProps<{
-    leagues: LeagueRow[];
-}>();
-
+const props = defineProps<{ leagues: LeagueRow[] }>();
 const page = usePage();
 const status = computed(
-    () =>
-        (page.props.flash as { status?: string } | undefined)?.status,
+    () => (page.props.flash as { status?: string } | undefined)?.status,
 );
-const form = useForm({
-    name: '',
-    emoji: '',
-});
-const emojiOptions = ['🏀', '🏆', '🔥', '⚡', '🎯', '💪', '🛡️', '🎽', '👟', '🚀', '🌟', '🏟️'];
+const form = useForm({ name: '', emoji: '' });
+const emojiOptions = [
+    '🏀',
+    '🏆',
+    '🔥',
+    '⚡',
+    '🎯',
+    '💪',
+    '🛡️',
+    '🎽',
+    '👟',
+    '🚀',
+    '🌟',
+    '🏟️',
+];
 
-const submit = () => {
+const submit = () =>
     form.post('/command-center/leagues', {
         preserveScroll: true,
         onSuccess: () => {
@@ -46,18 +53,15 @@ const submit = () => {
             form.clearErrors();
         },
     });
-};
 
-const toggleLeague = (league: LeagueRow) => {
+const toggleLeague = (league: LeagueRow) =>
     router.patch(`/command-center/leagues/${league.id}`, undefined, {
         preserveScroll: true,
     });
-};
 </script>
 
 <template>
     <Head title="Ligas" />
-
     <CommandCenterLayout>
         <div class="app-page-stack">
             <section class="app-surface space-y-4">
@@ -68,11 +72,10 @@ const toggleLeague = (league: LeagueRow) => {
                     </h1>
                     <p class="app-body-copy">
                         Si una liga queda inactiva, sus administradores y
-                        miembros perderan acceso al entorno regular mientras no
+                        miembros perderán acceso al entorno regular mientras no
                         tengan otra liga activa disponible.
                     </p>
                 </div>
-
                 <p v-if="status" class="app-badge-positive inline-flex">
                     {{ status }}
                 </p>
@@ -85,10 +88,10 @@ const toggleLeague = (league: LeagueRow) => {
                         Crear liga activa
                     </h2>
                     <p class="app-body-copy">
-                        El nombre debe ser unico de forma exacta. La liga se crea activa y disponible para asignaciones.
+                        El nombre debe ser único de forma exacta. La liga se
+                        crea activa y disponible para asignaciones.
                     </p>
                 </div>
-
                 <form
                     class="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]"
                     @submit.prevent="submit"
@@ -104,16 +107,21 @@ const toggleLeague = (league: LeagueRow) => {
                         />
                         <InputError :message="form.errors.name" />
                     </div>
-
                     <div class="grid gap-2">
                         <Label for="league_emoji">Emoji</Label>
-                        <div class="grid grid-cols-6 gap-2 rounded-[16px] border border-white/6 bg-[#0E1628] p-3 sm:grid-cols-12">
+                        <div
+                            class="grid grid-cols-6 gap-2 rounded-[16px] border border-white/6 bg-[#0E1628] p-3 sm:grid-cols-12"
+                        >
                             <button
                                 v-for="option in emojiOptions"
                                 :key="option"
                                 type="button"
-                                class="flex min-h-12 items-center justify-center rounded-[12px] border text-[22px] transition active:scale-[0.97] active:opacity-80"
-                                :class="form.emoji === option ? 'border-[rgba(229,184,73,0.32)] bg-[rgba(229,184,73,0.14)]' : 'border-white/6 bg-[#131B2F] hover:bg-[#1B2740]'"
+                                class="flex min-h-12 cursor-pointer items-center justify-center rounded-[12px] border text-[22px] transition active:scale-[0.97] active:opacity-80"
+                                :class="
+                                    form.emoji === option
+                                        ? 'border-[rgba(229,184,73,0.32)] bg-[rgba(229,184,73,0.14)]'
+                                        : 'border-white/6 bg-[#131B2F] hover:bg-[#1B2740]'
+                                "
                                 @click="form.emoji = option"
                             >
                                 {{ option }}
@@ -126,13 +134,16 @@ const toggleLeague = (league: LeagueRow) => {
                             placeholder="🏀"
                         />
                         <p class="text-[13px] text-[#94A3B8]">
-                            Opcional. Puedes elegir uno del selector o escribir otro manualmente.
+                            Opcional. Puedes elegir uno del selector o escribir
+                            otro manualmente.
                         </p>
                         <InputError :message="form.errors.emoji" />
                     </div>
-
                     <div class="md:col-span-2 md:self-end">
-                        <Button :disabled="form.processing" class="w-full md:w-auto">
+                        <Button
+                            :disabled="form.processing"
+                            class="w-full md:w-auto"
+                        >
                             {{ form.processing ? 'Creando...' : 'Crear liga' }}
                         </Button>
                     </div>
@@ -150,13 +161,15 @@ const toggleLeague = (league: LeagueRow) => {
                             class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
                         >
                             <div class="space-y-2">
-                                <div
-                                    class="flex flex-wrap items-center gap-2"
-                                >
+                                <div class="flex flex-wrap items-center gap-2">
                                     <p
                                         class="text-[18px] font-semibold text-[#F8FAFC]"
                                     >
-                                        {{ league.emoji ? `${league.emoji} ${league.name}` : league.name }}
+                                        {{
+                                            league.emoji
+                                                ? `${league.emoji} ${league.name}`
+                                                : league.name
+                                        }}
                                     </p>
                                     <span
                                         :class="
@@ -172,7 +185,6 @@ const toggleLeague = (league: LeagueRow) => {
                                         }}
                                     </span>
                                 </div>
-
                                 <p class="text-[13px] text-[#94A3B8]">
                                     {{
                                         league.admins
@@ -182,22 +194,39 @@ const toggleLeague = (league: LeagueRow) => {
                                     }}
                                 </p>
                             </div>
-
-                            <Button
-                                :variant="
-                                    league.is_active ? 'destructive' : 'default'
-                                "
-                                class="w-full lg:w-auto"
-                                @click="toggleLeague(league)"
+                            <div
+                                class="flex w-full flex-col gap-2 lg:w-auto lg:flex-row"
                             >
-                                {{
-                                    league.is_active
-                                        ? 'Revocar acceso'
-                                        : 'Restaurar acceso'
-                                }}
-                            </Button>
+                                <Tooltip>
+                                    <TooltipTrigger as-child>
+                                        <Button
+                                            :variant="
+                                                league.is_active
+                                                    ? 'destructive'
+                                                    : 'default'
+                                            "
+                                            class="w-full lg:w-auto"
+                                            @click="toggleLeague(league)"
+                                        >
+                                            {{
+                                                league.is_active
+                                                    ? 'Revocar acceso'
+                                                    : 'Restaurar acceso'
+                                            }}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent
+                                        class="rounded-[12px] border border-white/8 bg-[#0E1628] px-3 py-2 text-[11px] font-semibold text-[#F8FAFC]"
+                                    >
+                                        {{
+                                            league.is_active
+                                                ? 'Desactivar acceso operativo'
+                                                : 'Volver a activar la liga'
+                                        }}
+                                    </TooltipContent>
+                                </Tooltip>
+                            </div>
                         </div>
-
                         <div
                             class="grid gap-3 text-[13px] text-[#94A3B8] sm:grid-cols-2 lg:grid-cols-3"
                         >

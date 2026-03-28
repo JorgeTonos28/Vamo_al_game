@@ -292,6 +292,7 @@ Ups! Lo sentimos, ha ocurrido un problema accediendo a la app. Comuniquese con l
 
 - Acceso visible para administradores de liga y miembros.
 - Mantiene `Corte activo`, `Miembros`, `Invitados`, `Iniciar jornada` y `Reiniciar lista de llegada`.
+- Para administradores, el badge principal cambia a `Sin draft` en rojo mientras no haya 10 integrantes listos y pasa a `Draft listo` en verde al completar el minimo operativo.
 - Antes del vencimiento del corte, todos los miembros conservan prioridad por llegada.
 - Al vencer el corte, solo mantienen prioridad quienes estan al dia; los demas pasan detras de los que pagaron y quedan alineados con la cola que luego consumira `Juego`.
 - Los invitados pagos cuentan para alcanzar el minimo de 10 jugadores habiles; los que no tienen pago confirmado salen automaticamente al preparar.
@@ -306,12 +307,14 @@ Ups! Lo sentimos, ha ocurrido un problema accediendo a la app. Comuniquese con l
 - Es el modulo operativo principal de la jornada actual y solo permite acciones a administradores.
 - Requiere una jornada preparada con 10 jugadores listos en el pool para iniciar el draft.
 - Soporta draft `auto`, `arrival` y `manual`.
-- El draft automatico combina rating manual de `Scout` con rendimiento de `Temporada`; respeta maximo 2 invitados por equipo.
+- El draft manual valida que todos los integrantes esten asignados antes de confirmar y bloquea en tiempo real equipos con mas de 5 jugadores.
+- El draft automatico combina rating manual de `Scout` con rendimiento de `Temporada`.
+- La rotacion de cola limita invitados por equipo entrante usando `incoming_team_guest_limit`; si entran dos equipos nuevos, el tope se duplica. Cuando no hay suficientes miembros para completar el draft, el sistema permite usar invitados adicionales para no frenar la jornada.
 - Durante el juego se pueden registrar puntos por equipo, puntos por jugador, reversar puntos de jugador, marcar salida de jugador, deshacer la ultima accion, cerrar el juego, cerrar la jornada y limpiar el juego actual.
 - El ganador por defecto se determina automaticamente por el marcador al cerrar el juego.
-- El marcador incluye cronometro configurable con cargar, iniciar, pausar, reanudar y reiniciar; se resetea al preparar jornada, al limpiar el juego y al pasar al siguiente draft.
+- El marcador incluye cronometro configurable con cargar, iniciar, pausar, reanudar y reiniciar; parte por defecto en `20:00` al abrir una jornada nueva y al pasar de un juego al siguiente.
 - La rotacion posterior usa la cola activa, la racha del equipo ganador y la regla de doble rotacion cuando hay 20 o mas participantes.
-- Los miembros solo ven el marcador, las alineaciones, el historial de juegos y el resumen de la jornada.
+- Los miembros solo ven el marcador, las alineaciones y el historial; los montos cobrados del juego quedan reservados a administradores.
 
 ### Cola
 
@@ -353,6 +356,7 @@ Ups! Lo sentimos, ha ocurrido un problema accediendo a la app. Comuniquese con l
 - Incluye balance de la liga, registro de pagos, gastos del corte, ingresos del corte, directiva, configuracion de jornadas, referidos y reporte PDF por corte.
 - El registro de pagos soporta filtro por pendientes, saldo a favor, deuda previa, aplicacion de creditos por referidos y eliminacion de cuota.
 - Los gastos manuales o fijos se registran por corte.
+- `Configuracion de jornadas` ahora incluye `Límite de invitados por equipo nuevo`, que alimenta la rotacion automatica del modulo `Juego`.
 - Las cuotas de miembros, invitados y el credito por referido quedan versionados para mantener trazabilidad si cambian en el futuro.
 
 ### Centro de mando para administradores generales
@@ -362,7 +366,7 @@ Los administradores generales acceden a un shell separado de la app regular. Por
 - `Panel`: metricas basicas del sistema como usuarios totales, ligas activas, administradores de ligas, miembros, invitados y ligas inactivas.
 - `Usuarios`: formulario para invitar nuevos usuarios con nombre, apellido, cedula, telefono, direccion, correo y rol, con liga inicial opcional si el rol es operativo.
 - `Usuarios`: cada fila tambien muestra las membresias actuales del usuario y permite asignarle nuevas ligas activas con rol `league_admin` o `member`.
-- `Ligas`: listado de ligas, administradores, cantidad de miembros operativos, fecha de creacion, formulario para crear nuevas ligas activas con emoji opcional y toggle de acceso.
+- `Ligas`: listado de ligas, administradores, cantidad de miembros operativos, fecha de creacion, formulario para crear nuevas ligas activas con emoji opcional, toggle de acceso y cambio de nombre sobre la misma pantalla.
 - `Ajustes`: misma estructura de cuenta del shell regular (`Perfil`, `Seguridad` y `Apariencia`), con el branding global de logo y favicon integrado dentro de `Apariencia`.
 - Los campos opcionales de identidad (`cedula`, `telefono`, `direccion`) se normalizan a `null` cuando llegan vacios para no reservar valores en blanco ni romper constraints unicos.
 
@@ -574,20 +578,20 @@ Paso a paso:
 2. Crea un proyecto nuevo o usa uno existente para `Vamo al Game`.
 3. Ve a `APIs y servicios` -> `Pantalla de consentimiento OAuth`.
 4. Configura la app:
-   - Tipo: `External` si la usaran cuentas personales de Google.
-   - Nombre de la app, correo de soporte y dominio si aplica.
-   - Agrega tu correo como usuario de prueba mientras la app no este publicada.
+    - Tipo: `External` si la usaran cuentas personales de Google.
+    - Nombre de la app, correo de soporte y dominio si aplica.
+    - Agrega tu correo como usuario de prueba mientras la app no este publicada.
 5. Luego ve a `APIs y servicios` -> `Credenciales`.
 6. Crea una credencial de tipo `ID de cliente OAuth`.
 7. Elige `Aplicacion web`.
 8. En `URIs de redireccion autorizados` agrega:
-   - `http://localhost:8000/auth/google/callback` si ese es tu `APP_URL`
-   - `http://127.0.0.1:8000/auth/google/callback` si abres la app asi
-   - La URL real de tu app en produccion, por ejemplo `https://tu-dominio.com/auth/google/callback`
+    - `http://localhost:8000/auth/google/callback` si ese es tu `APP_URL`
+    - `http://127.0.0.1:8000/auth/google/callback` si abres la app asi
+    - La URL real de tu app en produccion, por ejemplo `https://tu-dominio.com/auth/google/callback`
 9. En `Origenes autorizados de JavaScript` agrega los origenes base equivalentes:
-   - `http://localhost:8000`
-   - `http://127.0.0.1:8000`
-   - Tu dominio real en produccion si aplica
+    - `http://localhost:8000`
+    - `http://127.0.0.1:8000`
+    - Tu dominio real en produccion si aplica
 10. Copia el `Client ID` y el `Client Secret`.
 11. Pegalos en tu `.env`:
 

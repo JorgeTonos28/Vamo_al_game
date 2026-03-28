@@ -2,13 +2,15 @@
 import { IonContent, IonPage, IonRefresher, IonRefresherContent, onIonViewWillEnter } from '@ionic/vue'
 import { ref } from 'vue'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
-import { fetchLeagueTable, type LeagueTablePayload } from '@/services/league'
+import { fetchLeagueTable  } from '@/services/league'
+import type {LeagueTablePayload} from '@/services/league';
 
 const payload = ref<LeagueTablePayload | null>(null)
 const isLoading = ref(false)
 
 async function loadPage(): Promise<void> {
   isLoading.value = true
+
   try {
     payload.value = await fetchLeagueTable()
   } finally {
@@ -30,13 +32,15 @@ onIonViewWillEnter(loadPage)
 <template>
   <IonPage>
     <IonContent :fullscreen="true">
-      <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
+      <template v-slot:fixed>
+<IonRefresher  @ionRefresh="handleRefresh">
         <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
       </IonRefresher>
+</template>
 
       <div class="mobile-shell">
         <div class="mobile-stack">
-          <MobileAppTopbar :title="payload?.league.name ?? 'Tabla'" description="Lideres de la jornada por victorias, puntos y volumen de juego." />
+          <MobileAppTopbar :title="payload?.league.name ?? 'Tabla'" description="Líderes de la jornada por victorias, puntos y volumen de juego." />
 
           <section class="summary-grid">
             <article class="app-surface summary-card">
@@ -56,7 +60,7 @@ onIonViewWillEnter(loadPage)
           <section class="app-surface section-stack">
             <p class="app-kicker section-kicker">Tabla general</p>
             <p v-if="isLoading && !payload" class="body-copy">Cargando tabla...</p>
-            <p v-else-if="(payload?.table.standings.length ?? 0) === 0" class="body-copy">Sin juegos terminados todavia.</p>
+            <p v-else-if="(payload?.table.standings.length ?? 0) === 0" class="body-copy">Sin juegos terminados todavía.</p>
             <article v-for="(row, index) in payload?.table.standings ?? []" :key="`${row.identity.name}-${index}`" class="data-row">
               <div>
                 <p class="data-row__name">#{{ index + 1 }} · {{ row.identity.name }}</p>
@@ -78,7 +82,7 @@ onIonViewWillEnter(loadPage)
           </section>
 
           <section class="app-surface section-stack">
-            <p class="app-kicker section-kicker">Mas usados</p>
+            <p class="app-kicker section-kicker">Más usados</p>
             <article v-for="(row, index) in payload?.table.top_games ?? []" :key="`${row.identity.name}-${index}`" class="data-row">
               <div>
                 <p class="data-row__name">{{ row.identity.name }}</p>

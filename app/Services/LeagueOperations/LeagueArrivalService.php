@@ -54,6 +54,8 @@ class LeagueArrivalService
             ->where('entry_type', 'guest')
             ->values();
         $isPastDue = $this->operations->hasPastDue($cut);
+        $draftReadyEntries = $sessionEntries->where('entry_type', 'player')->count()
+            + $guestEntries->where('guest_fee_paid', true)->count();
 
         return [
             'league' => [
@@ -87,6 +89,9 @@ class LeagueArrivalService
                     'arrived_members' => $sessionEntries->where('entry_type', 'player')->count(),
                     'total_members' => $players->count(),
                     'guests' => $guestEntries->count(),
+                    'paid_guests' => $guestEntries->where('guest_fee_paid', true)->count(),
+                    'draft_ready_entries' => $draftReadyEntries,
+                    'draft_ready' => $draftReadyEntries >= 10,
                 ],
                 'prepared_pool' => $session?->initial_pool ?? [],
                 'prepared_queue' => $session?->initial_queue ?? [],

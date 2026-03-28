@@ -1082,6 +1082,9 @@ export interface components {
             name: string;
             emoji?: string | null;
         };
+        CommandCenterUpdateLeagueRequest: {
+            name?: string;
+        };
         CommandCenterAssignLeagueMembershipRequest: {
             league_id: number;
             /** @enum {string} */
@@ -1564,6 +1567,9 @@ export interface components {
             arrived_members: number;
             total_members: number;
             guests: number;
+            paid_guests: number;
+            draft_ready_entries: number;
+            draft_ready: boolean;
         };
         LeagueQueueEntry: {
             id: number;
@@ -1671,6 +1677,7 @@ export interface components {
             sessions_limit: number;
             game_days: string[];
             cut_day: number;
+            incoming_team_guest_limit: number;
             member_fee_amount_cents: number;
             guest_fee_amount_cents: number;
             referral_credit_amount_cents: number;
@@ -1733,7 +1740,7 @@ export interface components {
             active_players: number;
             guests: number;
             today_guests: number;
-            cash_collected_cents: number;
+            cash_collected_cents: number | null;
             unpaid_members_count: number;
         };
         LeagueCompetitionIdentity: {
@@ -2145,6 +2152,7 @@ export interface components {
             sessions_limit: number;
             game_days: string[];
             cut_day: number;
+            incoming_team_guest_limit: number;
             member_fee_amount_cents: number;
             guest_fee_amount_cents: number;
             referral_credit_amount_cents: number;
@@ -2778,7 +2786,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CommandCenterUpdateLeagueRequest"];
+            };
+        };
         responses: {
             /** @description Liga actualizada */
             200: {

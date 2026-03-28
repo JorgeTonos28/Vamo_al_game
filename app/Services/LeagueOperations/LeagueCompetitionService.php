@@ -49,6 +49,11 @@ class LeagueCompetitionService
             ->where('status', 'completed')
             ->sortByDesc('game_number')
             ->values();
+        $summary = $this->queueSummary($session, $context['cut']);
+
+        if (! $context['role']->canManageLeague()) {
+            $summary['cash_collected_cents'] = null;
+        }
 
         return array_merge($this->basePayload($context), [
             'game' => [
@@ -79,13 +84,13 @@ class LeagueCompetitionService
                     'score' => "{$game->team_a_score} - {$game->team_b_score}",
                     'winner_side' => $game->winner_side,
                     'summary' => sprintf(
-                        'Eq. %s gano %s-%s',
+                        'Eq. %s ganó %s-%s',
                         $game->winner_side,
                         $game->winner_side === 'A' ? $game->team_a_score : $game->team_b_score,
                         $game->winner_side === 'A' ? $game->team_b_score : $game->team_a_score,
                     ),
                 ])->all(),
-                'summary' => $this->queueSummary($session, $context['cut']),
+                'summary' => $summary,
             ],
         ]);
     }
@@ -660,7 +665,7 @@ class LeagueCompetitionService
 
         if ($durationSeconds < 60 || $durationSeconds > 7200) {
             throw ValidationException::withMessages([
-                'duration_seconds' => 'El cronometro debe estar entre 1 y 120 minutos.',
+                'duration_seconds' => 'El cronómetro debe estar entre 1 y 120 minutos.',
             ]);
         }
 
@@ -679,7 +684,7 @@ class LeagueCompetitionService
 
         if ($session->clock_duration_seconds === null || $session->clock_remaining_seconds === null) {
             throw ValidationException::withMessages([
-                'clock' => 'Configura primero la duracion del cronometro.',
+                'clock' => 'Configura primero la duración del cronómetro.',
             ]);
         }
 
@@ -989,7 +994,7 @@ class LeagueCompetitionService
 
         return [
             'key' => (string) ($notice['key'] ?? 'rotation'),
-            'title' => (string) ($notice['title'] ?? 'Rotacion'),
+            'title' => (string) ($notice['title'] ?? 'Rotación'),
             'body' => array_values(array_map(
                 static fn ($line): string => (string) $line,
                 is_array($notice['body'] ?? null) ? $notice['body'] : [],
@@ -1272,12 +1277,6 @@ class LeagueCompetitionService
             ]);
         }
 
-        if ($teamA->where('entry_type', 'guest')->count() > 2 || $teamB->where('entry_type', 'guest')->count() > 2) {
-            throw ValidationException::withMessages([
-                'assignments' => 'Cada equipo admite como maximo 2 invitados.',
-            ]);
-        }
-
         return ['A' => $teamA, 'B' => $teamB];
     }
 
@@ -1323,18 +1322,12 @@ class LeagueCompetitionService
             $entry = $candidate['entry'];
             $weight = $candidate['rating'];
 
-            $guestCountA = $teamA->filter(
-                fn (array $item): bool => $item['entry']->entry_type === 'guest'
-            )->count();
-            $guestCountB = $teamB->filter(
-                fn (array $item): bool => $item['entry']->entry_type === 'guest'
-            )->count();
-            $canA = $teamA->count() < 5 && ($entry->entry_type !== 'guest' || $guestCountA < 2);
-            $canB = $teamB->count() < 5 && ($entry->entry_type !== 'guest' || $guestCountB < 2);
+            $canA = $teamA->count() < 5;
+            $canB = $teamB->count() < 5;
 
             if (! $canA && ! $canB) {
                 throw ValidationException::withMessages([
-                    'session' => 'No se puede balancear el draft automatico con mas de 2 invitados por equipo.',
+                    'session' => 'No se puede balancear el draft automático con más de 10 jugadores.',
                 ]);
             }
 
@@ -1553,14 +1546,17 @@ class LeagueCompetitionService
 
     private function nextQueueReplacement(LeagueSession $session, string $teamSide): ?LeagueSessionEntry
     {
-        $guestCount = $this->onCourtEntries($session)
+        $currentGuestCount = $this->onCourtEntries($session)
             ->where('team_side', $teamSide)
             ->where('entry_type', 'guest')
             ->count();
 
         /** @var LeagueSessionEntry|null $entry */
-        $entry = $this->queueEntries($session)
-            ->first(fn (LeagueSessionEntry $candidate): bool => $candidate->entry_type !== 'guest' || $guestCount < 2);
+        $entry = $this->selectIncomingEntries(
+            $this->queueEntries($session),
+            1,
+            max(0, $this->incomingTeamGuestLimit($session) - $currentGuestCount),
+        )->first();
 
         return $entry;
     }
@@ -1629,7 +1625,7 @@ class LeagueCompetitionService
                 ])->save();
             });
 
-            $this->pullNextTenToPool($session);
+            $incoming = $this->pullNextTenToPool($session);
             $session->forceFill([
                 'current_game_number' => $session->current_game_number + 1,
                 'rotation_state' => [
@@ -1641,7 +1637,7 @@ class LeagueCompetitionService
                         'double_rotation',
                         $winnerSide,
                         $loserSide,
-                        $this->pendingPoolEntries($session)->count(),
+                        $incoming->count(),
                     ),
                 ],
             ])->save();
@@ -1649,8 +1645,8 @@ class LeagueCompetitionService
             return;
         }
 
-        $allowedGuestSlots = max(0, 2 - $winnerEntries->where('entry_type', 'guest')->count());
-        $incoming = $this->pullNextFiveToCourt($session, $loserSide, $allowedGuestSlots);
+        $incomingGuestLimit = $this->incomingTeamGuestLimit($session);
+        $incoming = $this->pullNextFiveToCourt($session, $loserSide, $incomingGuestLimit);
         $session->forceFill([
             'current_game_number' => $session->current_game_number + 1,
             'rotation_state' => [
@@ -1664,6 +1660,7 @@ class LeagueCompetitionService
                     $loserSide,
                     $incoming->count(),
                     $streakCount,
+                    $incomingGuestLimit,
                 ),
             ],
         ])->save();
@@ -1683,16 +1680,6 @@ class LeagueCompetitionService
         $nextPosition = (int) $this->queueEntries($session)->max('queue_position');
 
         foreach ($entries as $entry) {
-            if ($entry->entry_type === 'guest') {
-                $entry->forceFill([
-                    'session_state' => 'removed',
-                    'team_side' => null,
-                    'queue_position' => null,
-                ])->save();
-
-                continue;
-            }
-
             $nextPosition++;
             $entry->forceFill([
                 'session_state' => 'queued',
@@ -1702,44 +1689,33 @@ class LeagueCompetitionService
         }
     }
 
-    private function pullNextTenToPool(LeagueSession $session): void
+    private function pullNextTenToPool(LeagueSession $session): Collection
     {
-        $this->queueEntries($session)
-            ->take(10)
-            ->values()
-            ->each(function (LeagueSessionEntry $entry): void {
-                $entry->forceFill([
-                    'session_state' => 'pool',
-                    'team_side' => null,
-                    'queue_position' => null,
-                ])->save();
-            });
+        $selected = $this->selectIncomingEntries(
+            $this->queueEntries($session),
+            10,
+            $this->incomingTeamGuestLimit($session) * 2,
+        );
+
+        $selected->each(function (LeagueSessionEntry $entry): void {
+            $entry->forceFill([
+                'session_state' => 'pool',
+                'team_side' => null,
+                'queue_position' => null,
+            ])->save();
+        });
 
         $this->resequenceQueue($session->fresh('entries'));
+
+        return $selected;
     }
 
     /**
      * @return Collection<int, LeagueSessionEntry>
      */
-    private function pullNextFiveToCourt(LeagueSession $session, string $teamSide, int $allowedGuestSlots): Collection
+    private function pullNextFiveToCourt(LeagueSession $session, string $teamSide, int $incomingGuestLimit): Collection
     {
-        $selected = collect();
-
-        foreach ($this->queueEntries($session) as $entry) {
-            if ($selected->count() >= 5) {
-                break;
-            }
-
-            if ($entry->entry_type === 'guest' && $allowedGuestSlots <= 0) {
-                continue;
-            }
-
-            if ($entry->entry_type === 'guest') {
-                $allowedGuestSlots--;
-            }
-
-            $selected->push($entry);
-        }
+        $selected = $this->selectIncomingEntries($this->queueEntries($session), 5, $incomingGuestLimit);
 
         $selected->each(function (LeagueSessionEntry $entry) use ($teamSide): void {
             $entry->forceFill([
@@ -1763,15 +1739,16 @@ class LeagueCompetitionService
         string $loserSide,
         int $incomingCount = 0,
         int $streakCount = 1,
+        ?int $incomingGuestLimit = null,
     ): array {
         return match ($mode) {
             'double_rotation' => [
                 'key' => sprintf('rotation-%s-%d', $mode, now()->timestamp),
-                'title' => 'Racha de 2 - Rotacion total',
+                'title' => 'Racha de 2 - Rotación total',
                 'body' => [
-                    sprintf('Eq. %s gano 2 seguidos y entra en descanso.', $winnerSide),
+                    sprintf('Eq. %s ganó 2 seguidos y entra en descanso.', $winnerSide),
                     sprintf('Eq. %s va al final de la cola.', $loserSide),
-                    sprintf('Los proximos %d jugadores juegan entre ellos.', $incomingCount),
+                    sprintf('Los próximos %d jugadores juegan entre ellos.', $incomingCount),
                     sprintf('El ganador de ese cruce se enfrenta luego al Eq. %s.', $winnerSide),
                 ],
                 'tone' => 'warning',
@@ -1779,10 +1756,10 @@ class LeagueCompetitionService
             ],
             'champion_return' => [
                 'key' => sprintf('rotation-%s-%d', $mode, now()->timestamp),
-                'title' => 'Ganador vs. el campeon',
+                'title' => 'Ganador vs. el campeón',
                 'body' => [
                     'El ganador del grupo de espera se queda en cancha.',
-                    'El equipo campeon regresa para disputar el siguiente juego.',
+                    'El equipo campeón regresa para disputar el siguiente juego.',
                     'La racha vuelve a contarse desde 1 para este nuevo cruce.',
                 ],
                 'tone' => 'success',
@@ -1790,12 +1767,16 @@ class LeagueCompetitionService
             ],
             'champion_stays' => [
                 'key' => sprintf('rotation-%s-%d', $mode, now()->timestamp),
-                'title' => sprintf('Racha de %d - Campeon en cancha', $streakCount),
+                'title' => sprintf('Racha de %d - Campeón en cancha', $streakCount),
                 'body' => [
                     sprintf('Eq. %s lleva %d victorias seguidas.', $winnerSide, $streakCount),
-                    'Con menos de 20 jugadores el campeon no descansa hasta que alguien le gane.',
+                    'Con menos de 20 jugadores el campeón no descansa hasta que alguien le gane.',
                     sprintf('Eq. %s va al final de la cola.', $loserSide),
-                    sprintf('Entran %d jugadores nuevos respetando el limite de 2 invitados por equipo.', $incomingCount),
+                    sprintf(
+                        'Entran %d jugadores nuevos respetando el límite de %d invitados por equipo nuevo.',
+                        $incomingCount,
+                        $incomingGuestLimit ?? 2,
+                    ),
                 ],
                 'tone' => 'warning',
                 'icon' => 'trophy',
@@ -1807,12 +1788,56 @@ class LeagueCompetitionService
                     sprintf('Eq. %s se queda completo en cancha.', $winnerSide),
                     sprintf('Eq. %s va al final de la cola.', $loserSide),
                     sprintf('Entran %d jugadores en orden de prioridad.', $incomingCount),
-                    'Los invitados derrotados salen de la rotacion, tal como en Legacy.',
+                    'Los invitados derrotados vuelven al final de la cola.',
                 ],
                 'tone' => 'success',
                 'icon' => 'rotate',
             ],
         };
+    }
+
+    /**
+     * @param  Collection<int, LeagueSessionEntry>  $queueEntries
+     * @return Collection<int, LeagueSessionEntry>
+     */
+    private function selectIncomingEntries(Collection $queueEntries, int $slots, int $baseGuestLimit): Collection
+    {
+        if ($slots <= 0) {
+            return collect();
+        }
+
+        $memberCount = $queueEntries
+            ->where('entry_type', '!=', 'guest')
+            ->count();
+        $requiredGuests = max(0, $slots - $memberCount);
+        $allowedGuests = min($slots, max(0, $baseGuestLimit, $requiredGuests));
+        $selected = collect();
+        $selectedGuests = 0;
+
+        foreach ($queueEntries as $entry) {
+            if ($selected->count() >= $slots) {
+                break;
+            }
+
+            if ($entry->entry_type === 'guest') {
+                if ($selectedGuests >= $allowedGuests) {
+                    continue;
+                }
+
+                $selectedGuests++;
+            }
+
+            $selected->push($entry);
+        }
+
+        return $selected;
+    }
+
+    private function incomingTeamGuestLimit(LeagueSession $session): int
+    {
+        $session->loadMissing('league');
+
+        return min(5, max(0, (int) ($session->league?->incoming_team_guest_limit ?? 2)));
     }
 
     /**

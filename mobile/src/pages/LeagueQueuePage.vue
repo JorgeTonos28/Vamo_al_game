@@ -2,13 +2,15 @@
 import { IonContent, IonPage, IonRefresher, IonRefresherContent, onIonViewWillEnter } from '@ionic/vue'
 import { ref } from 'vue'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
-import { fetchLeagueQueue, type LeagueQueuePayload } from '@/services/league'
+import { fetchLeagueQueue  } from '@/services/league'
+import type {LeagueQueuePayload} from '@/services/league';
 
 const payload = ref<LeagueQueuePayload | null>(null)
 const isLoading = ref(false)
 
 async function loadPage(): Promise<void> {
   isLoading.value = true
+
   try {
     payload.value = await fetchLeagueQueue()
   } finally {
@@ -35,6 +37,7 @@ async function changeSession(event: Event): Promise<void> {
   }
 
   isLoading.value = true
+
   try {
     payload.value = await fetchLeagueQueue(sessionId)
   } finally {
@@ -53,17 +56,19 @@ function sessionLabel(session: LeagueQueuePayload['session_selector']['sessions'
 <template>
   <IonPage>
     <IonContent :fullscreen="true">
-      <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
+      <template v-slot:fixed>
+<IonRefresher  @ionRefresh="handleRefresh">
         <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
       </IonRefresher>
+</template>
 
       <div class="mobile-shell">
         <div class="mobile-stack">
-          <MobileAppTopbar :title="payload?.league.name ?? 'Cola'" description="Vista viva de cancha, espera y rotacion actual." />
+          <MobileAppTopbar :title="payload?.league.name ?? 'Cola'" description="Vista viva de cancha, espera y rotación actual." />
 
           <section class="app-surface section-stack">
             <p class="app-kicker section-kicker">Jornada visible</p>
-            <p class="body-copy">Revisa la cola actual o consulta jornadas anteriores desde el mismo modulo.</p>
+            <p class="body-copy">Revisa la cola actual o consulta jornadas anteriores desde el mismo módulo.</p>
             <select class="sheet-input" :value="payload?.session_selector.selected_session_id" @change="changeSession">
               <option v-for="session in payload?.session_selector.sessions ?? []" :key="session.id" :value="session.id">
                 {{ sessionLabel(session) }}
@@ -114,7 +119,7 @@ function sessionLabel(session: LeagueQueuePayload['session_selector']['sessions'
               <p class="app-kicker section-kicker">Cola</p>
               <span class="member-chip member-chip--neutral">{{ payload?.queue.waiting.length ?? 0 }}</span>
             </div>
-            <p v-if="(payload?.queue.waiting.length ?? 0) === 0" class="body-copy">Cola vacia.</p>
+            <p v-if="(payload?.queue.waiting.length ?? 0) === 0" class="body-copy">Cola vacía.</p>
             <article v-for="player in payload?.queue.waiting ?? []" :key="player.id" class="data-row">
               <div>
                 <p class="data-row__name">{{ player.name }}</p>
@@ -126,7 +131,7 @@ function sessionLabel(session: LeagueQueuePayload['session_selector']['sessions'
 
           <section class="app-surface section-stack">
             <p class="app-kicker section-kicker">Resumen</p>
-            <p class="body-copy">El modulo Juego sigue controlando el cierre de jornada. Aqui solo ves el estado vivo de cancha y espera.</p>
+            <p class="body-copy">El módulo Juego sigue controlando el cierre de jornada. Aquí solo ves el estado vivo de cancha y espera.</p>
             <p v-if="payload?.queue.live_game" class="body-copy">Juego actual: #{{ payload.queue.live_game.game_number }} · {{ payload.queue.live_game.score }}</p>
           </section>
         </div>

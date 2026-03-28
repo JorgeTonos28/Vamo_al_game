@@ -144,6 +144,7 @@ class LeagueManagementService
                 'sessions_limit' => $configuration->sessions_limit,
                 'game_days' => $configuration->game_days ?? ['Sabado'],
                 'cut_day' => $configuration->cut_day,
+                'incoming_team_guest_limit' => max(0, (int) ($league->incoming_team_guest_limit ?? 2)),
                 'member_fee_amount_cents' => $memberFee->amount_cents,
                 'guest_fee_amount_cents' => $guestFee->amount_cents,
                 'referral_credit_amount_cents' => $referralCredit->amount_cents,
@@ -339,9 +340,11 @@ class LeagueManagementService
 
     /**
      * @param  array{
+     *      name?: string|null,
      *      sessions_limit: int,
      *      game_days: array<int, string>,
      *      cut_day: int,
+     *      incoming_team_guest_limit: int,
      *      member_fee_amount_cents: int,
      *      guest_fee_amount_cents: int,
      *      referral_credit_amount_cents: int
@@ -356,6 +359,11 @@ class LeagueManagementService
         $todayString = $today->toDateString();
 
         DB::transaction(function () use ($user, $league, $data, $todayString, $yesterday): void {
+            $league->forceFill([
+                'name' => filled($data['name'] ?? null) ? $data['name'] : $league->name,
+                'incoming_team_guest_limit' => $data['incoming_team_guest_limit'],
+            ])->save();
+
             $configuration = $this->operations->currentConfigurationForLeague($league);
 
             if ($configuration->effective_from?->toDateString() === $todayString) {

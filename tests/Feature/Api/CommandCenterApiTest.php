@@ -136,6 +136,29 @@ class CommandCenterApiTest extends TestCase
             ->assertJsonPath('data.league.is_active', false);
     }
 
+    public function test_general_admin_can_rename_a_league_from_api(): void
+    {
+        $generalAdmin = User::factory()->generalAdmin()->create();
+        $league = League::factory()->create([
+            'name' => 'Liga Aurora',
+            'slug' => 'liga-aurora',
+        ]);
+
+        $this->actingAs($generalAdmin, 'sanctum')
+            ->patchJson("/api/v1/command-center/leagues/{$league->id}", [
+                'name' => 'Liga Impacto',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.league.name', 'Liga Impacto')
+            ->assertJsonPath('data.league.slug', 'liga-impacto');
+
+        $this->assertDatabaseHas('leagues', [
+            'id' => $league->id,
+            'name' => 'Liga Impacto',
+            'slug' => 'liga-impacto',
+        ]);
+    }
+
     public function test_general_admin_can_create_a_league_from_api(): void
     {
         $generalAdmin = User::factory()->generalAdmin()->create();

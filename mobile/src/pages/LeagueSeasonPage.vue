@@ -2,7 +2,8 @@
 import { IonContent, IonPage, IonRefresher, IonRefresherContent, onIonViewWillEnter } from '@ionic/vue'
 import { ref } from 'vue'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
-import { fetchLeagueSeason, type LeagueSeasonPayload } from '@/services/league'
+import { fetchLeagueSeason  } from '@/services/league'
+import type {LeagueSeasonPayload} from '@/services/league';
 
 const payload = ref<LeagueSeasonPayload | null>(null)
 const isLoading = ref(false)
@@ -12,12 +13,16 @@ function money(amountCents: number): string {
 }
 
 function compactDate(value: string | null | undefined): string {
-  if (!value) return 'Sin fecha'
+  if (!value) {
+return 'Sin fecha'
+}
+
   return new Intl.DateTimeFormat('es-DO', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value))
 }
 
 async function loadPage(): Promise<void> {
   isLoading.value = true
+
   try {
     payload.value = await fetchLeagueSeason()
   } finally {
@@ -39,13 +44,15 @@ onIonViewWillEnter(loadPage)
 <template>
   <IonPage>
     <IonContent :fullscreen="true">
-      <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
+      <template v-slot:fixed>
+<IonRefresher  @ionRefresh="handleRefresh">
         <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
       </IonRefresher>
+</template>
 
       <div class="mobile-shell">
         <div class="mobile-stack">
-          <MobileAppTopbar :title="payload?.league.name ?? 'Temporada'" :description="payload?.season.season.label ?? 'Resumen acumulado de jornadas y lideres.'" />
+          <MobileAppTopbar :title="payload?.league.name ?? 'Temporada'" :description="payload?.season.season.label ?? 'Resumen acumulado de jornadas y líderes.'" />
 
           <section class="summary-grid">
             <article class="app-surface summary-card">
@@ -68,7 +75,7 @@ onIonViewWillEnter(loadPage)
           </section>
 
           <section class="app-surface section-stack">
-            <p class="app-kicker section-kicker">Lideres en puntos</p>
+            <p class="app-kicker section-kicker">Líderes en puntos</p>
             <p v-if="isLoading && !payload" class="body-copy">Cargando temporada...</p>
             <article v-for="(row, index) in payload?.season.leaders.points ?? []" :key="`${row.identity.name}-${index}`" class="data-row">
               <div>
@@ -80,7 +87,7 @@ onIonViewWillEnter(loadPage)
           </section>
 
           <section class="app-surface section-stack">
-            <p class="app-kicker section-kicker">Lideres en victorias</p>
+            <p class="app-kicker section-kicker">Líderes en victorias</p>
             <article v-for="(row, index) in payload?.season.leaders.wins ?? []" :key="`${row.identity.name}-${index}`" class="data-row">
               <div>
                 <p class="data-row__name">{{ row.identity.name }}</p>
@@ -97,7 +104,7 @@ onIonViewWillEnter(loadPage)
                 <p class="data-row__name">{{ compactDate(sessionRow.date) }}</p>
                 <p class="body-copy">{{ sessionRow.total_games }} juegos · {{ sessionRow.players }} jugadores · {{ sessionRow.total_points }} pts</p>
               </div>
-              <span class="member-chip member-chip--neutral">{{ sessionRow.top_scorer?.name ?? 'Sin lider' }}</span>
+               <span class="member-chip member-chip--neutral">{{ sessionRow.top_scorer?.name ?? 'Sin líder' }}</span>
             </article>
           </section>
 

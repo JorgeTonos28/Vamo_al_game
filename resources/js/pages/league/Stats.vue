@@ -71,9 +71,9 @@ function sessionLabel(session: { session_date: string | null; status: string; co
                 <div class="flex items-center gap-3">
                     <BarChart3 class="size-5 text-[#E5B849]" />
                     <div>
-                        <p class="app-kicker text-[#E5B849]">Estadisticas de jornada</p>
+                        <p class="app-kicker text-[#E5B849]">Estadísticas de jornada</p>
                         <p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">
-                            Puntos y juegos completados durante la jornada seleccionada. Puedes revisar tambien dias anteriores.
+                            Puntos y juegos completados durante la jornada seleccionada. Puedes revisar también días anteriores.
                         </p>
                     </div>
                 </div>
@@ -105,7 +105,7 @@ function sessionLabel(session: { session_date: string | null; status: string; co
                     </span>
                 </div>
                 <div v-if="props.stats.points_leaders.length === 0" class="rounded-[14px] border border-dashed border-white/8 bg-[#0E1628] p-4 text-sm text-[#94A3B8]">
-                    Sin datos todavia.
+                    Sin datos todavía.
                 </div>
                 <div v-else class="grid gap-3">
                     <div
@@ -137,7 +137,7 @@ function sessionLabel(session: { session_date: string | null; status: string; co
                     </span>
                 </div>
                 <div v-if="props.stats.games_leaders.length === 0" class="rounded-[14px] border border-dashed border-white/8 bg-[#0E1628] p-4 text-sm text-[#94A3B8]">
-                    Sin datos todavia.
+                    Sin datos todavía.
                 </div>
                 <div v-else class="grid gap-3">
                     <div

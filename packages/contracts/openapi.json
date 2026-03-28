@@ -702,6 +702,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommandCenterUpdateLeagueRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Liga actualizada",
@@ -3984,6 +3994,15 @@
           }
         }
       },
+      "CommandCenterUpdateLeagueRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120
+          }
+        }
+      },
       "CommandCenterAssignLeagueMembershipRequest": {
         "type": "object",
         "required": [
@@ -5836,7 +5855,10 @@
         "required": [
           "arrived_members",
           "total_members",
-          "guests"
+          "guests",
+          "paid_guests",
+          "draft_ready_entries",
+          "draft_ready"
         ],
         "properties": {
           "arrived_members": {
@@ -5847,6 +5869,15 @@
           },
           "guests": {
             "type": "integer"
+          },
+          "paid_guests": {
+            "type": "integer"
+          },
+          "draft_ready_entries": {
+            "type": "integer"
+          },
+          "draft_ready": {
+            "type": "boolean"
           }
         }
       },
@@ -6272,6 +6303,7 @@
           "sessions_limit",
           "game_days",
           "cut_day",
+          "incoming_team_guest_limit",
           "member_fee_amount_cents",
           "guest_fee_amount_cents",
           "referral_credit_amount_cents"
@@ -6287,6 +6319,9 @@
             }
           },
           "cut_day": {
+            "type": "integer"
+          },
+          "incoming_team_guest_limit": {
             "type": "integer"
           },
           "member_fee_amount_cents": {
@@ -6568,7 +6603,10 @@
             "type": "integer"
           },
           "cash_collected_cents": {
-            "type": "integer"
+            "type": [
+              "integer",
+              "null"
+            ]
           },
           "unpaid_members_count": {
             "type": "integer"
@@ -8346,6 +8384,7 @@
           "sessions_limit",
           "game_days",
           "cut_day",
+          "incoming_team_guest_limit",
           "member_fee_amount_cents",
           "guest_fee_amount_cents",
           "referral_credit_amount_cents"
@@ -8361,6 +8400,9 @@
             }
           },
           "cut_day": {
+            "type": "integer"
+          },
+          "incoming_team_guest_limit": {
             "type": "integer"
           },
           "member_fee_amount_cents": {

@@ -48,12 +48,12 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Tabla', href: '/liga/modulos/ta
             <div class="flex items-center gap-3">
                 <Trophy class="size-5 text-[#E5B849]" />
                 <div>
-                    <p class="app-kicker text-[#E5B849]">Tabla del dia</p>
+                    <p class="app-kicker text-[#E5B849]">Tabla del día</p>
                     <h1 class="app-display app-module-title mt-2 text-[#F8FAFC]">
-                        Lideres de la jornada
+                        Líderes de la jornada
                     </h1>
                     <p class="mt-3 text-[14px] leading-7 text-[#94A3B8]">
-                        La tabla combina victorias, puntos y volumen de juegos de la jornada actual para ordenar el desempeno del dia.
+                        La tabla combina victorias, puntos y volumen de juegos de la jornada actual para ordenar el desempeño del día.
                     </p>
                 </div>
             </div>
@@ -68,7 +68,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Tabla', href: '/liga/modulos/ta
             <article class="app-surface space-y-2">
                 <p class="app-kicker">Puntos totales</p>
                 <p class="text-[30px] font-semibold text-[#E5B849]">{{ props.table.banner.points }}</p>
-                <p class="text-[12px] text-[#94A3B8]">Produccion ofensiva acumulada</p>
+                <p class="text-[12px] text-[#94A3B8]">Producción ofensiva acumulada</p>
             </article>
             <article class="app-surface space-y-2">
                 <p class="app-kicker">Jugadores activos</p>
@@ -93,7 +93,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Tabla', href: '/liga/modulos/ta
                     v-if="props.table.standings.length === 0"
                     class="rounded-[14px] border border-dashed border-white/8 bg-[#0E1628] p-4 text-sm text-[#94A3B8]"
                 >
-                    Sin juegos terminados todavia.
+                    Sin juegos terminados todavía.
                 </div>
 
                 <div v-else class="grid gap-3">
@@ -134,7 +134,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Tabla', href: '/liga/modulos/ta
                         <div>
                             <p class="app-kicker text-[#E5B849]">Top anotadores</p>
                             <p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">
-                                Los cinco perfiles con mayor produccion ofensiva del dia.
+                                Los cinco perfiles con mayor producción ofensiva del día.
                             </p>
                         </div>
                     </div>
@@ -143,7 +143,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Tabla', href: '/liga/modulos/ta
                         v-if="props.table.top_scorers.length === 0"
                         class="rounded-[14px] border border-dashed border-white/8 bg-[#0E1628] p-4 text-sm text-[#94A3B8]"
                     >
-                        Sin anotadores destacados todavia.
+                        Sin anotadores destacados todavía.
                     </div>
 
                     <div v-else class="grid gap-3">
@@ -169,9 +169,9 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Tabla', href: '/liga/modulos/ta
                     <div class="flex items-center gap-3">
                         <Users class="size-5 text-[#4ADE80]" />
                         <div>
-                            <p class="app-kicker text-[#E5B849]">Mas usados</p>
+                            <p class="app-kicker text-[#E5B849]">Más usados</p>
                             <p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">
-                                Quienes mas tiempo han pasado rotando durante la jornada.
+                                Quienes más tiempo han pasado rotando durante la jornada.
                             </p>
                         </div>
                     </div>
@@ -180,7 +180,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Tabla', href: '/liga/modulos/ta
                         v-if="props.table.top_games.length === 0"
                         class="rounded-[14px] border border-dashed border-white/8 bg-[#0E1628] p-4 text-sm text-[#94A3B8]"
                     >
-                        Sin volumen de juegos todavia.
+                        Sin volumen de juegos todavía.
                     </div>
 
                     <div v-else class="grid gap-3">

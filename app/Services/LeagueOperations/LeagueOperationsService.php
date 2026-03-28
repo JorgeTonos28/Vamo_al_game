@@ -34,6 +34,8 @@ class LeagueOperationsService
 
     public const DEFAULT_SUPPLIES_FEE_CENTS = 35000;
 
+    public const DEFAULT_GAME_CLOCK_SECONDS = 1200;
+
     /**
      * @return array{league: League, membership: LeagueMembership, role: LeagueMembershipRole}|null
      */
@@ -193,6 +195,18 @@ class LeagueOperationsService
             ->first();
 
         if ($session !== null || ! $createIfMissing) {
+            if ($session !== null && ($session->clock_duration_seconds === null || $session->clock_remaining_seconds === null)) {
+                $defaultDuration = $session->clock_duration_seconds ?? self::DEFAULT_GAME_CLOCK_SECONDS;
+
+                $session->forceFill([
+                    'clock_duration_seconds' => $defaultDuration,
+                    'clock_remaining_seconds' => $session->clock_remaining_seconds ?? $defaultDuration,
+                    'clock_state' => filled($session->clock_state) ? $session->clock_state : 'paused',
+                ])->save();
+
+                return $session->fresh(['entries.player']);
+            }
+
             return $session;
         }
 
@@ -201,6 +215,9 @@ class LeagueOperationsService
             'league_cut_id' => $cut->id,
             'session_date' => $today,
             'status' => 'arrival_open',
+            'clock_duration_seconds' => self::DEFAULT_GAME_CLOCK_SECONDS,
+            'clock_remaining_seconds' => self::DEFAULT_GAME_CLOCK_SECONDS,
+            'clock_state' => 'paused',
         ])->fresh(['entries.player']);
     }
 

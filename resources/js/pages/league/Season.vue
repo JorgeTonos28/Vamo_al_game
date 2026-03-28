@@ -73,7 +73,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Temporada', href: '/liga/modulo
                         {{ props.season.season.label }}
                     </h1>
                     <p class="mt-3 text-[14px] leading-7 text-[#94A3B8]">
-                        Resumen acumulado de jornadas, liderazgo individual y trazabilidad de cada sesion jugada.
+                        Resumen acumulado de jornadas, liderazgo individual y trazabilidad de cada sesión jugada.
                     </p>
                 </div>
             </div>
@@ -95,7 +95,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Temporada', href: '/liga/modulo
             <article class="app-surface space-y-2">
                 <p class="app-kicker">Puntos</p>
                 <p class="text-[30px] font-semibold text-[#E5B849]">{{ props.season.season.totals.points }}</p>
-                <p class="text-[12px] text-[#94A3B8]">Produccion total acumulada</p>
+                <p class="text-[12px] text-[#94A3B8]">Producción total acumulada</p>
             </article>
             <article
                 v-if="props.season.season.totals.show_revenue"
@@ -113,10 +113,10 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Temporada', href: '/liga/modulo
             <article class="app-surface space-y-4">
                 <div class="flex items-center gap-3">
                     <Medal class="size-5 text-[#E5B849]" />
-                    <p class="app-kicker text-[#E5B849]">Lideres en puntos</p>
+                    <p class="app-kicker text-[#E5B849]">Líderes en puntos</p>
                 </div>
                 <div v-if="props.season.leaders.points.length === 0" class="rounded-[14px] border border-dashed border-white/8 bg-[#0E1628] p-4 text-sm text-[#94A3B8]">
-                    Sin datos todavia.
+                    Sin datos todavía.
                 </div>
                 <div v-else class="grid gap-3">
                     <div v-for="(row, index) in props.season.leaders.points" :key="`${row.identity.name}-${index}`" class="rounded-[14px] border border-white/6 bg-[#0E1628] p-4">
@@ -134,10 +134,10 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Temporada', href: '/liga/modulo
             <article class="app-surface space-y-4">
                 <div class="flex items-center gap-3">
                     <Trophy class="size-5 text-[#4ADE80]" />
-                    <p class="app-kicker text-[#E5B849]">Lideres en victorias</p>
+                    <p class="app-kicker text-[#E5B849]">Líderes en victorias</p>
                 </div>
                 <div v-if="props.season.leaders.wins.length === 0" class="rounded-[14px] border border-dashed border-white/8 bg-[#0E1628] p-4 text-sm text-[#94A3B8]">
-                    Sin datos todavia.
+                    Sin datos todavía.
                 </div>
                 <div v-else class="grid gap-3">
                     <div v-for="(row, index) in props.season.leaders.wins" :key="`${row.identity.name}-${index}`" class="rounded-[14px] border border-white/6 bg-[#0E1628] p-4">
@@ -155,10 +155,10 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Temporada', href: '/liga/modulo
             <article class="app-surface space-y-4">
                 <div class="flex items-center gap-3">
                     <Coins class="size-5 text-[#F97316]" />
-                    <p class="app-kicker text-[#E5B849]">Mas jornadas jugadas</p>
+                    <p class="app-kicker text-[#E5B849]">Más jornadas jugadas</p>
                 </div>
                 <div v-if="props.season.leaders.games.length === 0" class="rounded-[14px] border border-dashed border-white/8 bg-[#0E1628] p-4 text-sm text-[#94A3B8]">
-                    Sin datos todavia.
+                    Sin datos todavía.
                 </div>
                 <div v-else class="grid gap-3">
                     <div v-for="(row, index) in props.season.leaders.games" :key="`${row.identity.name}-${index}`" class="rounded-[14px] border border-white/6 bg-[#0E1628] p-4">
@@ -181,13 +181,13 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Temporada', href: '/liga/modulo
                     <div>
                         <p class="app-kicker text-[#E5B849]">Jornadas registradas</p>
                         <p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">
-                            Cada sesion resume volumen de juego, puntos y su mejor anotador.
+                            Cada sesión resume volumen de juego, puntos y su mejor anotador.
                         </p>
                     </div>
                 </div>
 
                 <div v-if="props.season.sessions.length === 0" class="rounded-[14px] border border-dashed border-white/8 bg-[#0E1628] p-4 text-sm text-[#94A3B8]">
-                    Sin jornadas guardadas todavia.
+                    Sin jornadas guardadas todavía.
                 </div>
 
                 <div v-else class="grid gap-3">
@@ -210,7 +210,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Temporada', href: '/liga/modulo
                                 Mejor anotador: {{ sessionRow.top_scorer.name }} con {{ sessionRow.top_scorer.points }} pts.
                             </template>
                             <template v-else>
-                                No hubo un lider ofensivo definido en esa sesion.
+                                No hubo un líder ofensivo definido en esa sesión.
                             </template>
                         </p>
                     </div>
@@ -223,7 +223,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Temporada', href: '/liga/modulo
                     <div>
                         <p class="app-kicker text-[#E5B849]">Perfiles acumulados</p>
                         <p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">
-                            Vista de temporada para comparar produccion, victorias y asistencia.
+                            Vista de temporada para comparar producción, victorias y asistencia.
                         </p>
                     </div>
                 </div>

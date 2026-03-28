@@ -100,10 +100,12 @@ class ManagementController extends Controller
     public function updateSettings(Request $request): RedirectResponse
     {
         $validated = $request->validate([
+            'name' => ['nullable', 'string', 'min:2', 'max:120'],
             'sessions_limit' => ['required', 'integer', 'min:1', 'max:12'],
             'game_days' => ['required', 'array', 'min:1'],
             'game_days.*' => ['required', 'string', 'max:20'],
             'cut_day' => ['required', 'integer', 'min:1', 'max:30'],
+            'incoming_team_guest_limit' => ['required', 'integer', 'min:0', 'max:5'],
             'member_fee_amount_cents' => ['required', 'integer', 'min:1'],
             'guest_fee_amount_cents' => ['required', 'integer', 'min:1'],
             'referral_credit_amount_cents' => ['required', 'integer', 'min:1'],
@@ -111,7 +113,7 @@ class ManagementController extends Controller
 
         $this->managementService->updateSettings($request->user(), $validated);
 
-        return back()->with('status', 'Configuracion de jornadas y cuotas actualizada.');
+        return back()->with('status', 'Configuración de jornadas, cuotas y liga actualizada.');
     }
 
     public function storeReferral(Request $request): RedirectResponse

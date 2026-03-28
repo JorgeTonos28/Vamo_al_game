@@ -88,6 +88,19 @@
         color: var(--foreground);
     }
 
+    button,
+    [role='button'],
+    a[href],
+    summary {
+        cursor: pointer;
+    }
+
+    button:disabled,
+    [role='button'][aria-disabled='true'],
+    [disabled] {
+        cursor: not-allowed;
+    }
+
     main {
         width: 100%;
         min-width: 0;

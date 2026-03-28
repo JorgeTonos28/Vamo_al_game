@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\CommandCenter;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\CommandCenter\StoreLeagueRequest;
+use App\Http\Requests\Api\V1\CommandCenter\UpdateLeagueRequest;
 use App\Models\League;
 use App\Services\CommandCenter\CommandCenterLeagueDirectoryService;
 use App\Support\ApiResponse;
@@ -44,10 +45,23 @@ class LeagueController extends Controller
     }
 
     public function update(
-        Request $request,
+        UpdateLeagueRequest $request,
         League $league,
         CommandCenterLeagueDirectoryService $directoryService,
     ): JsonResponse {
+        if ($request->has('name')) {
+            return ApiResponse::success(
+                $request,
+                [
+                    'league' => $directoryService->updateName(
+                        $league,
+                        $request->string('name')->value(),
+                    ),
+                ],
+                'Nombre de la liga actualizado.',
+            );
+        }
+
         return ApiResponse::success(
             $request,
             [

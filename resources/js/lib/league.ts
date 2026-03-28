@@ -1,4 +1,3 @@
-import type { Component } from 'vue';
 import {
     ArrowDownToLine,
     BarChart3,
@@ -15,6 +14,7 @@ import {
     Vote,
     Wallet,
 } from 'lucide-vue-next';
+import type { Component } from 'vue';
 
 export type LeagueModuleKey =
     | 'panel'
@@ -115,7 +115,7 @@ const items: LeagueNavItem[] = [
     },
     {
         key: 'gestion',
-        label: 'Gestion',
+        label: 'Gestión',
         href: '/liga/gestion',
         icon: Wallet,
         adminOnly: true,
