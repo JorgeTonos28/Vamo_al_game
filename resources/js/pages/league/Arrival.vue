@@ -98,6 +98,9 @@ type ModulePayload = {
             arrived_members: number;
             total_members: number;
             guests: number;
+            paid_guests: number;
+            draft_ready_entries: number;
+            draft_ready: boolean;
         };
         prepared_pool: Array<{ id: number; name: string; entry_type: string }>;
         prepared_queue: Array<{ id: number; name: string; entry_type: string }>;
@@ -129,8 +132,21 @@ const guestPayments = reactive<Record<number, boolean>>({});
 
 const canManageArrival = computed(() => props.module.role.can_manage);
 const sortedPlayers = computed(() => props.module.players);
-const liveArrivalLocked = computed(() => ['prepared', 'in_progress'].includes(props.module.session.status));
-const prepareLocked = computed(() => ['prepared', 'in_progress'].includes(props.module.session.status));
+const liveArrivalLocked = computed(() =>
+    ['prepared', 'in_progress'].includes(props.module.session.status),
+);
+const prepareLocked = computed(() =>
+    ['prepared', 'in_progress'].includes(props.module.session.status),
+);
+const draftStatus = computed(() => {
+    if (!canManageArrival.value) {
+        return null;
+    }
+
+    return props.module.session.counts.draft_ready
+        ? { label: 'Draft listo', className: 'app-badge-positive' }
+        : { label: 'Sin draft', className: 'app-badge-negative' };
+});
 
 function statusIcon(player: PlayerRow) {
     if (player.current_cut_paid) {
@@ -284,7 +300,7 @@ function resetSession(): void {
         return;
     }
 
-    if (!window.confirm('Reiniciar la lista de llegada de hoy?')) {
+    if (!window.confirm('¿Reiniciar la lista de llegada de hoy?')) {
         return;
     }
 
@@ -320,43 +336,71 @@ function resetSession(): void {
                         <p class="text-[14px] leading-7 text-[#94A3B8]">
                             {{
                                 props.module.cut.is_past_due
-                                    ? 'El corte ya vencio. Solo mantienen prioridad quienes estan al dia.'
-                                    : 'Todavia estas dentro del plazo. Todos los miembros siguen entrando con prioridad de corte.'
+                                    ? 'El corte ya venció. Solo mantienen prioridad quienes están al día.'
+                                    : 'Todavía estás dentro del plazo. Todos los miembros siguen entrando con prioridad de corte.'
                             }}
                         </p>
                     </div>
 
                     <div
                         :class="
-                            props.module.cut.is_past_due
+                            draftStatus?.className ??
+                            (props.module.cut.is_past_due
                                 ? 'app-badge-negative'
-                                : 'app-badge-positive'
+                                : 'app-badge-positive')
                         "
+                        class="min-w-0 justify-center px-4 text-center sm:min-w-[172px] sm:px-5 sm:whitespace-nowrap"
                     >
-                        {{ props.module.cut.is_past_due ? 'Plazo vencido' : 'Corte activo' }}
+                        {{
+                            draftStatus?.label ??
+                            (props.module.cut.is_past_due
+                                ? 'Plazo vencido'
+                                : 'Corte activo')
+                        }}
                     </div>
                 </div>
 
                 <div class="grid gap-3 md:grid-cols-3">
-                    <div class="rounded-[16px] border border-white/6 bg-[#0E1628] p-4">
+                    <div
+                        class="rounded-[16px] border border-white/6 bg-[#0E1628] p-4"
+                    >
                         <p class="app-kicker">Miembros</p>
-                        <p class="mt-3 text-[28px] font-semibold text-[#F8FAFC]">
-                            {{ props.module.session.counts.arrived_members }}/{{ props.module.session.counts.total_members }}
+                        <p
+                            class="mt-3 text-[28px] font-semibold text-[#F8FAFC]"
+                        >
+                            {{ props.module.session.counts.arrived_members }}/{{
+                                props.module.session.counts.total_members
+                            }}
                         </p>
-                        <p class="mt-2 text-[12px] text-[#94A3B8]">Llegadas marcadas hoy.</p>
+                        <p class="mt-2 text-[12px] text-[#94A3B8]">
+                            Llegadas marcadas hoy.
+                        </p>
                     </div>
-                    <div class="rounded-[16px] border border-white/6 bg-[#0E1628] p-4">
+                    <div
+                        class="rounded-[16px] border border-white/6 bg-[#0E1628] p-4"
+                    >
                         <p class="app-kicker">Invitados</p>
-                        <p class="mt-3 text-[28px] font-semibold text-[#F8FAFC]">
+                        <p
+                            class="mt-3 text-[28px] font-semibold text-[#F8FAFC]"
+                        >
                             {{ props.module.session.counts.guests }}
                         </p>
                         <p class="mt-2 text-[12px] text-[#94A3B8]">
-                            Cobro por invitado: {{ formatMoney(props.module.cut.guest_fee_amount_cents) }}.
+                            Cobro por invitado:
+                            {{
+                                formatMoney(
+                                    props.module.cut.guest_fee_amount_cents,
+                                )
+                            }}.
                         </p>
                     </div>
-                    <div class="rounded-[16px] border border-white/6 bg-[#0E1628] p-4">
+                    <div
+                        class="rounded-[16px] border border-white/6 bg-[#0E1628] p-4"
+                    >
                         <p class="app-kicker">Jornada</p>
-                        <p class="mt-3 text-[20px] font-semibold text-[#F8FAFC]">
+                        <p
+                            class="mt-3 text-[20px] font-semibold text-[#F8FAFC]"
+                        >
                             {{
                                 props.module.session.status === 'in_progress'
                                     ? 'En juego'
@@ -368,8 +412,8 @@ function resetSession(): void {
                         <p class="mt-2 text-[12px] text-[#94A3B8]">
                             {{
                                 prepareLocked
-                                    ? 'La jornada ya esta activa. Las llegadas nuevas se agregan directo a la cola operativa.'
-                                    : 'Necesitas al menos 10 jugadores habiles para iniciar.'
+                                    ? 'La jornada ya está activa. Las llegadas nuevas se agregan directo a la cola operativa.'
+                                    : `Necesitas al menos 10 integrantes listos para iniciar. Ahora mismo hay ${props.module.session.counts.draft_ready_entries}.`
                             }}
                         </p>
                     </div>
@@ -409,7 +453,9 @@ function resetSession(): void {
                     v-else
                     class="rounded-[14px] border border-white/6 bg-[#0E1628] p-4 text-[13px] leading-6 text-[#94A3B8]"
                 >
-                    Tu rol en esta liga es de solo lectura. Puedes ver la cola, los miembros y los invitados, pero no ejecutar acciones operativas.
+                    Tu rol en esta liga es de solo lectura. Puedes ver la cola,
+                    los miembros y los invitados, pero no ejecutar acciones
+                    operativas.
                 </p>
             </article>
         </section>
@@ -420,22 +466,30 @@ function resetSession(): void {
                     <div>
                         <p class="app-kicker text-[#E5B849]">Miembros</p>
                         <p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">
-                            La prioridad operativa siempre coloca primero a los miembros habilitados y reordena a invitados debajo de ellos.
+                            La prioridad operativa siempre coloca primero a los
+                            miembros habilitados y reordena a invitados debajo
+                            de ellos.
                         </p>
                     </div>
-                    <span class="rounded-full border border-white/6 bg-[#0E1628] px-3 py-1 text-[12px] text-[#94A3B8]">
-                        {{ props.module.session.counts.arrived_members }}/{{ props.module.session.counts.total_members }}
+                    <span
+                        class="rounded-full border border-white/6 bg-[#0E1628] px-3 py-1 text-[12px] text-[#94A3B8]"
+                    >
+                        {{ props.module.session.counts.arrived_members }}/{{
+                            props.module.session.counts.total_members
+                        }}
                     </span>
                 </div>
 
-                <div class="mt-5 app-divider-list">
+                <div class="app-divider-list mt-5">
                     <div
                         v-for="player in sortedPlayers"
                         :key="player.id"
                         class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
                     >
                         <div class="flex min-w-0 items-start gap-3">
-                            <div class="mt-1 flex size-10 shrink-0 items-center justify-center rounded-full border border-white/6 bg-[#0E1628]">
+                            <div
+                                class="mt-1 flex size-10 shrink-0 items-center justify-center rounded-full border border-white/6 bg-[#0E1628]"
+                            >
                                 <component
                                     :is="statusIcon(player)"
                                     :class="
@@ -450,10 +504,14 @@ function resetSession(): void {
 
                             <div class="min-w-0">
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <p class="text-[15px] font-semibold text-[#F8FAFC]">
+                                    <p
+                                        class="text-[15px] font-semibold text-[#F8FAFC]"
+                                    >
                                         {{ player.name }}
                                     </p>
-                                    <span class="rounded-full border border-white/6 bg-[#0E1628] px-2 py-0.5 text-[11px] text-[#94A3B8]">
+                                    <span
+                                        class="rounded-full border border-white/6 bg-[#0E1628] px-2 py-0.5 text-[11px] text-[#94A3B8]"
+                                    >
                                         #{{ player.jersey_number ?? 'S/N' }}
                                     </span>
                                     <span
@@ -463,11 +521,14 @@ function resetSession(): void {
                                         Llegada #{{ player.arrival_order }}
                                     </span>
                                 </div>
-                                <p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">
+                                <p
+                                    class="mt-2 text-[13px] leading-6 text-[#94A3B8]"
+                                >
                                     {{ player.status_message }}
                                 </p>
                                 <p class="mt-1 text-[11px] text-[#64748B]">
-                                    {{ player.attendance_count }} jornadas registradas.
+                                    {{ player.attendance_count }} jornadas
+                                    registradas.
                                 </p>
                             </div>
                         </div>
@@ -482,8 +543,8 @@ function resetSession(): void {
                                     : player.has_arrived
                                       ? 'border-white/6 bg-[#0E1628] text-[#94A3B8]'
                                       : player.current_cut_paid
-                                      ? 'border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] text-[#4ADE80]'
-                                      : 'border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] text-[#F8FAFC]'
+                                        ? 'border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] text-[#4ADE80]'
+                                        : 'border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] text-[#F8FAFC]'
                             "
                             :disabled="player.has_arrived && liveArrivalLocked"
                             @click="enterPlayer(player)"
@@ -492,10 +553,10 @@ function resetSession(): void {
                                 player.has_arrived && liveArrivalLocked
                                     ? 'Ya registrado'
                                     : player.has_arrived
-                                    ? 'Quitar llegada'
-                                    : player.current_cut_paid
-                                      ? 'Confirmar llegada'
-                                      : 'Registrar llegada'
+                                      ? 'Quitar llegada'
+                                      : player.current_cut_paid
+                                        ? 'Confirmar llegada'
+                                        : 'Registrar llegada'
                             }}
                         </button>
 
@@ -503,7 +564,11 @@ function resetSession(): void {
                             v-else
                             class="inline-flex min-h-12 items-center justify-center rounded-[12px] border border-white/6 bg-[#0E1628] px-4 text-sm font-semibold text-[#94A3B8]"
                         >
-                            {{ player.has_arrived ? `Llegada #${player.arrival_order}` : 'Solo lectura' }}
+                            {{
+                                player.has_arrived
+                                    ? `Llegada #${player.arrival_order}`
+                                    : 'Solo lectura'
+                            }}
                         </span>
                     </div>
                 </div>
@@ -514,10 +579,13 @@ function resetSession(): void {
                     <div>
                         <p class="app-kicker text-[#E5B849]">Invitados</p>
                         <p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">
-                            Los invitados solo entran al pool o a la cola si tienen el pago confirmado.
+                            Los invitados solo entran al pool o a la cola si
+                            tienen el pago confirmado.
                         </p>
                     </div>
-                    <span class="rounded-full border border-white/6 bg-[#0E1628] px-3 py-1 text-[12px] text-[#94A3B8]">
+                    <span
+                        class="rounded-full border border-white/6 bg-[#0E1628] px-3 py-1 text-[12px] text-[#94A3B8]"
+                    >
                         {{ props.module.guests.length }}
                     </span>
                 </div>
@@ -547,7 +615,8 @@ function resetSession(): void {
                         v-else
                         class="rounded-[14px] border border-white/6 bg-[#0E1628] p-4 text-sm text-[#94A3B8]"
                     >
-                        Los invitados se muestran solo como referencia para miembros de la liga.
+                        Los invitados se muestran solo como referencia para
+                        miembros de la liga.
                     </p>
 
                     <div
@@ -584,7 +653,11 @@ function resetSession(): void {
                                     :disabled="!canManageArrival"
                                     @click="toggleGuestPayment(guest)"
                                 >
-                                    {{ guest.guest_fee_paid ? 'Pago confirmado' : 'Pendiente' }}
+                                    {{
+                                        guest.guest_fee_paid
+                                            ? 'Pago confirmado'
+                                            : 'Pendiente'
+                                    }}
                                 </button>
                                 <button
                                     v-if="canManageArrival"
@@ -628,7 +701,8 @@ function resetSession(): void {
                 </div>
                 <div class="grid gap-2">
                     <div
-                        v-for="(entry, index) in props.module.session.prepared_queue"
+                        v-for="(entry, index) in props.module.session
+                            .prepared_queue"
                         :key="entry.id"
                         class="rounded-[12px] border border-white/6 bg-[#0E1628] px-4 py-3 text-sm text-[#F8FAFC]"
                     >
@@ -638,16 +712,21 @@ function resetSession(): void {
             </article>
         </section>
 
-        <Dialog :open="selectedPlayer !== null" @update:open="selectedPlayer = null">
+        <Dialog
+            :open="selectedPlayer !== null"
+            @update:open="selectedPlayer = null"
+        >
             <DialogContent class="border-white/8 bg-[#1A243A] text-[#F8FAFC]">
                 <DialogHeader class="space-y-3">
                     <DialogTitle class="app-display text-[28px]">
                         Registrar llegada
                     </DialogTitle>
-                    <DialogDescription class="text-[13px] leading-6 text-[#94A3B8]">
+                    <DialogDescription
+                        class="text-[13px] leading-6 text-[#94A3B8]"
+                    >
                         {{
                             selectedPlayer
-                                ? `${selectedPlayer.name} aun no esta al dia. Si pago ahora mismo, conserva prioridad.`
+                                ? `${selectedPlayer.name} aún no está al día. Si paga ahora mismo, conserva prioridad.`
                                 : ''
                         }}
                     </DialogDescription>
@@ -660,27 +739,34 @@ function resetSession(): void {
                         class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F] hover:bg-[#22304f]"
                         @click="submitSelectedPlayer(false)"
                     >
-                        Llego sin pagar
+                        Llegó sin pagar
                     </Button>
                     <Button
                         type="button"
                         class="min-h-12 rounded-[12px] bg-[#E5B849] text-[#0A0F1D] hover:bg-[#e8c25d]"
                         @click="submitSelectedPlayer(true)"
                     >
-                        Pago y llego
+                        Pagó y llegó
                     </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
 
-        <Dialog :open="prepareDialogOpen" @update:open="prepareDialogOpen = false">
+        <Dialog
+            :open="prepareDialogOpen"
+            @update:open="prepareDialogOpen = false"
+        >
             <DialogContent class="border-white/8 bg-[#1A243A] text-[#F8FAFC]">
                 <DialogHeader class="space-y-3">
                     <DialogTitle class="app-display text-[28px]">
                         Iniciar jornada
                     </DialogTitle>
-                    <DialogDescription class="text-[13px] leading-6 text-[#94A3B8]">
-                        Confirma el pago de invitados antes de preparar la cola inicial. Solo los pagos quedaran habilitados para entrar.
+                    <DialogDescription
+                        class="text-[13px] leading-6 text-[#94A3B8]"
+                    >
+                        Confirma el pago de invitados antes de preparar la cola
+                        inicial. Solo los pagos quedarán habilitados para
+                        entrar.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -696,7 +782,8 @@ function resetSession(): void {
                         v-if="props.module.guests.length === 0"
                         class="rounded-[14px] border border-dashed border-white/8 bg-[#131B2F] p-4 text-sm text-[#94A3B8]"
                     >
-                        No hay invitados para validar. La jornada se iniciara solo con miembros.
+                        No hay invitados para validar. La jornada se iniciará
+                        solo con miembros.
                     </div>
                     <div
                         v-for="guest in props.module.guests"
@@ -708,7 +795,11 @@ function resetSession(): void {
                                 {{ guest.name }}
                             </p>
                             <p class="mt-1 text-[12px] text-[#94A3B8]">
-                                {{ formatMoney(props.module.cut.guest_fee_amount_cents) }}
+                                {{
+                                    formatMoney(
+                                        props.module.cut.guest_fee_amount_cents,
+                                    )
+                                }}
                             </p>
                         </div>
 
@@ -720,9 +811,14 @@ function resetSession(): void {
                                     ? 'border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] text-[#4ADE80]'
                                     : 'border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] text-[#FCA5A5]'
                             "
-                            @click="guestPayments[guest.id] = !guestPayments[guest.id]"
+                            @click="
+                                guestPayments[guest.id] =
+                                    !guestPayments[guest.id]
+                            "
                         >
-                            {{ guestPayments[guest.id] ? 'Pagado' : 'Pendiente' }}
+                            {{
+                                guestPayments[guest.id] ? 'Pagado' : 'Pendiente'
+                            }}
                         </button>
                     </div>
                 </div>
@@ -742,7 +838,11 @@ function resetSession(): void {
                         :disabled="prepareSubmitting"
                         @click="prepareSession"
                     >
-                        {{ prepareSubmitting ? 'Preparando...' : 'Confirmar jornada' }}
+                        {{
+                            prepareSubmitting
+                                ? 'Preparando...'
+                                : 'Confirmar jornada'
+                        }}
                     </Button>
                 </DialogFooter>
             </DialogContent>

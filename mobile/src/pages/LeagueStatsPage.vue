@@ -2,13 +2,15 @@
 import { IonContent, IonPage, IonRefresher, IonRefresherContent, onIonViewWillEnter } from '@ionic/vue'
 import { ref } from 'vue'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
-import { fetchLeagueStats, type LeagueStatsPayload } from '@/services/league'
+import { fetchLeagueStats  } from '@/services/league'
+import type {LeagueStatsPayload} from '@/services/league';
 
 const payload = ref<LeagueStatsPayload | null>(null)
 const isLoading = ref(false)
 
 async function loadPage(): Promise<void> {
   isLoading.value = true
+
   try {
     payload.value = await fetchLeagueStats()
   } finally {
@@ -35,6 +37,7 @@ async function changeSession(event: Event): Promise<void> {
   }
 
   isLoading.value = true
+
   try {
     payload.value = await fetchLeagueStats(sessionId)
   } finally {
@@ -53,17 +56,19 @@ function sessionLabel(session: LeagueStatsPayload['session_selector']['sessions'
 <template>
   <IonPage>
     <IonContent :fullscreen="true">
-      <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
+      <template v-slot:fixed>
+<IonRefresher  @ionRefresh="handleRefresh">
         <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
       </IonRefresher>
+</template>
 
       <div class="mobile-shell">
         <div class="mobile-stack">
           <MobileAppTopbar :title="payload?.league.name ?? 'Stats'" description="Puntos y juegos completados en la jornada actual." />
 
           <section class="app-surface section-stack">
-            <p class="app-kicker section-kicker">Estadisticas de jornada</p>
-            <p class="body-copy">Puedes revisar la jornada actual o consultar dias anteriores.</p>
+            <p class="app-kicker section-kicker">Estadísticas de jornada</p>
+            <p class="body-copy">Puedes revisar la jornada actual o consultar días anteriores.</p>
             <select class="sheet-input" :value="payload?.session_selector.selected_session_id" @change="changeSession">
               <option v-for="session in payload?.session_selector.sessions ?? []" :key="session.id" :value="session.id">
                 {{ sessionLabel(session) }}
@@ -75,7 +80,7 @@ function sessionLabel(session: LeagueStatsPayload['session_selector']['sessions'
           <section class="app-surface section-stack">
             <p class="app-kicker section-kicker">Puntos anotados</p>
             <p v-if="isLoading && !payload" class="body-copy">Cargando stats...</p>
-            <p v-else-if="(payload?.stats.points_leaders.length ?? 0) === 0" class="body-copy">Sin datos todavia.</p>
+            <p v-else-if="(payload?.stats.points_leaders.length ?? 0) === 0" class="body-copy">Sin datos todavía.</p>
             <article v-for="(row, index) in payload?.stats.points_leaders ?? []" :key="`${row.identity.name}-${index}`" class="data-row">
               <div>
                 <p class="data-row__name">{{ row.identity.name }}</p>
@@ -87,7 +92,7 @@ function sessionLabel(session: LeagueStatsPayload['session_selector']['sessions'
 
           <section class="app-surface section-stack">
             <p class="app-kicker section-kicker">Juegos jugados</p>
-            <p v-if="(payload?.stats.games_leaders.length ?? 0) === 0" class="body-copy">Sin datos todavia.</p>
+            <p v-if="(payload?.stats.games_leaders.length ?? 0) === 0" class="body-copy">Sin datos todavía.</p>
             <article v-for="(row, index) in payload?.stats.games_leaders ?? []" :key="`${row.identity.name}-${index}`" class="data-row">
               <div>
                 <p class="data-row__name">{{ row.identity.name }}</p>

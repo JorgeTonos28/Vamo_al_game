@@ -113,12 +113,129 @@ class LeagueCompetitionModulesTest extends TestCase
             ])
             ->assertOk();
 
-        $this->actingAs($admin, 'sanctum')
+        $response = $this->actingAs($admin, 'sanctum')
             ->postJson('/api/v1/league/modules/game/finish')
             ->assertOk()
             ->assertJsonPath('data.game.rotation_notice.title', 'Eq. A gana')
             ->assertJsonPath('data.game.rotation_notice.icon', 'rotate')
             ->assertJsonPath('data.game.rotation_notice.body.0', 'Eq. A se queda completo en cancha.');
+
+        $body = $response->json('data.game.rotation_notice.body');
+
+        $this->assertIsArray($body);
+        $this->assertStringNotContainsString('legacy', implode(' ', $body));
+    }
+
+    public function test_guest_losers_return_to_the_end_of_the_queue_after_finishing_a_game(): void
+    {
+        [$league, $admin, $players] = $this->makeLeagueContext();
+        $this->prepareLeagueSession($league, $admin, $players->take(10));
+
+        $session = $league->sessions()->with('entries.player')->latest('id')->firstOrFail();
+        $playerEntries = $session->entries->where('entry_type', 'player')->sortBy('arrival_order')->values();
+
+        $removedEntries = $playerEntries->slice(-2)->values();
+        foreach ($removedEntries as $entry) {
+            $entry->forceFill([
+                'session_state' => 'removed',
+                'team_side' => null,
+                'queue_position' => null,
+            ])->save();
+        }
+
+        $guestA = $session->entries()->create([
+            'guest_name' => 'Invitado A',
+            'entry_type' => 'guest',
+            'arrival_order' => 11,
+            'guest_fee_paid' => true,
+            'current_cut_paid' => false,
+            'was_marked_paid_on_arrival' => true,
+            'priority_bucket' => 'guest',
+            'queue_seed' => 11,
+            'session_state' => 'pool',
+        ]);
+        $guestB = $session->entries()->create([
+            'guest_name' => 'Invitado B',
+            'entry_type' => 'guest',
+            'arrival_order' => 12,
+            'guest_fee_paid' => true,
+            'current_cut_paid' => false,
+            'was_marked_paid_on_arrival' => true,
+            'priority_bucket' => 'guest',
+            'queue_seed' => 12,
+            'session_state' => 'pool',
+        ]);
+
+        $benchPlayers = LeaguePlayer::factory()
+            ->count(7)
+            ->for($league)
+            ->create([
+                'created_by_user_id' => $admin->id,
+                'updated_by_user_id' => $admin->id,
+            ]);
+
+        foreach ($benchPlayers as $index => $player) {
+            $session->entries()->create([
+                'league_player_id' => $player->id,
+                'entry_type' => 'player',
+                'arrival_order' => 13 + $index,
+                'current_cut_paid' => true,
+                'guest_fee_paid' => false,
+                'was_marked_paid_on_arrival' => false,
+                'priority_bucket' => 'member',
+                'queue_seed' => 13 + $index,
+                'session_state' => 'queued',
+                'queue_position' => $index + 1,
+            ]);
+        }
+
+        $poolEntries = $session->fresh('entries')->entries
+            ->where('session_state', 'pool')
+            ->sortBy('arrival_order')
+            ->values();
+
+        $assignments = [];
+        foreach ($poolEntries->take(5) as $entry) {
+            $assignments[$entry->id] = 'A';
+        }
+        foreach ($poolEntries->slice(5, 3) as $entry) {
+            $assignments[$entry->id] = 'B';
+        }
+        $assignments[$guestA->id] = 'B';
+        $assignments[$guestB->id] = 'B';
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/league/modules/game/draft', [
+                'mode' => 'manual',
+                'assignments' => $assignments,
+            ])
+            ->assertOk();
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/league/modules/game/team-point', [
+                'team_side' => 'A',
+            ])
+            ->assertOk();
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/league/modules/game/finish')
+            ->assertOk();
+
+        $queuedGuests = $session->fresh('entries')->entries
+            ->where('entry_type', 'guest')
+            ->sortBy('queue_position')
+            ->values();
+        $queueCount = $session->fresh('entries')->entries
+            ->where('session_state', 'queued')
+            ->count();
+
+        $this->assertCount(2, $queuedGuests);
+        $this->assertSame('queued', $queuedGuests[0]->session_state);
+        $this->assertSame('queued', $queuedGuests[1]->session_state);
+        $this->assertNull($queuedGuests[0]->team_side);
+        $this->assertNull($queuedGuests[1]->team_side);
+        $this->assertSame($queueCount - 1, $queuedGuests[0]->queue_position);
+        $this->assertSame($queueCount, $queuedGuests[1]->queue_position);
     }
 
     public function test_admin_can_fetch_scout_payload_with_legacy_stat_breakdown(): void

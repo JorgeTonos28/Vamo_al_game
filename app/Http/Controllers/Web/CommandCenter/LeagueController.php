@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web\CommandCenter;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\CommandCenter\StoreLeagueRequest;
+use App\Http\Requests\Web\CommandCenter\UpdateLeagueRequest;
 use App\Models\League;
 use App\Services\CommandCenter\CommandCenterLeagueDirectoryService;
 use Illuminate\Http\RedirectResponse;
@@ -34,9 +35,20 @@ class LeagueController extends Controller
     }
 
     public function update(
+        UpdateLeagueRequest $request,
         League $league,
         CommandCenterLeagueDirectoryService $directoryService,
     ): RedirectResponse {
+        if ($request->has('name')) {
+            $directoryService->updateName(
+                $league,
+                $request->string('name')->value(),
+            );
+
+            return to_route('command-center.leagues.index')
+                ->with('status', 'Nombre de la liga actualizado.');
+        }
+
         $directoryService->toggle($league);
 
         return to_route('command-center.leagues.index')

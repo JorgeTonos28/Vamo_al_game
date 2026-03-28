@@ -53,6 +53,11 @@ type RotationNotice = {
     icon: string;
 };
 
+type DraftAlert = {
+    title: string;
+    body: string[];
+};
+
 const props = defineProps<{
     league: { id: number; name: string; emoji: string | null; slug: string };
     role: { value: string; label: string; can_manage: boolean };
@@ -102,7 +107,7 @@ const props = defineProps<{
             streak_label: string;
             active_players: number;
             guests: number;
-            cash_collected_cents: number;
+            cash_collected_cents: number | null;
             unpaid_members_count: number;
         };
     };
@@ -118,8 +123,9 @@ const scoreFlash = ref<ScoreFlashState | null>(null);
 const scoreBumpSide = ref<TeamSide | null>(null);
 const gameActionError = ref('');
 const rotationNotice = ref<RotationNotice | null>(props.game.rotation_notice);
+const draftAlert = ref<DraftAlert | null>(null);
 const clockForm = reactive({
-    minutes: '10',
+    minutes: '20',
     seconds: '00',
 });
 const clockDisplaySeconds = ref<number | null>(props.game.clock.remaining_seconds);
@@ -186,9 +192,23 @@ watch(
 );
 
 watch(
+    () => props.game.draft.entries.map((entry) => entry.id),
+    (entryIds) => {
+        const activeIds = new Set(entryIds);
+
+        Object.keys(manualAssignments).forEach((entryId) => {
+            if (!activeIds.has(Number(entryId))) {
+                delete manualAssignments[Number(entryId)];
+            }
+        });
+    },
+    { immediate: true },
+);
+
+watch(
     () => props.game.clock,
     (clock) => {
-        const durationSeconds = clock.duration_seconds ?? 600;
+        const durationSeconds = clock.duration_seconds ?? 1200;
         clockForm.minutes = String(Math.floor(durationSeconds / 60)).padStart(2, '0');
         clockForm.seconds = String(durationSeconds % 60).padStart(2, '0');
         clockDisplaySeconds.value = clock.remaining_seconds;
@@ -270,13 +290,74 @@ function triggerScoreFeedback(teamSide: TeamSide, points: number) {
     }, 180);
 }
 
+function openDraftAlert(title: string, body: string[]): void {
+    draftAlert.value = { title, body };
+}
+
 function setAssignment(entryId: number, team: 'A' | 'B') {
+    const currentTeam = manualAssignments[entryId];
+
+    if (currentTeam === team) {
+        return;
+    }
+
+    const nextCount = props.game.draft.entries.reduce((count, entry) => {
+        if (entry.id === entryId) {
+            return count;
+        }
+
+        return manualAssignments[entry.id] === team ? count + 1 : count;
+    }, 0) + 1;
+
+    if (nextCount > 5) {
+        openDraftAlert(
+            `Equipo ${team} completo`,
+            [
+                `El Equipo ${team} ya tiene 5 integrantes asignados.`,
+                'Mueve a otro jugador antes de intentar agregar uno más.',
+            ],
+        );
+
+        return;
+    }
+
     manualAssignments[entryId] = team;
 }
 
 function submitDraft() {
-    if (!canManage.value) return;
+    if (!canManage.value) {
+return;
+}
+
     gameActionError.value = '';
+
+    if (draftMode.value === 'manual') {
+        const unassignedEntries = props.game.draft.entries.filter((entry) => !manualAssignments[entry.id]);
+
+        if (unassignedEntries.length > 0) {
+            openDraftAlert(
+                'Draft manual incompleto',
+                [
+                    'Todos los integrantes deben quedar asignados antes de confirmar el draft.',
+                    `Faltan ${unassignedEntries.length} integrante(s) por ubicar en un equipo.`,
+                ],
+            );
+
+            return;
+        }
+
+        if (teamACount.value !== 5 || teamBCount.value !== 5) {
+            openDraftAlert(
+                'Equipos incompletos',
+                [
+                    'Cada equipo debe tener exactamente 5 integrantes.',
+                    `Equipo A: ${teamACount.value}/5. Equipo B: ${teamBCount.value}/5.`,
+                ],
+            );
+
+            return;
+        }
+    }
 
     const payload =
         draftMode.value === 'manual'
@@ -286,13 +367,22 @@ function submitDraft() {
     router.post('/liga/modulos/juego/draft', payload, {
         preserveScroll: true,
         onError: (errors) => {
-            gameActionError.value = String(errors.session ?? errors.assignments ?? 'No se pudo abrir el draft.');
+            const message = String(errors.session ?? errors.assignments ?? 'No se pudo abrir el draft.');
+
+            gameActionError.value = message;
+
+            if (draftMode.value === 'manual') {
+                openDraftAlert('No se pudo confirmar el draft', [message]);
+            }
         },
     });
 }
 
 function addTeamPoint(teamSide: 'A' | 'B') {
-    if (!canManage.value) return;
+    if (!canManage.value) {
+return;
+}
+
     gameActionError.value = '';
     router.post('/liga/modulos/juego/team-point', { team_side: teamSide }, {
         preserveScroll: true,
@@ -306,7 +396,10 @@ function addTeamPoint(teamSide: 'A' | 'B') {
 }
 
 function addPlayerPoint(points: 1 | 2 | 3) {
-    if (!selectedPlayer.value || !canManage.value) return;
+    if (!selectedPlayer.value || !canManage.value) {
+return;
+}
+
     const teamSide = teamSideForPlayer(selectedPlayer.value.id);
     gameActionError.value = '';
 
@@ -330,7 +423,10 @@ function addPlayerPoint(points: 1 | 2 | 3) {
 }
 
 function revertPlayerPoint(points: 1 | 2 | 3) {
-    if (!revertPlayer.value || !canManage.value) return;
+    if (!revertPlayer.value || !canManage.value) {
+return;
+}
+
     gameActionError.value = '';
 
     router.post(
@@ -349,12 +445,18 @@ function revertPlayerPoint(points: 1 | 2 | 3) {
 }
 
 function openRemovePlayerModal(player: TeamPlayer) {
-    if (!canManage.value) return;
+    if (!canManage.value) {
+return;
+}
+
     playerToRemove.value = player;
 }
 
 function confirmRemovePlayer() {
-    if (!playerToRemove.value || !canManage.value) return;
+    if (!playerToRemove.value || !canManage.value) {
+return;
+}
+
     gameActionError.value = '';
 
     router.post(`/liga/modulos/juego/players/${playerToRemove.value.id}/remove`, {}, {
@@ -369,7 +471,10 @@ function confirmRemovePlayer() {
 }
 
 function undoLastAction() {
-    if (!canManage.value) return;
+    if (!canManage.value) {
+return;
+}
+
     gameActionError.value = '';
     router.post('/liga/modulos/juego/undo', {}, {
         preserveScroll: true,
@@ -380,7 +485,10 @@ function undoLastAction() {
 }
 
 function finishGame() {
-    if (!canManage.value) return;
+    if (!canManage.value) {
+return;
+}
+
     gameActionError.value = '';
     router.post('/liga/modulos/juego/finish', {}, {
         preserveScroll: true,
@@ -391,7 +499,10 @@ function finishGame() {
 }
 
 function endSession() {
-    if (!canManage.value || !window.confirm('Cerrar la jornada del dia?')) return;
+    if (!canManage.value || !window.confirm('Cerrar la jornada del día?')) {
+return;
+}
+
     gameActionError.value = '';
     router.post('/liga/modulos/juego/end-session', {}, {
         preserveScroll: true,
@@ -402,7 +513,10 @@ function endSession() {
 }
 
 function resetCurrentGame() {
-    if (!canManage.value || !window.confirm('Limpiar por completo el juego actual?')) return;
+    if (!canManage.value || !window.confirm('Limpiar por completo el juego actual?')) {
+return;
+}
+
     gameActionError.value = '';
     router.post('/liga/modulos/juego/reset', {}, {
         preserveScroll: true,
@@ -433,7 +547,7 @@ function saveClockDuration(): void {
     const total = parsedClockDuration();
 
     if (total === null) {
-        gameActionError.value = 'Configura un tiempo valido para el cronometro.';
+        gameActionError.value = 'Configura un tiempo válido para el cronómetro.';
 
         return;
     }
@@ -444,7 +558,7 @@ function saveClockDuration(): void {
     }, {
         preserveScroll: true,
         onError: (errors) => {
-            gameActionError.value = String(errors.duration_seconds ?? errors.clock ?? 'No se pudo actualizar el cronometro.');
+            gameActionError.value = String(errors.duration_seconds ?? errors.clock ?? 'No se pudo actualizar el cronómetro.');
         },
     });
 }
@@ -459,7 +573,7 @@ function toggleClock(): void {
         router.post('/liga/modulos/juego/clock/pause', {}, {
             preserveScroll: true,
             onError: (errors) => {
-                gameActionError.value = String(errors.clock ?? errors.session ?? 'No se pudo pausar el cronometro.');
+                gameActionError.value = String(errors.clock ?? errors.session ?? 'No se pudo pausar el cronómetro.');
             },
         });
 
@@ -470,7 +584,7 @@ function toggleClock(): void {
     router.post('/liga/modulos/juego/clock/start', {}, {
         preserveScroll: true,
         onError: (errors) => {
-            gameActionError.value = String(errors.clock ?? errors.session ?? 'No se pudo iniciar el cronometro.');
+            gameActionError.value = String(errors.clock ?? errors.session ?? 'No se pudo iniciar el cronómetro.');
         },
     });
 }
@@ -484,7 +598,7 @@ function resetClock(): void {
     router.post('/liga/modulos/juego/clock/reset', {}, {
         preserveScroll: true,
         onError: (errors) => {
-            gameActionError.value = String(errors.clock ?? errors.session ?? 'No se pudo reiniciar el cronometro.');
+            gameActionError.value = String(errors.clock ?? errors.session ?? 'No se pudo reiniciar el cronómetro.');
         },
     });
 }
@@ -533,7 +647,7 @@ function rotationNoticeToneClasses(tone: string): string {
                         Jornada en cancha
                     </h1>
                     <p class="text-[14px] leading-7 text-[#94A3B8]">
-                        Administra el draft inicial, la anotacion, las salidas de jugadores y el cierre de cada juego de la jornada.
+                        Administra el draft inicial, la anotación, las salidas de jugadores y el cierre de cada juego de la jornada.
                     </p>
                 </div>
 
@@ -546,7 +660,7 @@ function rotationNoticeToneClasses(tone: string): string {
                         <Waves class="size-4 text-[#4ADE80]" />
                         <span>{{ props.game.summary.streak_label }}</span>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div v-if="canManage && props.game.summary.cash_collected_cents !== null" class="flex items-center gap-2">
                         <CheckCircle2 class="size-4 text-[#E5B849]" />
                         <span>{{ formatMoney(props.game.summary.cash_collected_cents) }} cobrados</span>
                     </div>
@@ -656,7 +770,6 @@ function rotationNoticeToneClasses(tone: string): string {
                 <Button
                     type="button"
                     class="min-h-12 rounded-[12px] bg-[#E5B849] text-[#0A0F1D] hover:bg-[#e8c25d]"
-                    :disabled="draftMode === 'manual' && (teamACount !== 5 || teamBCount !== 5)"
                     @click="submitDraft"
                 >
                     Confirmar draft
@@ -677,13 +790,13 @@ function rotationNoticeToneClasses(tone: string): string {
                 </div>
 
                 <div class="relative overflow-hidden rounded-[24px] border border-white/6 bg-[radial-gradient(circle_at_top,_rgba(229,184,73,0.14),_rgba(14,22,40,0.98)_48%),linear-gradient(180deg,_rgba(19,27,47,0.98),_rgba(10,15,29,1))] p-5">
-                    <div class="mb-5 grid gap-3 rounded-[18px] border border-white/6 bg-[#131B2F]/85 p-4 xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:items-center">
-                        <div>
-                            <p class="app-kicker text-[#E5B849]">Cronometro</p>
-                            <p class="mt-2 font-['Bebas_Neue'] text-[clamp(2.5rem,8vw,3.75rem)] leading-none text-[#F8FAFC]">
+                    <div class="mb-5 grid gap-4 rounded-[18px] border border-white/6 bg-[#131B2F]/85 p-4">
+                        <div class="rounded-[16px] border border-white/6 bg-[#10192d] px-4 py-4 text-center">
+                            <p class="app-kicker text-[#E5B849]">Cronómetro</p>
+                            <p class="mt-2 font-['Bebas_Neue'] text-[clamp(3.25rem,9vw,4.75rem)] leading-none text-[#F8FAFC]">
                                 {{ formattedClock }}
                             </p>
-                            <p class="mt-1 text-[12px] uppercase tracking-[0.22em] text-[#94A3B8]">
+                            <p class="mt-2 text-[12px] uppercase tracking-[0.22em] text-[#94A3B8]">
                                 {{
                                     clockState === 'running'
                                         ? 'Corriendo'
@@ -696,25 +809,33 @@ function rotationNoticeToneClasses(tone: string): string {
                             </p>
                         </div>
 
-                        <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-                            <input
-                                v-model="clockForm.minutes"
-                                type="number"
-                                min="0"
-                                max="120"
-                                class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none"
-                                placeholder="Min"
-                            >
-                            <input
-                                v-model="clockForm.seconds"
-                                type="number"
-                                min="0"
-                                max="59"
-                                class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none"
-                                placeholder="Seg"
-                            >
+                        <div
+                            v-if="canManage"
+                            class="grid gap-3 rounded-[16px] border border-white/6 bg-[#10192d] p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
+                        >
+                            <label class="grid gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">
+                                <span>Minutos</span>
+                                <input
+                                    v-model="clockForm.minutes"
+                                    type="number"
+                                    min="0"
+                                    max="120"
+                                    class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-lg font-semibold text-[#F8FAFC] outline-none"
+                                    placeholder="20"
+                                >
+                            </label>
+                            <label class="grid gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">
+                                <span>Segundos</span>
+                                <input
+                                    v-model="clockForm.seconds"
+                                    type="number"
+                                    min="0"
+                                    max="59"
+                                    class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-lg font-semibold text-[#F8FAFC] outline-none"
+                                    placeholder="00"
+                                >
+                            </label>
                             <Button
-                                v-if="canManage"
                                 type="button"
                                 variant="secondary"
                                 class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 hover:bg-[#22304f]"
@@ -724,9 +845,11 @@ function rotationNoticeToneClasses(tone: string): string {
                             </Button>
                         </div>
 
-                        <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                        <div
+                            v-if="canManage"
+                            class="grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
+                        >
                             <Button
-                                v-if="canManage"
                                 type="button"
                                 class="min-h-12 rounded-[12px] bg-[#E5B849] text-[#0A0F1D] hover:bg-[#e8c25d]"
                                 @click="toggleClock"
@@ -734,7 +857,6 @@ function rotationNoticeToneClasses(tone: string): string {
                                 {{ clockActionLabel }}
                             </Button>
                             <Button
-                                v-if="canManage"
                                 type="button"
                                 variant="secondary"
                                 class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] hover:bg-[#22304f]"
@@ -946,7 +1068,7 @@ function rotationNoticeToneClasses(tone: string): string {
                         v-if="props.game.history.length === 0"
                         class="rounded-[14px] border border-dashed border-white/8 bg-[#0E1628] p-4 text-[13px] text-[#94A3B8]"
                     >
-                        Sin juegos finalizados todavia.
+                        Sin juegos finalizados todavía.
                     </div>
                     <div v-else class="grid gap-3">
                         <div
@@ -981,6 +1103,31 @@ function rotationNoticeToneClasses(tone: string): string {
                 </p>
             </div>
         </section>
+
+        <Dialog :open="draftAlert !== null" @update:open="draftAlert = null">
+            <DialogContent class="border-white/8 bg-[#1A243A] text-[#F8FAFC] sm:max-w-[460px]">
+                <DialogHeader>
+                    <DialogTitle class="app-display text-[28px]">{{ draftAlert?.title }}</DialogTitle>
+                    <DialogDescription class="text-[13px] leading-6 text-[#94A3B8]">
+                        Revisa la distribución manual antes de continuar.
+                    </DialogDescription>
+                </DialogHeader>
+                <div v-if="draftAlert" class="grid gap-3">
+                    <div
+                        v-for="line in draftAlert.body"
+                        :key="line"
+                        class="rounded-[14px] border border-[rgba(248,113,113,0.2)] bg-[rgba(248,113,113,0.08)] px-4 py-3 text-[13px] leading-6 text-[#FCA5A5]"
+                    >
+                        {{ line }}
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="secondary" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F]" @click="draftAlert = null">
+                        Entendido
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
         <Dialog :open="selectedPlayer !== null" @update:open="selectedPlayer = null">
             <DialogContent class="border-white/8 bg-[#1A243A] text-[#F8FAFC]">
@@ -1044,7 +1191,7 @@ function rotationNoticeToneClasses(tone: string): string {
                     </div>
                     <DialogTitle class="mt-3 app-display text-[28px]">{{ rotationNotice?.title }}</DialogTitle>
                     <DialogDescription class="text-[13px] leading-6 text-[#94A3B8]">
-                        Aviso operativo de la rotacion actual.
+                        Aviso operativo de la rotación actual.
                     </DialogDescription>
                 </DialogHeader>
                 <div v-if="rotationNotice" class="grid gap-3">

@@ -23,7 +23,9 @@ function keepActiveItemVisible(): void {
             return;
         }
 
-        const activeItem = nav.querySelector<HTMLElement>('[data-nav-active="true"]');
+        const activeItem = nav.querySelector<HTMLElement>(
+            '[data-nav-active="true"]',
+        );
         activeItem?.scrollIntoView({
             block: 'nearest',
             inline: 'center',
@@ -57,7 +59,7 @@ watch(
                     {{ props.leagueEmoji }}
                 </span>
                 <h2
-                    class="app-display min-w-0 break-words pt-1 text-[clamp(1.75rem,6vw,2.25rem)] leading-[0.94] text-[#F8FAFC]"
+                    class="app-display min-w-0 pt-1 text-[clamp(1.75rem,6vw,2.25rem)] leading-[0.94] break-words text-[#F8FAFC]"
                 >
                     {{ props.leagueName }}
                 </h2>
@@ -69,7 +71,7 @@ watch(
 
         <nav
             ref="navRef"
-            class="scrollbar-none flex snap-x snap-mandatory gap-3 overflow-x-auto rounded-[20px] border border-white/6 bg-[#131B2F] p-3 xl:flex-col xl:overflow-visible xl:snap-none"
+            class="scrollbar-none flex snap-x snap-mandatory gap-3 overflow-x-auto rounded-[20px] border border-white/6 bg-[#131B2F] p-3 xl:snap-none xl:flex-col xl:overflow-visible"
         >
             <Link
                 v-for="item in items"

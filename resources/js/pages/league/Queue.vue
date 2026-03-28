@@ -156,7 +156,7 @@ function sessionLabel(session: { session_date: string | null; status: string; co
                         <p class="app-kicker text-[#E5B849]">Cola</p>
                     </div>
                     <div v-if="props.queue.waiting.length === 0" class="rounded-[14px] border border-dashed border-white/8 bg-[#0E1628] p-4 text-sm text-[#94A3B8]">
-                        Cola vacia.
+                        Cola vacía.
                     </div>
                     <div v-else class="grid gap-3">
                         <div
@@ -183,7 +183,7 @@ function sessionLabel(session: { session_date: string | null; status: string; co
                         <p class="app-kicker text-[#E5B849]">Resumen</p>
                     </div>
                     <p class="text-[13px] leading-6 text-[#94A3B8]">
-                        El modulo Juego sigue controlando el cierre de jornada. Aqui solo ves el estado vivo de cancha, espera y cobros del dia.
+                        El módulo Juego sigue controlando el cierre de jornada. Aquí solo ves el estado vivo de cancha, espera y cobros del día.
                     </p>
                     <p v-if="props.queue.live_game" class="text-[12px] text-[#94A3B8]">
                         Juego actual: #{{ props.queue.live_game.game_number }} · {{ props.queue.live_game.score }}

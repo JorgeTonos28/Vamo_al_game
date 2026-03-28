@@ -7,7 +7,7 @@ import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
 const route = useRoute()
 
 const moduleLabel = computed(() => {
-  return String(route.params.module ?? 'modulo')
+  return String(route.params.module ?? 'módulo')
     .replace(/-/g, ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
 })

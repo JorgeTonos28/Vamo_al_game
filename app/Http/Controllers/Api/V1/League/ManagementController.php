@@ -131,6 +131,7 @@ class ManagementController extends Controller
             'game_days' => ['required', 'array', 'min:1'],
             'game_days.*' => ['required', 'string', 'max:20'],
             'cut_day' => ['required', 'integer', 'min:1', 'max:30'],
+            'incoming_team_guest_limit' => ['required', 'integer', 'min:0', 'max:5'],
             'member_fee_amount_cents' => ['required', 'integer', 'min:1'],
             'guest_fee_amount_cents' => ['required', 'integer', 'min:1'],
             'referral_credit_amount_cents' => ['required', 'integer', 'min:1'],

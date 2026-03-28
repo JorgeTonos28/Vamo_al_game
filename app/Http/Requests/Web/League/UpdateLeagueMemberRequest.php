@@ -58,4 +58,41 @@ class UpdateLeagueMemberRequest extends FormRequest
             ],
         ];
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'first_name.required' => 'Debes indicar el nombre.',
+            'last_name.required' => 'Debes indicar el apellido.',
+            'document_id.required' => 'Debes indicar la cédula.',
+            'document_id.unique' => 'Ya existe un usuario con esa cédula.',
+            'email.email' => 'El correo debe ser válido.',
+            'email.unique' => 'Ya existe un usuario con ese correo.',
+            'jersey_number.integer' => 'La chaqueta debe ser un número entero.',
+            'jersey_number.min' => 'La chaqueta no puede ser menor que 0.',
+            'jersey_number.max' => 'La chaqueta no puede ser mayor que 99.',
+            'account_role.required' => 'Debes seleccionar el rol de la cuenta.',
+            'account_role.in' => 'Selecciona un rol válido para la cuenta.',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'first_name' => 'nombre',
+            'last_name' => 'apellido',
+            'document_id' => 'cédula',
+            'phone' => 'teléfono',
+            'address' => 'dirección',
+            'email' => 'correo',
+            'jersey_number' => 'chaqueta',
+            'account_role' => 'rol',
+        ];
+    }
 }

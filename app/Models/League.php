@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'emoji', 'slug', 'is_active', 'created_by_user_id'])]
+#[Fillable(['name', 'emoji', 'incoming_team_guest_limit', 'slug', 'is_active', 'created_by_user_id'])]
 class League extends Model
 {
     /** @use HasFactory<LeagueFactory> */
@@ -20,6 +20,7 @@ class League extends Model
     {
         return [
             'is_active' => 'boolean',
+            'incoming_team_guest_limit' => 'integer',
         ];
     }
 

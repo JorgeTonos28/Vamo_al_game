@@ -43,12 +43,12 @@ const breadcrumbs: BreadcrumbItem[] = [
             <div class="space-y-3">
                 <p class="app-kicker text-[#E5B849]">{{ props.module.label }}</p>
                 <h1 class="app-display app-module-title text-[#F8FAFC]">
-                    Modulo aun en construccion
+                    Módulo aún en construcción
                 </h1>
                 <p class="mx-auto max-w-xl text-[15px] leading-7 text-[#94A3B8]">
                     Este espacio ya forma parte del shell de la liga, pero
-                    todavia no esta listo. Vuelve mas tarde para encontrarlo
-                    conectado con la misma logica operativa de legacy.
+                    todavía no está listo. Vuelve más tarde para encontrarlo
+                    conectado con la misma lógica operativa de legacy.
                 </p>
             </div>
 

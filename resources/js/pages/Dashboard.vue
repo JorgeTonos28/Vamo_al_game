@@ -58,7 +58,7 @@ const genericCards = computed(() => {
                 title: 'Liga activa',
                 value: leagueHome.value.league.name,
                 description:
-                    'Tu acceso actual es informativo. Los modulos operativos siguen reservados para miembros y administracion.',
+                    'Tu acceso actual es informativo. Los módulos operativos siguen reservados para miembros y administración.',
             },
             {
                 title: 'Rol visible',
@@ -70,7 +70,7 @@ const genericCards = computed(() => {
                 title: 'Switch de ligas',
                 value: tenancy.value?.can_switch ? 'Disponible' : 'No aplica',
                 description:
-                    'Puedes cambiar de liga desde el header o volver aqui para revisar tu contexto.',
+                    'Puedes cambiar de liga desde el header o volver aquí para revisar tu contexto.',
             },
         ];
     }
@@ -86,13 +86,13 @@ const genericCards = computed(() => {
             title: 'Ligas visibles',
             value: `${tenancy.value?.available_leagues.length ?? 0}`,
             description:
-                'Cuando tu usuario forme parte de una liga, este portal te llevara directo al contexto operativo.',
+                'Cuando tu usuario forme parte de una liga, este portal te llevará directo al contexto operativo.',
         },
         {
             title: 'Estado',
             value: 'Pendiente',
             description:
-                'Todavia no hay una liga activa con modulos habilitados para esta cuenta.',
+                'Todavía no hay una liga activa con módulos habilitados para esta cuenta.',
         },
     ];
 });
@@ -131,9 +131,9 @@ function enterLeague(leagueId: number): void {
                                 Hola, {{ firstName }}.
                             </h1>
                             <p class="text-[16px] leading-8 text-[#94A3B8]">
-                                ¿A que liga quieres acceder? Selecciona una y
+                                ¿A qué liga quieres acceder? Selecciona una y
                                 entra directo al panel operativo con todos sus
-                                modulos disponibles.
+                                módulos disponibles.
                             </p>
                         </div>
 
@@ -142,7 +142,7 @@ function enterLeague(leagueId: number): void {
                                 v-for="league in tenancy?.available_leagues ?? []"
                                 :key="league.id"
                                 type="button"
-                                class="group flex min-h-[92px] items-center justify-between gap-4 rounded-[18px] border border-white/6 bg-[#131B2F] px-5 text-left transition hover:border-[rgba(229,184,73,0.24)] hover:bg-[#162038]"
+                                class="group flex min-h-[92px] cursor-pointer items-center justify-between gap-4 rounded-[18px] border border-white/6 bg-[#131B2F] px-5 text-left transition hover:border-[rgba(229,184,73,0.24)] hover:bg-[#162038]"
                                 @click="enterLeague(league.id)"
                             >
                                 <div class="space-y-2">
@@ -189,7 +189,7 @@ function enterLeague(leagueId: number): void {
                                     </p>
                                 </div>
                                 <p class="mt-3 text-[13px] leading-6 text-[#94A3B8]">
-                                    Toda la informacion visible cambia con la
+                                    Toda la información visible cambia con la
                                     liga seleccionada y no se mezcla con otras.
                                 </p>
                             </div>
@@ -198,12 +198,12 @@ function enterLeague(leagueId: number): void {
                                 <div class="flex items-center gap-3">
                                     <Users class="size-5 text-[#E5B849]" />
                                     <p class="text-sm font-semibold text-[#F8FAFC]">
-                                        Llegada y Gestion listas
+                                        Llegada y Gestión listas
                                     </p>
                                 </div>
                                 <p class="mt-3 text-[13px] leading-6 text-[#94A3B8]">
                                     Esta entrega ya aterriza los dos primeros
-                                    modulos de la liga con su base de negocio.
+                                    módulos de la liga con su base de negocio.
                                 </p>
                             </div>
                         </div>
@@ -236,8 +236,8 @@ function enterLeague(leagueId: number): void {
                         <p class="max-w-2xl text-[15px] leading-7 text-[#94A3B8]">
                             {{
                                 leagueHome.mode === 'guest'
-                                    ? 'Tu usuario pertenece a la liga seleccionada como invitado. Por ahora solo ve informacion general y datos personales del contexto activo.'
-                                    : 'Tu cuenta todavia no tiene una liga operativa asignada. Mientras eso sucede, puedes mantener al dia tus ajustes personales.'
+                                    ? 'Tu usuario pertenece a la liga seleccionada como invitado. Por ahora solo ve información general y datos personales del contexto activo.'
+                                    : 'Tu cuenta todavía no tiene una liga operativa asignada. Mientras eso sucede, puedes mantener al día tus ajustes personales.'
                             }}
                         </p>
                     </div>
@@ -252,7 +252,7 @@ function enterLeague(leagueId: number): void {
                         {{
                             leagueHome.mode === 'guest'
                                 ? 'El acceso operativo sigue reservado para miembros y administradores de la liga.'
-                                : 'Cuando tengas una liga activa, este portal dejara de ser base y te llevara directo al shell de liga.'
+                                : 'Cuando tengas una liga activa, este portal dejará de ser base y te llevará directo al shell de liga.'
                         }}
                     </p>
                 </article>
@@ -291,8 +291,8 @@ function enterLeague(leagueId: number): void {
                     <p class="text-[14px] leading-7 text-[#94A3B8]">
                         {{
                             leagueHome.mode === 'guest'
-                                ? 'Cuando tu rol cambie a miembro o administrador, podras entrar a la liga con el sidebar completo y sus modulos operativos.'
-                                : 'La liga activa controlara toda la experiencia web y mobile una vez el usuario reciba membresia.'
+                                ? 'Cuando tu rol cambie a miembro o administrador, podrás entrar a la liga con el sidebar completo y sus módulos operativos.'
+                                : 'La liga activa controlará toda la experiencia web y mobile una vez el usuario reciba membresía.'
                         }}
                     </p>
                 </div>

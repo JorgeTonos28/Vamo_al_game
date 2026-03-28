@@ -71,10 +71,57 @@ class CommandCenterLeagueDirectoryService
         $league = League::query()->create([
             'name' => $normalizedName,
             'emoji' => $normalizedEmoji,
+            'incoming_team_guest_limit' => 2,
             'slug' => $this->uniqueSlugFor($normalizedName),
             'is_active' => true,
             'created_by_user_id' => $creator->id,
         ]);
+
+        return $this->toArray(
+            $league->fresh([
+                'adminMemberships.user:id,name',
+            ])->loadCount([
+                'memberships as operational_memberships_count' => fn ($query) => $query->whereIn('role', [
+                    LeagueMembershipRole::Admin->value,
+                    LeagueMembershipRole::Member->value,
+                ]),
+            ])
+        );
+    }
+
+    /**
+     * @return array{
+     *     id: int,
+     *     name: string,
+     *     emoji: string|null,
+     *     slug: string,
+     *     is_active: bool,
+     *     admins: array<int, array{id: int|null, name: string|null}>,
+     *     members_count: int,
+     *     created_at: string|null
+     * }
+     */
+    public function updateName(League $league, string $name): array
+    {
+        $normalizedName = preg_replace('/\s+/', ' ', trim($name)) ?? trim($name);
+
+        $alreadyExists = League::query()
+            ->whereKeyNot($league->id)
+            ->pluck('name')
+            ->contains(fn ($existingName): bool => $existingName === $normalizedName);
+
+        if ($alreadyExists) {
+            throw ValidationException::withMessages([
+                'name' => 'Ya existe una liga con ese nombre.',
+            ]);
+        }
+
+        if ($league->name !== $normalizedName) {
+            $league->forceFill([
+                'name' => $normalizedName,
+                'slug' => $this->uniqueSlugFor($normalizedName, $league->id),
+            ])->save();
+        }
 
         return $this->toArray(
             $league->fresh([
@@ -189,14 +236,17 @@ class CommandCenterLeagueDirectoryService
             ->value('leagues.id');
     }
 
-    private function uniqueSlugFor(string $name): string
+    private function uniqueSlugFor(string $name, ?int $ignoreLeagueId = null): string
     {
         $baseSlug = Str::slug($name);
         $baseSlug = $baseSlug !== '' ? $baseSlug : 'liga';
         $slug = $baseSlug;
         $suffix = 2;
 
-        while (League::query()->where('slug', $slug)->exists()) {
+        while (League::query()
+            ->when($ignoreLeagueId !== null, fn ($query) => $query->whereKeyNot($ignoreLeagueId))
+            ->where('slug', $slug)
+            ->exists()) {
             $slug = "{$baseSlug}-{$suffix}";
             $suffix++;
         }
