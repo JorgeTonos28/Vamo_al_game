@@ -99,6 +99,7 @@ function onTouchStart(event: TouchEvent): void {
     target?.closest('input, textarea, button, a, ion-input, ion-textarea, .sheet-backdrop, .sheet-panel, [data-no-module-swipe]')
   ) {
     touchActive = false
+
     return
   }
 

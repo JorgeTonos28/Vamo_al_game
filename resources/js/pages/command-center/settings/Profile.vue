@@ -10,8 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import CommandCenterLayout from '@/layouts/CommandCenterLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
-import { send } from '@/routes/verification';
 import { commandCenterSettingsNavItems } from '@/pages/command-center/settings/nav';
+import { send } from '@/routes/verification';
 
 type Props = {
     mustVerifyEmail: boolean;

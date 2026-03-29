@@ -51,6 +51,7 @@ async function openPrimaryAction(): Promise<void> {
 async function openSecondaryAction(): Promise<void> {
   if (!sessionState.token) {
     await router.push({ name: 'register' })
+
     return
   }
 

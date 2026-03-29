@@ -1,4 +1,3 @@
-import type { LeagueOperationalContext } from '@/services/league'
 import {
   calendarOutline,
   clipboardOutline,
@@ -14,6 +13,7 @@ import {
   trophyOutline,
   walletOutline,
 } from 'ionicons/icons'
+import type { LeagueOperationalContext } from '@/services/league'
 
 export type LeagueNavItem = {
   label: string

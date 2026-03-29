@@ -234,8 +234,8 @@ async function openReport(): Promise<void> {
 <template>
     <IonPage>
         <IonContent :fullscreen="true">
-            <template v-slot:fixed>
-                <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
+            <template #fixed>
+                <IonRefresher @ionRefresh="handleRefresh">
                     <IonRefresherContent
                         pulling-text="Desliza para refrescar"
                         refreshing-spinner="crescent"

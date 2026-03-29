@@ -3,8 +3,8 @@ import { IonContent, IonPage, onIonViewWillEnter } from '@ionic/vue'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
-import { updateActiveLeague } from '@/services/tenancy'
 import type { LeagueOperationalContext } from '@/services/league'
+import { updateActiveLeague } from '@/services/tenancy'
 import { sessionState } from '@/state/session'
 
 const router = useRouter()

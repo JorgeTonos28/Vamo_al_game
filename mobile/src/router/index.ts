@@ -1,12 +1,13 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router'
 import type { RouteRecordRaw } from 'vue-router'
+import { defaultAuthenticatedRouteName, isGeneralAdminSession, regularAppRouteName } from '@/lib/session-routes'
 import AppearancePage from '@/pages/AppearancePage.vue'
 import AppUnavailablePage from '@/pages/AppUnavailablePage.vue'
 import CommandCenterDashboardPage from '@/pages/CommandCenterDashboardPage.vue'
 import CommandCenterLeaguesPage from '@/pages/CommandCenterLeaguesPage.vue'
 import CommandCenterProfilePage from '@/pages/CommandCenterProfilePage.vue'
-import CommandCenterSettingsPage from '@/pages/CommandCenterSettingsPage.vue'
 import CommandCenterSecurityPage from '@/pages/CommandCenterSecurityPage.vue'
+import CommandCenterSettingsPage from '@/pages/CommandCenterSettingsPage.vue'
 import CommandCenterTabsPage from '@/pages/CommandCenterTabsPage.vue'
 import CommandCenterUsersPage from '@/pages/CommandCenterUsersPage.vue'
 import GoogleAuthCallbackPage from '@/pages/GoogleAuthCallbackPage.vue'
@@ -30,7 +31,6 @@ import SecurityPage from '@/pages/SecurityPage.vue'
 import StarterPage from '@/pages/StarterPage.vue'
 import TabsPage from '@/pages/TabsPage.vue'
 import TwoFactorChallengePage from '@/pages/TwoFactorChallengePage.vue'
-import { defaultAuthenticatedRouteName, isGeneralAdminSession, regularAppRouteName } from '@/lib/session-routes'
 import { fetchCurrentUser } from '@/services/auth'
 import { hydrateBrandingState } from '@/state/branding'
 import { hydrateSessionState, sessionState } from '@/state/session'
@@ -383,6 +383,7 @@ async function ensureCurrentUser(): Promise<boolean> {
 
   try {
     await fetchCurrentUser()
+
     return true
   } catch {
     return false
