@@ -33,7 +33,7 @@ onIonViewWillEnter(loadPage)
   <IonPage>
     <IonContent :fullscreen="true">
       <template v-slot:fixed>
-<IonRefresher  @ionRefresh="handleRefresh">
+<IonRefresher slot="fixed" @ionRefresh="handleRefresh">
         <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
       </IonRefresher>
 </template>

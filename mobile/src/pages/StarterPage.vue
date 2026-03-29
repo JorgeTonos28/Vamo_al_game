@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { IonContent, IonPage } from '@ionic/vue';
-import { onMounted } from 'vue';
+import { nextTick, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import BrandLogo from '@/components/BrandLogo.vue';
 import { defaultAuthenticatedRouteName } from '@/lib/session-routes';
@@ -11,6 +11,9 @@ import { sessionState } from '@/state/session';
 const router = useRouter();
 
 onMounted(async () => {
+    const startedAt = Date.now();
+
+    await nextTick();
     await hydrateSessionState();
 
     if (sessionState.token && !sessionState.user) {
@@ -19,6 +22,15 @@ onMounted(async () => {
         } catch {
             // El guard redirigira a login si la sesion ya no es valida.
         }
+    }
+
+    const elapsed = Date.now() - startedAt;
+    const minimumDurationMs = 1600;
+
+    if (elapsed < minimumDurationMs) {
+        await new Promise((resolve) =>
+            window.setTimeout(resolve, minimumDurationMs - elapsed),
+        );
     }
 
     await router.replace({
@@ -109,7 +121,8 @@ onMounted(async () => {
 .starter-logo-wrap {
     animation:
         starter-rise 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards,
-        starter-pulse 2.4s ease-in-out 0.8s infinite;
+        starter-pulse 2.4s ease-in-out 0.8s infinite,
+        starter-orbit 4.8s ease-in-out 0.9s infinite;
 }
 
 .starter-tag {
@@ -167,6 +180,17 @@ onMounted(async () => {
 
     50% {
         transform: translate3d(0, -18px, 0);
+    }
+}
+
+@keyframes starter-orbit {
+    0%,
+    100% {
+        filter: drop-shadow(0 0 0 rgba(229, 184, 73, 0));
+    }
+
+    50% {
+        filter: drop-shadow(0 0 24px rgba(229, 184, 73, 0.24));
     }
 }
 </style>

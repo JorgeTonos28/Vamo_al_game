@@ -68,7 +68,19 @@ async function submit(): Promise<void> {
         await nextTick();
         ionRouter.navigate(defaultAuthenticatedRoutePath(), 'root', 'replace');
     } catch (error) {
-        const response = (error as AxiosError<ErrorResponse>).response?.data;
+        const axiosError = error as AxiosError<ErrorResponse>;
+        const response = axiosError.response?.data;
+
+        console.error(
+            'mobile-login-failed',
+            JSON.stringify({
+                apiBaseUrl: import.meta.env.VITE_API_BASE_URL,
+                email: form.email,
+                passwordLength: form.password.length,
+                status: axiosError.response?.status,
+                data: axiosError.response?.data,
+            }),
+        );
 
         errorMessage.value =
             response?.errors?.email?.[0] ??
@@ -114,7 +126,7 @@ function continueWithGoogle(): void {
                                     autocorrect="off"
                                     inputmode="email"
                                     placeholder="demo@vamoalgame.test"
-                                    spellcheck="false"
+                                    :spellcheck="false"
                                     type="email"
                                 />
                             </IonItem>
@@ -126,7 +138,11 @@ function continueWithGoogle(): void {
                                 <IonInput
                                     v-model="form.password"
                                     autocomplete="current-password"
+                                    autocapitalize="off"
+                                    autocorrect="off"
+                                    @keyup.enter="submit"
                                     placeholder="password"
+                                    :spellcheck="false"
                                     type="password"
                                 />
                             </IonItem>

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { IonIcon, useIonRouter } from '@ionic/vue'
 import { logOutOutline, settingsOutline, shieldOutline, speedometerOutline, peopleOutline, menuOutline } from 'ionicons/icons'
-import { computed, nextTick } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { leagueNavItems } from '@/lib/league-navigation'
+import LeagueSwitcherSheet from '@/components/LeagueSwitcherSheet.vue'
 import { regularAppRouteName } from '@/lib/session-routes'
 import { logout } from '@/services/auth'
 import type { LeagueOperationalContext } from '@/services/league'
@@ -21,6 +21,9 @@ const emit = defineEmits<{
 const route = useRoute()
 const router = useRouter()
 const ionRouter = useIonRouter()
+const isLeagueSheetOpen = ref(false)
+const menuPanelRef = ref<HTMLElement | null>(null)
+let savedMenuScrollTop = 0
 const tenancy = computed(() => sessionState.tenancy as (typeof sessionState.tenancy & LeagueOperationalContext) | null)
 const activeLeagueLabel = computed(() => {
   const league = tenancy.value?.active_league
@@ -44,15 +47,19 @@ const navItems = computed(() => {
 
   if (regularAppRouteName() === 'app-unavailable') {
     return [
-      { label: 'Panel', routeName: 'app-unavailable', href: '/app/unavailable', icon: speedometerOutline },
+      { label: 'Dashboard', routeName: 'app-home', href: '/app/home', icon: speedometerOutline },
       { label: 'Ajustes', routeName: 'settings-profile', href: '/app/settings/profile', icon: settingsOutline },
     ]
   }
 
-  return leagueNavItems(tenancy.value)
+  return [
+    { label: 'Dashboard', routeName: 'app-home', href: '/app/home', icon: speedometerOutline },
+    { label: 'Ajustes', routeName: 'settings-profile', href: '/app/settings/profile', icon: settingsOutline },
+  ]
 })
 
 function close(): void {
+  savedMenuScrollTop = menuPanelRef.value?.scrollTop ?? savedMenuScrollTop
   emit('update:isOpen', false)
 }
 
@@ -72,12 +79,27 @@ async function handleLogout(): Promise<void> {
 function isActive(routeName: string, href: string): boolean {
   return route.name === routeName || route.path === href || route.path.startsWith(`${href}/`)
 }
+
+watch(
+  () => props.isOpen,
+  async (isOpen) => {
+    if (!isOpen) {
+      return
+    }
+
+    await nextTick()
+
+    if (menuPanelRef.value) {
+      menuPanelRef.value.scrollTop = savedMenuScrollTop
+    }
+  },
+)
 </script>
 
 <template>
   <Teleport to="body">
     <div v-if="props.isOpen" class="menu-backdrop" @click.self="close">
-      <section class="menu-panel">
+      <section ref="menuPanelRef" class="menu-panel">
         <div class="menu-handle" />
 
         <div class="menu-header">
@@ -87,6 +109,16 @@ function isActive(routeName: string, href: string): boolean {
             {{ props.commandCenter ? sessionState.user?.email : tenancy?.active_league?.role_label ?? sessionState.user?.email }}
           </p>
         </div>
+
+        <button
+          v-if="!props.commandCenter && sessionState.user && !sessionState.user.is_general_admin"
+          class="menu-switcher"
+          type="button"
+          @click="isLeagueSheetOpen = true"
+        >
+          <span class="menu-switcher__title">{{ activeLeagueLabel }}</span>
+          <span class="menu-switcher__copy">Cambiar liga activa</span>
+        </button>
 
         <div class="menu-list">
           <button
@@ -114,6 +146,8 @@ function isActive(routeName: string, href: string): boolean {
           <IonIcon :icon="menuOutline" />
           <span>Cerrar menu</span>
         </button>
+
+        <LeagueSwitcherSheet v-model:is-open="isLeagueSheetOpen" />
       </section>
     </div>
   </Teleport>
@@ -140,11 +174,15 @@ function isActive(routeName: string, href: string): boolean {
 
 .menu-panel {
   width: min(100%, 480px);
+  max-height: calc(100dvh - 32px);
   gap: 18px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 28px 28px 20px 20px;
   background: #1a243a;
-  padding: 14px 16px 20px;
+  padding: 14px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   animation: menu-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -184,7 +222,8 @@ function isActive(routeName: string, href: string): boolean {
 }
 
 .menu-option,
-.menu-close {
+.menu-close,
+.menu-switcher {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -199,7 +238,8 @@ function isActive(routeName: string, href: string): boolean {
 }
 
 .menu-option,
-.menu-close {
+.menu-close,
+.menu-switcher {
   background: #0e1628;
   color: #f8fafc;
 }
@@ -234,6 +274,28 @@ function isActive(routeName: string, href: string): boolean {
 
 .menu-close {
   justify-content: center;
+}
+
+.menu-switcher {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding-block: 12px;
+}
+
+.menu-switcher__title,
+.menu-switcher__copy {
+  margin: 0;
+}
+
+.menu-switcher__title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.menu-switcher__copy {
+  font-size: 12px;
+  color: #94a3b8;
 }
 
 @keyframes menu-enter {
