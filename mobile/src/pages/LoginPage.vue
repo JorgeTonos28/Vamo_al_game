@@ -49,7 +49,10 @@ async function submit(): Promise<void> {
     errorMessage.value = null;
 
     try {
-        const result = await login(form);
+        const result = await login({
+            ...form,
+            email: form.email.trim().toLowerCase(),
+        });
 
         if (result.kind === 'two-factor') {
             ionRouter.navigate(
@@ -107,8 +110,11 @@ function continueWithGoogle(): void {
                                 <IonInput
                                     v-model="form.email"
                                     autocomplete="email"
+                                    autocapitalize="off"
+                                    autocorrect="off"
                                     inputmode="email"
                                     placeholder="demo@vamoalgame.test"
+                                    spellcheck="false"
                                     type="email"
                                 />
                             </IonItem>

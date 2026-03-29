@@ -87,6 +87,24 @@ class TokenAuthenticationTest extends TestCase
         ]);
     }
 
+    public function test_verified_users_can_authenticate_with_trimmed_and_uppercased_email_via_the_api(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'adminleaguetest@vamoalgame.com',
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => '  AdminLeagueTest@VamoAlGame.com  ',
+            'password' => 'password',
+            'device_name' => 'Ionic Dev',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.user.email', 'adminleaguetest@vamoalgame.com');
+    }
+
     public function test_verified_users_with_two_factor_enabled_receive_a_mobile_challenge(): void
     {
         $user = User::factory()->create();
