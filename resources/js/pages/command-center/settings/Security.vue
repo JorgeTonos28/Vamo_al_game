@@ -13,8 +13,8 @@ import { Label } from '@/components/ui/label';
 import { useTwoFactorAuth } from '@/composables/useTwoFactorAuth';
 import CommandCenterLayout from '@/layouts/CommandCenterLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
-import { disable, enable } from '@/routes/two-factor';
 import { commandCenterSettingsNavItems } from '@/pages/command-center/settings/nav';
+import { disable, enable } from '@/routes/two-factor';
 
 type Props = {
     canManageTwoFactor?: boolean;

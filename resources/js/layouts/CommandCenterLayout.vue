@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
 import { Menu } from 'lucide-vue-next';
+import { computed } from 'vue';
 import AppContent from '@/components/AppContent.vue';
 import AppLogo from '@/components/AppLogo.vue';
 import AppShell from '@/components/AppShell.vue';

@@ -29,6 +29,7 @@ const isLoading = ref(false);
 const guestName = ref('');
 const selectedPlayerId = ref<number | null>(null);
 const prepareOpen = ref(false);
+const resetConfirmOpen = ref(false);
 const rosterOpen = ref(false);
 const guestPayments = reactive<Record<number, boolean>>({});
 const actionErrors = ref<string[]>([]);
@@ -166,6 +167,7 @@ return;
 
     try {
         payload.value = await resetLeagueArrival();
+        resetConfirmOpen.value = false;
     } catch (error) {
         actionErrors.value = extractApiErrors(error);
     }
@@ -183,8 +185,8 @@ function money(amountCents: number): string {
 <template>
     <IonPage>
         <IonContent :fullscreen="true">
-            <template v-slot:fixed>
-<IonRefresher  @ionRefresh="handleRefresh">
+            <template #fixed>
+<IonRefresher @ionRefresh="handleRefresh">
                 <IonRefresherContent
                     pulling-text="Desliza para refrescar"
                     refreshing-spinner="crescent"
@@ -271,9 +273,17 @@ function money(amountCents: number): string {
 
                     <section class="app-surface section-stack">
                         <div class="section-head">
-                            <p class="app-kicker section-head__kicker">
-                                Miembros
-                            </p>
+                            <div class="section-head__copy">
+                                <p class="app-kicker section-head__kicker">
+                                    Miembros
+                                </p>
+                                <span class="section-head__badge">
+                                    {{
+                                        payload?.session.counts.arrived_members ??
+                                        0
+                                    }}/{{ payload?.session.counts.total_members ?? 0 }}
+                                </span>
+                            </div>
                             <div
                                 v-if="canManageArrival"
                                 class="section-head__actions"
@@ -285,6 +295,13 @@ function money(amountCents: number): string {
                                     @click="rosterOpen = true"
                                 >
                                     Miembros
+                                </button>
+                                <button
+                                    class="action-button action-button--ghost"
+                                    type="button"
+                                    @click="resetConfirmOpen = true"
+                                >
+                                    Reiniciar llegada
                                 </button>
                                 <button
                                     class="action-button action-button--primary"
@@ -322,11 +339,19 @@ function money(amountCents: number): string {
                             "
                         >
                             <div>
-                                <p class="member-row__name">
-                                    {{ player.name }}
-                                </p>
+                                <div class="member-row__header">
+                                    <p class="member-row__name">
+                                        {{ player.name }}
+                                    </p>
+                                    <span class="member-row__meta-chip">
+                                        #{{ player.jersey_number ?? 'S/N' }}
+                                    </span>
+                                </div>
                                 <p class="member-row__copy">
                                     {{ player.status_message }}
+                                </p>
+                                <p class="member-row__meta">
+                                    {{ player.attendance_count }} jornadas registradas
                                 </p>
                             </div>
                             <span
@@ -357,17 +382,14 @@ function money(amountCents: number): string {
 
                     <section class="app-surface section-stack">
                         <div class="section-head">
-                            <p class="app-kicker section-head__kicker">
-                                Invitados
-                            </p>
-                            <button
-                                v-if="canManageArrival"
-                                class="action-button action-button--ghost"
-                                type="button"
-                                @click="resetSession"
-                            >
-                                Reiniciar
-                            </button>
+                            <div class="section-head__copy">
+                                <p class="app-kicker section-head__kicker">
+                                    Invitados
+                                </p>
+                                <span class="section-head__badge">
+                                    {{ payload?.guests?.length ?? 0 }}
+                                </span>
+                            </div>
                         </div>
                         <div v-if="canManageArrival" class="guest-form">
                             <input
@@ -393,7 +415,12 @@ function money(amountCents: number): string {
                             class="guest-row"
                         >
                             <div>
-                                <p class="member-row__name">{{ guest.name }}</p>
+                                <div class="member-row__header">
+                                    <p class="member-row__name">{{ guest.name }}</p>
+                                    <span class="member-row__meta-chip">
+                                        #{{ guest.arrival_order }}
+                                    </span>
+                                </div>
                                 <p class="member-row__copy">
                                     Pago por invitado:
                                     {{
@@ -504,6 +531,36 @@ function money(amountCents: number): string {
             </div>
 
             <div
+                v-if="resetConfirmOpen && canManageArrival"
+                class="overlay"
+                @click.self="resetConfirmOpen = false"
+            >
+                <section class="overlay__panel">
+                    <p class="app-kicker overlay__kicker">Reiniciar llegada</p>
+                    <p class="body-copy">
+                        Esta accion limpiara la lista de llegada actual. Usala
+                        solo si quieres comenzar de nuevo.
+                    </p>
+                    <div class="overlay__actions">
+                        <button
+                            class="action-button action-button--secondary"
+                            type="button"
+                            @click="resetConfirmOpen = false"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            class="action-button action-button--ghost"
+                            type="button"
+                            @click="resetSession"
+                        >
+                            Confirmar reinicio
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <div
                 v-if="prepareOpen && canManageArrival"
                 class="overlay"
                 @click.self="prepareOpen = false"
@@ -576,7 +633,6 @@ function money(amountCents: number): string {
 .summary-grid,
 .section-stack,
 .summary-card,
-.guest-row__actions,
 .overlay__panel,
 .overlay__actions,
 .error-block {
@@ -637,16 +693,23 @@ function money(amountCents: number): string {
 .member-row,
 .guest-row,
 .guest-form,
-.section-head__actions {
+.section-head__actions,
+.section-head__copy,
+.member-row__header {
     display: flex;
     align-items: center;
     gap: 12px;
+}
+.section-head__copy,
+.guest-row__actions {
+    min-width: 0;
 }
 .section-head {
     justify-content: space-between;
 }
 .section-head__actions {
     justify-content: flex-end;
+    flex-wrap: wrap;
 }
 .section-head__kicker,
 .overlay__kicker {
@@ -667,19 +730,52 @@ function money(amountCents: number): string {
     font-weight: 700;
     color: #f8fafc;
 }
+.member-row__meta,
+.section-head__badge {
+    margin: 0;
+    font-size: 12px;
+    color: #94a3b8;
+}
+.member-row__meta {
+    margin-top: 4px;
+}
+.member-row__meta-chip,
+.section-head__badge {
+    display: inline-flex;
+    min-height: 30px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: #131b2f;
+    padding: 0 10px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+}
 .member-chip,
 .action-button {
-    min-height: 42px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    font-size: 12px;
-    font-weight: 700;
-}
-.member-chip {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0 12px;
+    min-height: 44px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 0 16px;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.member-chip {
+    padding: 0 14px;
+    text-align: center;
+}
+.guest-row__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 .member-chip--positive,
 .action-button--primary {
@@ -699,6 +795,7 @@ function money(amountCents: number): string {
 }
 .guest-form {
     align-items: stretch;
+    gap: 10px;
 }
 .guest-form__input {
     width: 100%;
@@ -715,11 +812,13 @@ function money(amountCents: number): string {
 .action-button--secondary {
     background: #131b2f;
     color: #f8fafc;
+    padding: 0 14px;
 }
 .action-button--ghost {
     background: rgba(248, 113, 113, 0.12);
     border-color: rgba(248, 113, 113, 0.28);
     color: #fca5a5;
+    padding: 0 14px;
 }
 .queue-grid {
     display: grid;
@@ -747,5 +846,38 @@ function money(amountCents: number): string {
     border-radius: 28px 28px 20px 20px;
     background: #1a243a;
     padding: 18px 16px 20px;
+}
+
+@media (max-width: 420px) {
+    .section-head,
+    .guest-form {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .section-head {
+        align-items: flex-start;
+    }
+
+    .section-head__actions,
+    .guest-row__actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .guest-row {
+        display: grid;
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .guest-row__actions {
+        flex-wrap: nowrap;
+    }
+
+    .member-chip,
+    .action-button {
+        min-width: 0;
+    }
 }
 </style>

@@ -37,6 +37,7 @@ const tabs: Array<{ key: RosterTab; label: string }> = [
 ];
 
 const activeTab = ref<RosterTab>('invite');
+const transitionDirection = ref<'forward' | 'back'>('forward');
 const touchStartX = ref<number | null>(null);
 const inviteSubmitting = ref(false);
 const editSubmitting = ref(false);
@@ -93,12 +94,21 @@ const selectedPlayer = computed(
         allPlayers.value.find((player) => player.id === editPlayerId.value) ??
         null,
 );
+const activeTabIndex = computed(() =>
+    tabs.findIndex((tab) => tab.key === activeTab.value),
+);
+const tabTransitionName = computed(() =>
+    transitionDirection.value === 'forward'
+        ? 'sheet-slide-forward'
+        : 'sheet-slide-back',
+);
 
 watch(
     () => props.isOpen,
     (isOpen) => {
         if (isOpen) {
             activeTab.value = 'invite';
+            transitionDirection.value = 'forward';
             feedbackMessages.value = [];
             inviteFieldErrors.value = {};
             editFieldErrors.value = {};
@@ -114,7 +124,7 @@ function inputClass(hasError = false): string {
 
 function scrollToTop(): void {
     nextTick(() => {
-        sheetContentRef.value?.scrollTo({ top: 0, behavior: 'smooth' });
+        sheetContentRef.value?.scrollTo({ top: 0 });
     });
 }
 
@@ -123,7 +133,16 @@ function close(): void {
 }
 
 function setTab(tab: RosterTab): void {
+    if (tab === activeTab.value) {
+        return;
+    }
+
+    const nextIndex = tabs.findIndex((entry) => entry.key === tab);
+
+    transitionDirection.value =
+        nextIndex > activeTabIndex.value ? 'forward' : 'back';
     activeTab.value = tab;
+    scrollToTop();
 }
 
 function moveTab(direction: 'previous' | 'next'): void {
@@ -135,7 +154,9 @@ function moveTab(direction: 'previous' | 'next'): void {
         return;
     }
 
+    transitionDirection.value = direction === 'next' ? 'forward' : 'back';
     activeTab.value = tabs[nextIndex].key;
+    scrollToTop();
 }
 
 function handleTouchStart(event: TouchEvent): void {
@@ -226,6 +247,7 @@ return;
     editForm.email = player.email ?? '';
     editForm.jersey_number = player.jersey_number?.toString() ?? '';
     editForm.account_role = player.account_role;
+    transitionDirection.value = 'back';
     activeTab.value = 'edit';
     feedbackMessages.value = [];
     editFieldErrors.value = {};
@@ -293,8 +315,20 @@ async function toggleStatus(playerId: number, active: boolean): Promise<void> {
 
 <template>
     <Teleport to="body">
-        <div v-if="props.isOpen" class="sheet-backdrop" @click.self="close">
-            <section class="sheet-panel">
+        <div
+            v-if="props.isOpen"
+            class="sheet-backdrop"
+            data-no-module-swipe
+            @click.self="close"
+            @touchstart.stop
+            @touchend.stop
+        >
+            <section
+                class="sheet-panel"
+                data-no-module-swipe
+                @touchstart.stop
+                @touchend.stop
+            >
                 <div class="sheet-handle" />
                 <p class="app-kicker sheet-kicker">Gestionar miembros</p>
                 <p class="sheet-copy">
@@ -317,11 +351,17 @@ async function toggleStatus(playerId: number, active: boolean): Promise<void> {
                 </div>
 
                 <div
-                    ref="sheetContentRef"
-                    class="sheet-content"
-                    @touchstart="handleTouchStart"
-                    @touchend="handleTouchEnd"
+                    class="sheet-content-shell"
+                    data-no-module-swipe
+                    @touchstart.stop="handleTouchStart"
+                    @touchend.stop="handleTouchEnd"
                 >
+                    <Transition :name="tabTransitionName">
+                        <div
+                            :key="activeTab"
+                            ref="sheetContentRef"
+                            class="sheet-content-panel"
+                        >
                     <div v-if="feedbackMessages.length > 0" class="sheet-alert">
                         <p class="sheet-alert__title">
                             No se pudo completar la acción.
@@ -682,6 +722,8 @@ async function toggleStatus(playerId: number, active: boolean): Promise<void> {
                             No hay miembros dados de baja.
                         </p>
                     </div>
+                        </div>
+                    </Transition>
                 </div>
 
                 <p class="sheet-note">
@@ -733,14 +775,15 @@ async function toggleStatus(playerId: number, active: boolean): Promise<void> {
 
 .sheet-panel {
     width: min(100%, 480px);
-    max-height: calc(100vh - 32px);
+    height: min(720px, calc(100dvh - 32px));
+    max-height: calc(100dvh - 32px);
     flex-direction: column;
     gap: 14px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 28px 28px 20px 20px;
     background: #1a243a;
-    padding: 14px 16px 20px;
+    padding: 14px 16px calc(20px + env(safe-area-inset-bottom, 0px));
 }
 
 .sheet-block {
@@ -769,11 +812,13 @@ async function toggleStatus(playerId: number, active: boolean): Promise<void> {
 
 .sheet-tabs {
     gap: 8px;
+    flex-wrap: nowrap;
     overflow-x: auto;
     padding-bottom: 2px;
 }
 
 .sheet-tab {
+    flex: 0 0 auto;
     min-height: 44px;
     border-radius: 999px;
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -791,28 +836,29 @@ async function toggleStatus(playerId: number, active: boolean): Promise<void> {
     color: #f8fafc;
 }
 
-.sheet-content,
+.sheet-content-shell,
+.sheet-content-panel,
 .sheet-list,
 .sheet-tabs {
     scrollbar-width: thin;
     scrollbar-color: rgba(229, 184, 73, 0.5) rgba(14, 22, 40, 0.92);
 }
 
-.sheet-content::-webkit-scrollbar,
+.sheet-content-panel::-webkit-scrollbar,
 .sheet-list::-webkit-scrollbar,
 .sheet-tabs::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
 
-.sheet-content::-webkit-scrollbar-track,
+.sheet-content-panel::-webkit-scrollbar-track,
 .sheet-list::-webkit-scrollbar-track,
 .sheet-tabs::-webkit-scrollbar-track {
     border-radius: 999px;
     background: rgba(14, 22, 40, 0.92);
 }
 
-.sheet-content::-webkit-scrollbar-thumb,
+.sheet-content-panel::-webkit-scrollbar-thumb,
 .sheet-list::-webkit-scrollbar-thumb,
 .sheet-tabs::-webkit-scrollbar-thumb {
     border: 2px solid rgba(14, 22, 40, 0.92);
@@ -820,9 +866,15 @@ async function toggleStatus(playerId: number, active: boolean): Promise<void> {
     background: rgba(229, 184, 73, 0.5);
 }
 
-.sheet-content {
+.sheet-content-shell {
     min-height: 0;
     flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+.sheet-content-panel {
+    height: 100%;
     overflow-y: auto;
     padding-right: 2px;
 }
@@ -954,5 +1006,32 @@ async function toggleStatus(playerId: number, active: boolean): Promise<void> {
     background: rgba(248, 113, 113, 0.12);
     border-color: rgba(248, 113, 113, 0.28);
     color: #fca5a5;
+}
+
+.sheet-slide-forward-enter-active,
+.sheet-slide-forward-leave-active,
+.sheet-slide-back-enter-active,
+.sheet-slide-back-leave-active {
+    transition:
+        transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 0.28s ease;
+}
+
+.sheet-slide-forward-enter-from,
+.sheet-slide-back-leave-to {
+    transform: translateX(14%);
+    opacity: 0.24;
+}
+
+.sheet-slide-forward-leave-to,
+.sheet-slide-back-enter-from {
+    transform: translateX(-14%);
+    opacity: 0.24;
+}
+
+.sheet-slide-forward-leave-active,
+.sheet-slide-back-leave-active {
+    position: absolute;
+    inset: 0;
 }
 </style>

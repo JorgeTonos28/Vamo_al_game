@@ -3,7 +3,8 @@ import { IonContent, IonPage, IonRefresher, IonRefresherContent, onIonViewWillEn
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
-import { fetchLeagueHome, type LeagueHomePayload } from '@/services/league'
+import { fetchLeagueHome  } from '@/services/league'
+import type {LeagueHomePayload} from '@/services/league';
 
 const router = useRouter()
 const payload = ref<LeagueHomePayload | null>(null)
@@ -38,9 +39,11 @@ onIonViewWillEnter(loadPage)
 <template>
   <IonPage>
     <IonContent :fullscreen="true">
-      <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
+      <template #fixed>
+<IonRefresher @ionRefresh="handleRefresh">
         <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
       </IonRefresher>
+</template>
 
       <div class="mobile-shell">
         <div class="mobile-stack">

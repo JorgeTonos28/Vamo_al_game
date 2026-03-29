@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Head, useForm, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import AppLogo from '@/components/AppLogo.vue';
 import AppearanceTabs from '@/components/AppearanceTabs.vue';
+import AppLogo from '@/components/AppLogo.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';

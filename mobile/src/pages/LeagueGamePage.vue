@@ -575,8 +575,8 @@ return Flame;
 <template>
     <IonPage>
         <IonContent :fullscreen="true">
-            <template v-slot:fixed>
-<IonRefresher  @ionRefresh="handleRefresh">
+            <template #fixed>
+<IonRefresher @ionRefresh="handleRefresh">
                 <IonRefresherContent
                     pulling-text="Desliza para refrescar"
                     refreshing-spinner="crescent"
@@ -1395,6 +1395,7 @@ return Flame;
     font-size: 52px;
     line-height: 1;
     color: #f8fafc;
+    text-align: center;
 }
 .error-banner {
     border-color: rgba(248, 113, 113, 0.28);

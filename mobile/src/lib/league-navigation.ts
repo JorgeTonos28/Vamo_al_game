@@ -1,4 +1,3 @@
-import type { LeagueOperationalContext } from '@/services/league'
 import {
   calendarOutline,
   clipboardOutline,
@@ -14,6 +13,7 @@ import {
   trophyOutline,
   walletOutline,
 } from 'ionicons/icons'
+import type { LeagueOperationalContext } from '@/services/league'
 
 export type LeagueNavItem = {
   label: string
@@ -32,10 +32,10 @@ const items: LeagueNavItem[] = [
   { label: 'Tabla', routeName: 'league-table', href: '/app/league/table', icon: gridOutline },
   { label: 'Temporada', routeName: 'league-season', href: '/app/league/season', icon: calendarOutline },
   { label: 'Scout', routeName: 'league-scout', href: '/app/league/scout', icon: searchOutline },
-  { label: 'Torneo', routeName: 'league-placeholder', href: '/app/league/modules/torneo', icon: trophyOutline },
-  { label: 'Anotador', routeName: 'league-placeholder', href: '/app/league/modules/anotador', icon: clipboardOutline },
-  { label: 'Votos', routeName: 'league-placeholder', href: '/app/league/modules/votos', icon: thumbsUpOutline },
-  { label: 'Post', routeName: 'league-placeholder', href: '/app/league/modules/post', icon: documentTextOutline },
+  { label: 'Torneo', routeName: 'league-module-torneo', href: '/app/league/modules/torneo', icon: trophyOutline },
+  { label: 'Anotador', routeName: 'league-module-anotador', href: '/app/league/modules/anotador', icon: clipboardOutline },
+  { label: 'Votos', routeName: 'league-module-votos', href: '/app/league/modules/votos', icon: thumbsUpOutline },
+  { label: 'Post', routeName: 'league-module-post', href: '/app/league/modules/post', icon: documentTextOutline },
   { label: 'Gestion', routeName: 'league-management', href: '/app/league/management', icon: walletOutline, adminOnly: true },
   { label: 'Ajustes', routeName: 'settings-profile', href: '/app/settings/profile', icon: settingsOutline },
 ]

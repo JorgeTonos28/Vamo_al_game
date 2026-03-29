@@ -56,8 +56,8 @@ function sessionLabel(session: LeagueQueuePayload['session_selector']['sessions'
 <template>
   <IonPage>
     <IonContent :fullscreen="true">
-      <template v-slot:fixed>
-<IonRefresher  @ionRefresh="handleRefresh">
+      <template #fixed>
+<IonRefresher @ionRefresh="handleRefresh">
         <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
       </IonRefresher>
 </template>
