@@ -2,6 +2,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import {
     CheckCircle2,
+    Crown,
     Flame,
     RotateCcw,
     SearchSlash,
@@ -23,6 +24,13 @@ import {
 } from '@/components/ui/dialog';
 import { formatMoney } from '@/lib/league';
 import type { BreadcrumbItem } from '@/types';
+import {
+    buildDraftPreview
+    
+    
+    
+} from '../../../../packages/shared/leagueDraftPreview';
+import type {CaptainMode, DraftMode, DraftPreviewPlayer} from '../../../../packages/shared/leagueDraftPreview';
 
 type PlayerCard = {
     id: number;
@@ -30,12 +38,21 @@ type PlayerCard = {
     is_guest: boolean;
     jersey_number: number | null;
     arrival_order: number;
+    preferred_position: string | null;
+};
+
+type DraftEntry = PlayerCard & {
+    scout_role: string | null;
+    auto_draft_rating: number;
 };
 
 type TeamPlayer = PlayerCard & {
+    is_captain: boolean;
     points: number;
     shots: { 1: number; 2: number; 3: number };
 };
+
+type DraftPreviewTeamPlayer = DraftPreviewPlayer<DraftEntry>;
 
 type TeamSide = 'A' | 'B';
 
@@ -74,7 +91,7 @@ const props = defineProps<{
     };
     game: {
         state: 'idle' | 'draft' | 'live' | 'completed';
-        draft: { entries: PlayerCard[]; can_start: boolean };
+        draft: { entries: DraftEntry[]; can_start: boolean };
         clock: {
             duration_seconds: number | null;
             remaining_seconds: number | null;
@@ -113,9 +130,21 @@ const props = defineProps<{
     };
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [{ title: 'Juego', href: '/liga/modulos/juego' }];
-const draftMode = ref<'auto' | 'arrival' | 'manual'>('auto');
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Juego', href: '/liga/modulos/juego' },
+];
+const draftMode = ref<DraftMode>('auto');
+const captainMode = ref<CaptainMode>('arrival');
 const manualAssignments = reactive<Record<number, 'A' | 'B'>>({});
+const manualCaptains = reactive<Record<'A' | 'B', number | null>>({
+    A: null,
+    B: null,
+});
+const draftPreview = ref<{
+    teams: Record<'A' | 'B', DraftPreviewTeamPlayer[]>;
+    unassigned: DraftEntry[];
+    counts: { A: number; B: number; unassigned: number };
+} | null>(null);
 const selectedPlayer = ref<TeamPlayer | null>(null);
 const revertPlayer = ref<TeamPlayer | null>(null);
 const playerToRemove = ref<TeamPlayer | null>(null);
@@ -132,11 +161,30 @@ const clockDisplaySeconds = ref<number | null>(props.game.clock.remaining_second
 let lastRotationNoticeKey = props.game.rotation_notice?.key ?? null;
 
 const canManage = computed(() => props.role.can_manage);
-const teamACount = computed(() => Object.values(manualAssignments).filter((team) => team === 'A').length);
-const teamBCount = computed(() => Object.values(manualAssignments).filter((team) => team === 'B').length);
-const streakLabel = computed(() => props.game.current?.streak.team
-    ? `EQ.${props.game.current.streak.team} - ${props.game.current.streak.count}`
-    : 'Sin racha');
+const teamACount = computed(
+    () =>
+        draftPreview.value?.counts.A ??
+        Object.values(manualAssignments).filter((team) => team === 'A').length,
+);
+const teamBCount = computed(
+    () =>
+        draftPreview.value?.counts.B ??
+        Object.values(manualAssignments).filter((team) => team === 'B').length,
+);
+const draftUnassignedCount = computed(
+    () => draftPreview.value?.counts.unassigned ?? 0,
+);
+const draftReadyEntries = computed(() => props.game.draft.entries);
+const streakLabel = computed(() =>
+    props.game.current?.streak.team
+        ? `EQ.${props.game.current.streak.team} - ${props.game.current.streak.count}`
+        : 'Sin racha',
+);
+const draftErrorContext = computed(() =>
+    captainMode.value === 'manual'
+        ? 'Revisa la distribución y los capitanes antes de continuar.'
+        : 'Revisa la distribución del draft antes de continuar.',
+);
 const clockState = computed(() => props.game.clock.state);
 const clockDurationSeconds = computed(() => props.game.clock.duration_seconds);
 const formattedClock = computed(() => {
@@ -201,8 +249,68 @@ watch(
                 delete manualAssignments[Number(entryId)];
             }
         });
+
+        (['A', 'B'] as const).forEach((teamSide) => {
+            const captainId = manualCaptains[teamSide];
+
+            if (captainId !== null && !activeIds.has(captainId)) {
+                manualCaptains[teamSide] = null;
+            }
+        });
     },
     { immediate: true },
+);
+
+let draftPreviewRequestId = 0;
+
+watch(
+    [
+        () => draftReadyEntries.value,
+        draftMode,
+        captainMode,
+        () => ({ ...manualAssignments }),
+        () => ({ ...manualCaptains }),
+        () => props.session.id,
+        () => props.session.current_game_number,
+    ],
+    async () => {
+        if (props.game.state !== 'draft' || draftReadyEntries.value.length === 0) {
+            draftPreview.value = null;
+
+            return;
+        }
+
+        const requestId = ++draftPreviewRequestId;
+        const preview = await buildDraftPreview({
+            entries: draftReadyEntries.value,
+            sessionId: props.session.id,
+            currentGameNumber: props.session.current_game_number,
+            mode: draftMode.value,
+            captainMode: captainMode.value,
+            assignments: { ...manualAssignments },
+            captains: { ...manualCaptains },
+        });
+
+        if (requestId !== draftPreviewRequestId) {
+            return;
+        }
+
+        draftPreview.value = preview;
+
+        (['A', 'B'] as const).forEach((teamSide) => {
+            if (
+                captainMode.value !== 'manual' ||
+                preview.teams[teamSide].some(
+                    (player) => player.id === manualCaptains[teamSide],
+                )
+            ) {
+                return;
+            }
+
+            manualCaptains[teamSide] = null;
+        });
+    },
+    { immediate: true, deep: true },
 );
 
 watch(
@@ -321,18 +429,32 @@ function setAssignment(entryId: number, team: 'A' | 'B') {
         return;
     }
 
+    if (currentTeam && currentTeam !== team && manualCaptains[currentTeam] === entryId) {
+        manualCaptains[currentTeam] = null;
+    }
+
     manualAssignments[entryId] = team;
+}
+
+function setCaptain(team: 'A' | 'B', entryId: number): void {
+    if (captainMode.value !== 'manual') {
+        return;
+    }
+
+    manualCaptains[team] = manualCaptains[team] === entryId ? null : entryId;
 }
 
 function submitDraft() {
     if (!canManage.value) {
-return;
-}
+        return;
+    }
 
     gameActionError.value = '';
 
     if (draftMode.value === 'manual') {
-        const unassignedEntries = props.game.draft.entries.filter((entry) => !manualAssignments[entry.id]);
+        const unassignedEntries = props.game.draft.entries.filter(
+            (entry) => !manualAssignments[entry.id],
+        );
 
         if (unassignedEntries.length > 0) {
             openDraftAlert(
@@ -359,19 +481,55 @@ return;
         }
     }
 
-    const payload =
-        draftMode.value === 'manual'
-            ? { mode: draftMode.value, assignments: manualAssignments }
-            : { mode: draftMode.value };
+    if (
+        captainMode.value === 'manual' &&
+        (teamACount.value !== 5 ||
+            teamBCount.value !== 5 ||
+            manualCaptains.A === null ||
+            manualCaptains.B === null)
+    ) {
+        openDraftAlert(
+            'Capitanes pendientes',
+            [
+                'Para usar capitán manual debes tener ambos equipos completos y seleccionar un capitán por lado.',
+                `Equipo A: ${manualCaptains.A ? 'listo' : 'falta capitán'}. Equipo B: ${manualCaptains.B ? 'listo' : 'falta capitán'}.`,
+            ],
+        );
+
+        return;
+    }
+
+    const payload = {
+        mode: draftMode.value,
+        captain_mode: captainMode.value,
+        ...(draftMode.value === 'manual'
+            ? { assignments: { ...manualAssignments } }
+            : {}),
+        ...(captainMode.value === 'manual'
+            ? {
+                  captains: {
+                      A: manualCaptains.A ?? undefined,
+                      B: manualCaptains.B ?? undefined,
+                  },
+              }
+            : {}),
+    };
 
     router.post('/liga/modulos/juego/draft', payload, {
         preserveScroll: true,
         onError: (errors) => {
-            const message = String(errors.session ?? errors.assignments ?? 'No se pudo abrir el draft.');
+            const message = String(
+                errors.session ??
+                    errors.assignments ??
+                    errors.captains ??
+                    errors['captains.A'] ??
+                    errors['captains.B'] ??
+                    'No se pudo abrir el draft.',
+            );
 
             gameActionError.value = message;
 
-            if (draftMode.value === 'manual') {
+            if (draftMode.value === 'manual' || captainMode.value === 'manual') {
                 openDraftAlert('No se pudo confirmar el draft', [message]);
             }
         },
@@ -685,7 +843,7 @@ function rotationNoticeToneClasses(tone: string): string {
                     </span>
                 </div>
 
-                <div class="grid gap-3 md:grid-cols-3">
+                <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                     <button
                         type="button"
                         class="min-h-12 rounded-[14px] border px-4 text-sm font-semibold"
@@ -705,6 +863,14 @@ function rotationNoticeToneClasses(tone: string): string {
                     <button
                         type="button"
                         class="min-h-12 rounded-[14px] border px-4 text-sm font-semibold"
+                        :class="draftMode === 'random' ? 'border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] text-[#F8FAFC]' : 'border-white/6 bg-[#0E1628] text-[#94A3B8]'"
+                        @click="draftMode = 'random'"
+                    >
+                        Aleatorio
+                    </button>
+                    <button
+                        type="button"
+                        class="min-h-12 rounded-[14px] border px-4 text-sm font-semibold"
                         :class="draftMode === 'manual' ? 'border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] text-[#F8FAFC]' : 'border-white/6 bg-[#0E1628] text-[#94A3B8]'"
                         @click="draftMode = 'manual'"
                     >
@@ -712,19 +878,61 @@ function rotationNoticeToneClasses(tone: string): string {
                     </button>
                 </div>
 
+                <div class="rounded-[16px] border border-white/6 bg-[#0E1628] p-4">
+                    <p class="app-kicker text-[#E5B849]">
+                        Selección de capitán
+                    </p>
+                    <p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">
+                        El capitán queda primero en cada equipo. Luego el resto
+                        se ordena alfabéticamente.
+                    </p>
+                    <div class="mt-4 grid gap-3 md:grid-cols-3">
+                        <button
+                            type="button"
+                            class="min-h-12 rounded-[14px] border px-4 text-sm font-semibold"
+                            :class="captainMode === 'arrival' ? 'border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] text-[#F8FAFC]' : 'border-white/6 bg-[#131B2F] text-[#94A3B8]'"
+                            @click="captainMode = 'arrival'"
+                        >
+                            Primero en cola
+                        </button>
+                        <button
+                            type="button"
+                            class="min-h-12 rounded-[14px] border px-4 text-sm font-semibold"
+                            :class="captainMode === 'random' ? 'border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] text-[#F8FAFC]' : 'border-white/6 bg-[#131B2F] text-[#94A3B8]'"
+                            @click="captainMode = 'random'"
+                        >
+                            Aleatorio
+                        </button>
+                        <button
+                            type="button"
+                            class="min-h-12 rounded-[14px] border px-4 text-sm font-semibold"
+                            :class="captainMode === 'manual' ? 'border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] text-[#F8FAFC]' : 'border-white/6 bg-[#131B2F] text-[#94A3B8]'"
+                            @click="captainMode = 'manual'"
+                        >
+                            Manual
+                        </button>
+                    </div>
+                </div>
+
                 <div class="grid gap-3">
                     <div
-                        v-for="entry in props.game.draft.entries"
+                        v-for="entry in draftReadyEntries"
                         :key="entry.id"
                         class="rounded-[16px] border border-white/6 bg-[#0E1628] p-4"
                     >
                         <div class="flex items-center justify-between gap-3">
-                            <div>
+                            <div class="min-w-0">
                                 <p class="text-[15px] font-semibold text-[#F8FAFC]">
                                     {{ entry.name }}
                                 </p>
                                 <p class="mt-1 text-[12px] text-[#94A3B8]">
-                                    Llegada #{{ entry.arrival_order }}{{ entry.jersey_number ? ` - #${entry.jersey_number}` : '' }}
+                                    Llegada #{{ entry.arrival_order }}{{ entry.jersey_number ? ` · #${entry.jersey_number}` : '' }}
+                                </p>
+                                <p
+                                    v-if="entry.preferred_position"
+                                    class="mt-1 text-[12px] text-[#CBD5E1]"
+                                >
+                                    {{ entry.preferred_position }}
                                 </p>
                             </div>
 
@@ -757,15 +965,90 @@ function rotationNoticeToneClasses(tone: string): string {
             <article class="app-surface space-y-4">
                 <p class="app-kicker text-[#E5B849]">Confirmacion</p>
                 <p class="text-[13px] leading-6 text-[#94A3B8]">
-                    El juego se abre al confirmar el reparto. Luego podras agregar puntos, corregir jugadas y cerrar el marcador.
+                    El juego se abre al confirmar el reparto. Luego podrás
+                    agregar puntos, corregir jugadas y cerrar el marcador.
                 </p>
-                <div
-                    v-if="draftMode === 'manual'"
-                    class="rounded-[14px] border border-white/6 bg-[#0E1628] p-4 text-[13px] text-[#94A3B8]"
-                >
+                <div class="rounded-[14px] border border-white/6 bg-[#0E1628] p-4 text-[13px] text-[#94A3B8]">
                     Equipo A: {{ teamACount }} / 5
                     <br>
                     Equipo B: {{ teamBCount }} / 5
+                    <template v-if="draftMode === 'manual'">
+                        <br>
+                        Sin asignar: {{ draftUnassignedCount }}
+                    </template>
+                </div>
+                <div class="grid gap-3">
+                    <div
+                        v-for="teamSide in ['A', 'B'] as const"
+                        :key="teamSide"
+                        class="rounded-[16px] border border-white/6 bg-[#0E1628] p-4"
+                    >
+                        <div class="flex items-center justify-between gap-3">
+                            <p
+                                class="app-kicker"
+                                :class="
+                                    teamSide === 'A'
+                                        ? 'text-[#4ADE80]'
+                                        : 'text-[#E5B849]'
+                                "
+                            >
+                                Equipo {{ teamSide }}
+                            </p>
+                            <span class="text-[12px] text-[#94A3B8]">
+                                {{ draftPreview?.teams[teamSide].length ?? 0 }}/5
+                            </span>
+                        </div>
+                        <div class="mt-3 grid gap-2">
+                            <div
+                                v-for="player in draftPreview?.teams[teamSide] ?? []"
+                                :key="player.id"
+                                class="rounded-[14px] border border-white/6 bg-[#131B2F] px-3 py-3"
+                            >
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <Crown
+                                                v-if="player.is_captain"
+                                                class="size-4 shrink-0 text-[#E5B849]"
+                                            />
+                                            <p class="text-[14px] font-semibold text-[#F8FAFC]">
+                                                {{ player.name }}
+                                            </p>
+                                        </div>
+                                        <p
+                                            v-if="player.preferred_position"
+                                            class="mt-1 text-[12px] text-[#CBD5E1]"
+                                        >
+                                            {{ player.preferred_position }}
+                                        </p>
+                                    </div>
+                                    <button
+                                        v-if="captainMode === 'manual'"
+                                        type="button"
+                                        class="inline-flex min-h-9 items-center justify-center rounded-[10px] border px-3 text-[11px] font-semibold"
+                                        :class="
+                                            manualCaptains[teamSide] === player.id
+                                                ? 'border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] text-[#F8FAFC]'
+                                                : 'border-white/6 bg-[#0E1628] text-[#94A3B8]'
+                                        "
+                                        @click="setCaptain(teamSide, player.id)"
+                                    >
+                                        {{ manualCaptains[teamSide] === player.id ? 'Capitán' : 'Elegir' }}
+                                    </button>
+                                </div>
+                            </div>
+                            <div
+                                v-if="(draftPreview?.teams[teamSide].length ?? 0) === 0"
+                                class="rounded-[14px] border border-dashed border-white/8 bg-[#131B2F] px-3 py-4 text-[12px] text-[#94A3B8]"
+                            >
+                                {{
+                                    draftMode === 'manual'
+                                        ? 'Asigna jugadores para armar este equipo.'
+                                        : 'Esperando la previsualización del reparto.'
+                                }}
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <Button
                     type="button"
@@ -927,10 +1210,22 @@ function rotationNoticeToneClasses(tone: string): string {
                                 class="rounded-[14px] border border-white/6 bg-[#131B2F] p-4"
                             >
                                 <div class="flex items-center justify-between gap-3">
-                                    <div>
-                                        <p class="text-[15px] font-semibold text-[#F8FAFC]">{{ player.name }}</p>
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <Crown
+                                                v-if="player.is_captain"
+                                                class="size-4 shrink-0 text-[#E5B849]"
+                                            />
+                                            <p class="text-[15px] font-semibold text-[#F8FAFC]">{{ player.name }}</p>
+                                        </div>
                                         <p class="mt-1 text-[12px] text-[#94A3B8]">
                                             {{ player.points }} pts · 1P: {{ player.shots[1] }} · 2P: {{ player.shots[2] }} · 3P: {{ player.shots[3] }}
+                                        </p>
+                                        <p
+                                            v-if="player.preferred_position"
+                                            class="mt-1 text-[12px] text-[#CBD5E1]"
+                                        >
+                                            {{ player.preferred_position }}
                                         </p>
                                     </div>
                                     <div class="flex gap-2">
@@ -983,10 +1278,22 @@ function rotationNoticeToneClasses(tone: string): string {
                                 class="rounded-[14px] border border-white/6 bg-[#131B2F] p-4"
                             >
                                 <div class="flex items-center justify-between gap-3">
-                                    <div>
-                                        <p class="text-[15px] font-semibold text-[#F8FAFC]">{{ player.name }}</p>
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <Crown
+                                                v-if="player.is_captain"
+                                                class="size-4 shrink-0 text-[#E5B849]"
+                                            />
+                                            <p class="text-[15px] font-semibold text-[#F8FAFC]">{{ player.name }}</p>
+                                        </div>
                                         <p class="mt-1 text-[12px] text-[#94A3B8]">
                                             {{ player.points }} pts · 1P: {{ player.shots[1] }} · 2P: {{ player.shots[2] }} · 3P: {{ player.shots[3] }}
+                                        </p>
+                                        <p
+                                            v-if="player.preferred_position"
+                                            class="mt-1 text-[12px] text-[#CBD5E1]"
+                                        >
+                                            {{ player.preferred_position }}
                                         </p>
                                     </div>
                                     <div class="flex gap-2">
@@ -1109,7 +1416,7 @@ function rotationNoticeToneClasses(tone: string): string {
                 <DialogHeader>
                     <DialogTitle class="app-display text-[28px]">{{ draftAlert?.title }}</DialogTitle>
                     <DialogDescription class="text-[13px] leading-6 text-[#94A3B8]">
-                        Revisa la distribución manual antes de continuar.
+                        {{ draftErrorContext }}
                     </DialogDescription>
                 </DialogHeader>
                 <div v-if="draftAlert" class="grid gap-3">

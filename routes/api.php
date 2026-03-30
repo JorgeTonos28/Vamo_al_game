@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\League\ArrivalController as LeagueArrivalControl
 use App\Http\Controllers\Api\V1\League\GameController as LeagueGameController;
 use App\Http\Controllers\Api\V1\League\HomeController as LeagueHomeController;
 use App\Http\Controllers\Api\V1\League\ManagementController as LeagueManagementController;
+use App\Http\Controllers\Api\V1\League\QueueController as LeagueQueueController;
 use App\Http\Controllers\Api\V1\League\ScoutController as LeagueScoutController;
 use App\Http\Controllers\Api\V1\Settings\EmailVerificationNotificationController;
 use App\Http\Controllers\Api\V1\Settings\PasswordController;
@@ -86,6 +87,8 @@ Route::middleware([ForceJsonResponse::class])
                         ->name('arrival.prepare');
                     Route::post('arrival/reset', [LeagueArrivalController::class, 'reset'])
                         ->name('arrival.reset');
+                    Route::post('arrival/queue/reorder', [LeagueArrivalController::class, 'reorderQueue'])
+                        ->name('arrival.queue.reorder');
 
                     Route::get('management', [LeagueManagementController::class, 'show'])
                         ->name('management.show');
@@ -174,6 +177,8 @@ Route::middleware([ForceJsonResponse::class])
                         ->name('modules.game.end-session');
                     Route::post('modules/game/reset', [LeagueGameController::class, 'reset'])
                         ->name('modules.game.reset');
+                    Route::post('modules/queue/reorder', [LeagueQueueController::class, 'reorder'])
+                        ->name('modules.queue.reorder');
                     Route::patch('modules/scout/players/{player}', [LeagueScoutController::class, 'update'])
                         ->name('modules.scout.players.update');
                 });

@@ -759,50 +759,49 @@ function downloadReport(): void {
                     <p class="app-kicker text-[#E5B849]">Configurar liga y jornadas</p>
                 </div>
                 <div class="grid gap-3 sm:grid-cols-2">
-                    <label class="grid gap-2 text-sm text-[#F8FAFC] sm:col-span-2"
+                    <label class="flex flex-col gap-2 text-sm text-[#F8FAFC] sm:col-span-2"
                         ><span>Nombre de la liga</span
                         ><input
                             v-model="settingsForm.name"
                             type="text"
                             maxlength="120"
-                            class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none"
+                            class="h-12 w-full rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none"
                     /></label>
-                    <label class="grid gap-2 text-sm text-[#F8FAFC]"
+                    <label class="flex flex-col gap-2 text-sm text-[#F8FAFC]"
                         ><span>Emoji de la liga</span
                         ><input
                             v-model="settingsForm.emoji"
                             type="text"
                             maxlength="16"
-                            placeholder="🏀"
-                            class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none"
+                            placeholder=""
+                            class="h-12 w-full rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm leading-none text-[#F8FAFC] outline-none"
                     /></label>
-                    <label class="grid gap-2 text-sm text-[#F8FAFC]"
+                    <label class="flex flex-col gap-2 text-sm text-[#F8FAFC]"
                         ><span>Jornadas por corte</span
                         ><input
                             v-model.number="settingsForm.sessions_limit"
                             type="number"
                             min="1"
                             max="12"
-                            class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none"
+                            class="h-12 w-full rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none"
                     /></label>
-                    <label class="grid gap-2 text-sm text-[#F8FAFC]"
+                    <label class="flex flex-col gap-2 text-sm text-[#F8FAFC]"
                         ><span>Día de corte</span
                         ><input
                             v-model.number="settingsForm.cut_day"
                             type="number"
                             min="1"
                             max="30"
-                            class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none"
+                            class="h-12 w-full rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none"
                     /></label>
-                    <label class="grid gap-2 text-sm text-[#F8FAFC]"
+                    <label class="flex flex-col gap-2 text-sm text-[#F8FAFC]"
                         ><span>Cuota membresía</span
                         ><input
                             v-model.number="
                                 settingsForm.member_fee_amount_cents
                             "
                             type="number"
-                            min="1"
-                            class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none"
+                            class="h-12 w-full rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none"
                     /></label>
                     <label class="grid gap-2 text-sm text-[#F8FAFC]"
                         ><span>Cuota invitados</span

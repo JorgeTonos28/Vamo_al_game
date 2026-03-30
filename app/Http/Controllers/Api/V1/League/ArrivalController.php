@@ -120,4 +120,23 @@ class ArrivalController extends Controller
             'Lista de llegada reiniciada.',
         );
     }
+
+    public function reorderQueue(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'entry_ids' => ['required', 'array', 'min:1'],
+            'entry_ids.*' => ['required', 'integer', 'distinct'],
+        ]);
+
+        $this->arrivalService->reorderPregameQueue(
+            $request->user(),
+            $validated['entry_ids'],
+        );
+
+        return ApiResponse::success(
+            $request,
+            $this->arrivalService->pageData($request->user()),
+            'Cola inicial reordenada.',
+        );
+    }
 }

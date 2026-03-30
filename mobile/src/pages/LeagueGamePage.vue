@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import {
     IonContent,
     IonPage,
@@ -6,7 +6,7 @@ import {
     IonRefresherContent,
     onIonViewWillEnter,
 } from '@ionic/vue';
-import { Flame, RotateCcw, Trophy } from 'lucide-vue-next';
+import { Crown, Flame, RotateCcw, Trophy } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue';
 import { extractApiError } from '@/services/api';
@@ -24,11 +24,16 @@ import {
     resetLeagueGameClock,
     revertLeaguePlayerPoint,
     startLeagueGameClock,
-    
-    
-    undoLeagueGameAction
+    undoLeagueGameAction,
 } from '@/services/league';
-import type {LeagueGamePayload, LeagueTeamPlayer} from '@/services/league';
+import type { LeagueGamePayload, LeagueTeamPlayer } from '@/services/league';
+import {
+    buildDraftPreview
+    
+    
+    
+} from '../../../packages/shared/leagueDraftPreview';
+import type {CaptainMode, DraftMode, DraftPreviewPlayer} from '../../../packages/shared/leagueDraftPreview';
 
 type TeamSide = 'A' | 'B';
 
@@ -40,11 +45,23 @@ type ScoreFlashState = {
 
 type RotationNotice = NonNullable<LeagueGamePayload['game']['rotation_notice']>;
 type DraftAlert = { title: string; body: string[] };
+type DraftEntry = LeagueGamePayload['game']['draft']['entries'][number];
+type DraftPreviewTeamPlayer = DraftPreviewPlayer<DraftEntry>;
 
 const payload = ref<LeagueGamePayload | null>(null);
 const isLoading = ref(false);
-const draftMode = ref<'auto' | 'arrival' | 'manual'>('auto');
+const draftMode = ref<DraftMode>('auto');
+const captainMode = ref<CaptainMode>('arrival');
 const manualAssignments = reactive<Record<number, 'A' | 'B'>>({});
+const manualCaptains = reactive<Record<'A' | 'B', number | null>>({
+    A: null,
+    B: null,
+});
+const draftPreview = ref<{
+    teams: Record<'A' | 'B', DraftPreviewTeamPlayer[]>;
+    unassigned: DraftEntry[];
+    counts: { A: number; B: number; unassigned: number };
+} | null>(null);
 const selectedPlayer = ref<LeagueTeamPlayer | null>(null);
 const revertPlayer = ref<LeagueTeamPlayer | null>(null);
 const playerToRemove = ref<LeagueTeamPlayer | null>(null);
@@ -58,13 +75,19 @@ const clockDisplaySeconds = ref<number | null>(null);
 let lastRotationNoticeKey: string | null = null;
 
 const canManage = computed(() => payload.value?.role.can_manage ?? false);
+const draftEntries = computed(() => payload.value?.game.draft.entries ?? []);
 const teamACount = computed(
     () =>
+        draftPreview.value?.counts.A ??
         Object.values(manualAssignments).filter((team) => team === 'A').length,
 );
 const teamBCount = computed(
     () =>
+        draftPreview.value?.counts.B ??
         Object.values(manualAssignments).filter((team) => team === 'B').length,
+);
+const draftUnassignedCount = computed(
+    () => draftPreview.value?.counts.unassigned ?? 0,
 );
 const streakLabel = computed(() => {
     const streak = payload.value?.game.current?.streak;
@@ -139,8 +162,72 @@ watch(
                 delete manualAssignments[Number(entryId)];
             }
         });
+
+        (['A', 'B'] as const).forEach((teamSide) => {
+            const captainId = manualCaptains[teamSide];
+
+            if (captainId !== null && !activeIds.has(captainId)) {
+                manualCaptains[teamSide] = null;
+            }
+        });
     },
     { immediate: true },
+);
+
+let draftPreviewRequestId = 0;
+
+watch(
+    [
+        draftEntries,
+        draftMode,
+        captainMode,
+        () => ({ ...manualAssignments }),
+        () => ({ ...manualCaptains }),
+        () => payload.value?.session.id ?? 0,
+        () => payload.value?.session.current_game_number ?? 0,
+    ],
+    async () => {
+        if (
+            payload.value?.game.state !== 'draft' ||
+            draftEntries.value.length === 0 ||
+            !payload.value
+        ) {
+            draftPreview.value = null;
+
+            return;
+        }
+
+        const requestId = ++draftPreviewRequestId;
+        const preview = await buildDraftPreview({
+            entries: draftEntries.value,
+            sessionId: payload.value.session.id,
+            currentGameNumber: payload.value.session.current_game_number,
+            mode: draftMode.value,
+            captainMode: captainMode.value,
+            assignments: { ...manualAssignments },
+            captains: { ...manualCaptains },
+        });
+
+        if (requestId !== draftPreviewRequestId) {
+            return;
+        }
+
+        draftPreview.value = preview;
+
+        (['A', 'B'] as const).forEach((teamSide) => {
+            if (
+                captainMode.value !== 'manual' ||
+                preview.teams[teamSide].some(
+                    (player) => player.id === manualCaptains[teamSide],
+                )
+            ) {
+                return;
+            }
+
+            manualCaptains[teamSide] = null;
+        });
+    },
+    { immediate: true, deep: true },
 );
 
 watch(
@@ -286,20 +373,36 @@ function setAssignment(entryId: number, team: 'A' | 'B'): void {
             title: `Equipo ${team} completo`,
             body: [
                 `El Equipo ${team} ya tiene 5 integrantes asignados.`,
-                'Mueve a otro jugador antes de intentar agregar uno más.',
+                'Mueve a otro jugador antes de intentar agregar uno mÃ¡s.',
             ],
         };
 
         return;
     }
 
+    if (
+        currentTeam &&
+        currentTeam !== team &&
+        manualCaptains[currentTeam] === entryId
+    ) {
+        manualCaptains[currentTeam] = null;
+    }
+
     manualAssignments[entryId] = team;
+}
+
+function setCaptain(team: 'A' | 'B', entryId: number): void {
+    if (captainMode.value !== 'manual') {
+        return;
+    }
+
+    manualCaptains[team] = manualCaptains[team] === entryId ? null : entryId;
 }
 
 async function submitDraft(): Promise<void> {
     if (!canManage.value) {
-return;
-}
+        return;
+    }
 
     actionError.value = '';
 
@@ -334,16 +437,44 @@ return;
         }
     }
 
+    if (
+        captainMode.value === 'manual' &&
+        (teamACount.value !== 5 ||
+            teamBCount.value !== 5 ||
+            manualCaptains.A === null ||
+            manualCaptains.B === null)
+    ) {
+        draftAlert.value = {
+            title: 'Capitanes pendientes',
+            body: [
+                'Para usar capitÃ¡n manual debes tener ambos equipos completos y seleccionar un capitÃ¡n por lado.',
+                `Equipo A: ${manualCaptains.A ? 'listo' : 'falta capitÃ¡n'}. Equipo B: ${manualCaptains.B ? 'listo' : 'falta capitÃ¡n'}.`,
+            ],
+        };
+
+        return;
+    }
+
     try {
-        payload.value = await draftLeagueGame(
-            draftMode.value === 'manual'
-                ? { mode: draftMode.value, assignments: manualAssignments }
-                : { mode: draftMode.value },
-        );
+        payload.value = await draftLeagueGame({
+            mode: draftMode.value,
+            captain_mode: captainMode.value,
+            ...(draftMode.value === 'manual'
+                ? { assignments: { ...manualAssignments } }
+                : {}),
+            ...(captainMode.value === 'manual'
+                ? {
+                      captains: {
+                          A: manualCaptains.A ?? undefined,
+                          B: manualCaptains.B ?? undefined,
+                      },
+                  }
+                : {}),
+        });
     } catch (error) {
         actionError.value = extractApiError(error);
 
-        if (draftMode.value === 'manual') {
+        if (draftMode.value === 'manual' || captainMode.value === 'manual') {
             draftAlert.value = {
                 title: 'No se pudo confirmar el draft',
                 body: [actionError.value],
@@ -461,7 +592,7 @@ return;
 }
 
 async function endSession(): Promise<void> {
-    if (!canManage.value || !window.confirm('¿Cerrar la jornada del día?')) {
+    if (!canManage.value || !window.confirm('Â¿Cerrar la jornada del dÃ­a?')) {
 return;
 }
 
@@ -477,7 +608,7 @@ return;
 async function resetGame(): Promise<void> {
     if (
         !canManage.value ||
-        !window.confirm('¿Limpiar por completo el juego actual?')
+        !window.confirm('Â¿Limpiar por completo el juego actual?')
     ) {
 return;
 }
@@ -514,7 +645,7 @@ return;
     const total = parsedClockDuration();
 
     if (total === null) {
-        actionError.value = 'Configura un tiempo válido para el cronómetro.';
+        actionError.value = 'Configura un tiempo vÃ¡lido para el cronÃ³metro.';
 
         return;
     }
@@ -613,7 +744,7 @@ return Flame;
                             </div>
                         </div>
                         <p class="body-copy">
-                            Administra el draft inicial, la anotación, las
+                            Administra el draft inicial, la anotaciÃ³n, las
                             salidas y el cierre de cada juego.
                         </p>
                     </section>
@@ -642,7 +773,7 @@ return Flame;
                                 </div>
                             </div>
 
-                            <div class="action-grid action-grid--three">
+                            <div class="action-grid action-grid--two">
                                 <button
                                     class="action-button"
                                     :class="
@@ -670,6 +801,18 @@ return Flame;
                                 <button
                                     class="action-button"
                                     :class="
+                                        draftMode === 'random'
+                                            ? 'action-button--warning'
+                                            : 'action-button--secondary'
+                                    "
+                                    type="button"
+                                    @click="draftMode = 'random'"
+                                >
+                                    Aleatorio
+                                </button>
+                                <button
+                                    class="action-button"
+                                    :class="
                                         draftMode === 'manual'
                                             ? 'action-button--danger'
                                             : 'action-button--secondary'
@@ -681,9 +824,58 @@ return Flame;
                                 </button>
                             </div>
 
+                            <section class="summary-card section-stack">
+                                <div>
+                                    <p class="app-kicker section-kicker">
+                                        SelecciÃ³n de capitÃ¡n
+                                    </p>
+                                    <p class="body-copy">
+                                        El capitÃ¡n va primero y el resto se
+                                        ordena alfabÃ©ticamente.
+                                    </p>
+                                </div>
+                                <div class="action-grid action-grid--three">
+                                    <button
+                                        class="action-button"
+                                        :class="
+                                            captainMode === 'arrival'
+                                                ? 'action-button--primary'
+                                                : 'action-button--secondary'
+                                        "
+                                        type="button"
+                                        @click="captainMode = 'arrival'"
+                                    >
+                                        Cola
+                                    </button>
+                                    <button
+                                        class="action-button"
+                                        :class="
+                                            captainMode === 'random'
+                                                ? 'action-button--warning'
+                                                : 'action-button--secondary'
+                                        "
+                                        type="button"
+                                        @click="captainMode = 'random'"
+                                    >
+                                        Aleatorio
+                                    </button>
+                                    <button
+                                        class="action-button"
+                                        :class="
+                                            captainMode === 'manual'
+                                                ? 'action-button--danger'
+                                                : 'action-button--secondary'
+                                        "
+                                        type="button"
+                                        @click="captainMode = 'manual'"
+                                    >
+                                        Manual
+                                    </button>
+                                </div>
+                            </section>
+
                             <article
-                                v-for="entry in payload?.game.draft.entries ??
-                                []"
+                                v-for="entry in draftEntries"
                                 :key="entry.id"
                                 class="data-row"
                             >
@@ -696,8 +888,14 @@ return Flame;
                                         }}<span
                                             v-if="entry.jersey_number !== null"
                                         >
-                                            · #{{ entry.jersey_number }}</span
+                                            Â· #{{ entry.jersey_number }}</span
                                         >
+                                    </p>
+                                    <p
+                                        v-if="entry.preferred_position"
+                                        class="body-copy body-copy--accent"
+                                    >
+                                        {{ entry.preferred_position }}
                                     </p>
                                 </div>
                                 <div
@@ -731,10 +929,7 @@ return Flame;
                                 </div>
                             </article>
 
-                            <div
-                                v-if="draftMode === 'manual'"
-                                class="summary-grid summary-grid--two"
-                            >
+                            <div class="summary-grid summary-grid--two">
                                 <article class="summary-card">
                                     <p class="app-kicker">Equipo A</p>
                                     <p class="summary-card__value">
@@ -748,6 +943,92 @@ return Flame;
                                     </p>
                                 </article>
                             </div>
+
+                            <article
+                                v-for="teamSide in ['A', 'B'] as const"
+                                :key="teamSide"
+                                class="summary-card section-stack"
+                            >
+                                <div class="section-head">
+                                    <p
+                                        :class="[
+                                            'app-kicker',
+                                            teamSide === 'A'
+                                                ? 'team-a-copy'
+                                                : 'team-b-copy',
+                                        ]"
+                                    >
+                                        Equipo {{ teamSide }}
+                                    </p>
+                                    <span class="member-chip member-chip--neutral">
+                                        {{
+                                            draftPreview?.teams[teamSide]
+                                                .length ?? 0
+                                        }}/5
+                                    </span>
+                                </div>
+                                <article
+                                    v-for="player in draftPreview?.teams[
+                                        teamSide
+                                    ] ?? []"
+                                    :key="player.id"
+                                    class="data-row"
+                                >
+                                    <div>
+                                        <div class="player-row__title">
+                                            <Crown
+                                                v-if="player.is_captain"
+                                                class="size-4 team-b-copy"
+                                            />
+                                            <p class="data-row__name">
+                                                {{ player.name }}
+                                            </p>
+                                        </div>
+                                        <p
+                                            v-if="player.preferred_position"
+                                            class="body-copy body-copy--accent"
+                                        >
+                                            {{ player.preferred_position }}
+                                        </p>
+                                    </div>
+                                    <button
+                                        v-if="captainMode === 'manual'"
+                                        class="member-chip"
+                                        :class="
+                                            manualCaptains[teamSide] ===
+                                            player.id
+                                                ? 'member-chip--warning'
+                                                : 'member-chip--neutral'
+                                        "
+                                        type="button"
+                                        @click="setCaptain(teamSide, player.id)"
+                                    >
+                                        {{
+                                            manualCaptains[teamSide] ===
+                                            player.id
+                                                ? 'CapitÃ¡n'
+                                                : 'Elegir'
+                                        }}
+                                    </button>
+                                </article>
+                                <p
+                                    v-if="(draftPreview?.teams[teamSide].length ?? 0) === 0"
+                                    class="body-copy"
+                                >
+                                    {{
+                                        draftMode === 'manual'
+                                            ? 'Asigna jugadores para armar este equipo.'
+                                            : 'Esperando la previsualizaciÃ³n del reparto.'
+                                    }}
+                                </p>
+                            </article>
+
+                            <p
+                                v-if="draftMode === 'manual'"
+                                class="body-copy body-copy--accent"
+                            >
+                                Sin asignar: {{ draftUnassignedCount }}
+                            </p>
 
                             <button
                                 class="action-button action-button--warning"
@@ -768,7 +1049,7 @@ return Flame;
                             <div class="clock-card">
                                 <div>
                                     <p class="app-kicker section-kicker">
-                                        Cronómetro
+                                        CronÃ³metro
                                     </p>
                                     <p class="clock-card__value">
                                         {{ formattedClock }}
@@ -913,14 +1194,26 @@ return Flame;
                                 class="data-row"
                             >
                                 <div>
-                                    <p class="data-row__name">
-                                        {{ player.name }}
-                                    </p>
+                                    <div class="player-row__title">
+                                        <Crown
+                                            v-if="player.is_captain"
+                                            class="size-4 team-b-copy"
+                                        />
+                                        <p class="data-row__name">
+                                            {{ player.name }}
+                                        </p>
+                                    </div>
                                     <p class="body-copy">
-                                        {{ player.points }} pts · 1P
-                                        {{ player.shots[1] }} · 2P
-                                        {{ player.shots[2] }} · 3P
+                                        {{ player.points }} pts Â· 1P
+                                        {{ player.shots[1] }} Â· 2P
+                                        {{ player.shots[2] }} Â· 3P
                                         {{ player.shots[3] }}
+                                    </p>
+                                    <p
+                                        v-if="player.preferred_position"
+                                        class="body-copy body-copy--accent"
+                                    >
+                                        {{ player.preferred_position }}
                                     </p>
                                 </div>
                                 <div class="player-actions">
@@ -977,14 +1270,26 @@ return Flame;
                                 class="data-row"
                             >
                                 <div>
-                                    <p class="data-row__name">
-                                        {{ player.name }}
-                                    </p>
+                                    <div class="player-row__title">
+                                        <Crown
+                                            v-if="player.is_captain"
+                                            class="size-4 team-b-copy"
+                                        />
+                                        <p class="data-row__name">
+                                            {{ player.name }}
+                                        </p>
+                                    </div>
                                     <p class="body-copy">
-                                        {{ player.points }} pts · 1P
-                                        {{ player.shots[1] }} · 2P
-                                        {{ player.shots[2] }} · 3P
+                                        {{ player.points }} pts Â· 1P
+                                        {{ player.shots[1] }} Â· 2P
+                                        {{ player.shots[2] }} Â· 3P
                                         {{ player.shots[3] }}
+                                    </p>
+                                    <p
+                                        v-if="player.preferred_position"
+                                        class="body-copy body-copy--accent"
+                                    >
+                                        {{ player.preferred_position }}
                                     </p>
                                 </div>
                                 <div class="player-actions">
@@ -1033,7 +1338,7 @@ return Flame;
                                     type="button"
                                     @click="undoAction"
                                 >
-                                    Deshacer última acción
+                                    Deshacer Ãºltima acciÃ³n
                                 </button>
                                 <button
                                     v-if="canManage"
@@ -1060,7 +1365,7 @@ return Flame;
                                 v-if="payload.game.history.length === 0"
                                 class="body-copy"
                             >
-                                Sin juegos finalizados todavía.
+                                Sin juegos finalizados todavÃ­a.
                             </p>
                             <article
                                 v-for="row in payload.game.history"
@@ -1103,7 +1408,7 @@ return Flame;
                         {{ selectedPlayer?.name }}
                     </p>
                     <p class="body-copy">
-                        Selecciona cuántos puntos quieres agregarle a este
+                        Selecciona cuÃ¡ntos puntos quieres agregarle a este
                         jugador.
                     </p>
                     <div class="action-grid action-grid--three">
@@ -1192,7 +1497,7 @@ return Flame;
                     </p>
                     <p class="body-copy">
                         Confirma la salida de {{ playerToRemove?.name }}. Si hay
-                        cola activa, el siguiente jugador entrará según la
+                        cola activa, el siguiente jugador entrarÃ¡ segÃºn la
                         prioridad de la jornada.
                     </p>
                     <div class="action-grid action-grid--two">
@@ -1201,7 +1506,7 @@ return Flame;
                             type="button"
                             @click="confirmRemovePlayer"
                         >
-                            Sí, se fue
+                            SÃ­, se fue
                         </button>
                         <button
                             class="action-button action-button--secondary"
@@ -1343,6 +1648,14 @@ return Flame;
     font-size: 13px;
     line-height: 1.6;
     color: #94a3b8;
+}
+.body-copy--accent {
+    color: #cbd5e1;
+}
+.player-row__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 .summary-pills {
     align-items: flex-end;
@@ -1650,3 +1963,4 @@ return Flame;
     }
 }
 </style>
+

@@ -2,11 +2,13 @@
 import {
     IonContent,
     IonPage,
+    IonReorder,
+    IonReorderGroup,
     IonRefresher,
     IonRefresherContent,
     onIonViewWillEnter,
 } from '@ionic/vue';
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import LeagueRosterSheet from '@/components/LeagueRosterSheet.vue';
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue';
@@ -16,12 +18,12 @@ import {
     deleteLeagueArrivalGuest,
     fetchLeagueArrival,
     prepareLeagueArrival,
+    reorderLeagueArrivalQueue,
     resetLeagueArrival,
     toggleLeagueArrivalPlayer,
-    
-    updateLeagueArrivalGuest
+    updateLeagueArrivalGuest,
 } from '@/services/league';
-import type {LeagueArrivalPayload} from '@/services/league';
+import type { LeagueArrivalPayload } from '@/services/league';
 
 const router = useRouter();
 const payload = ref<LeagueArrivalPayload | null>(null);
@@ -33,6 +35,9 @@ const resetConfirmOpen = ref(false);
 const rosterOpen = ref(false);
 const guestPayments = reactive<Record<number, boolean>>({});
 const actionErrors = ref<string[]>([]);
+const queuePreviewEntries = ref<LeagueArrivalPayload['queue_preview']['entries']>(
+    [],
+);
 const canManageArrival = computed(
     () => payload.value?.role.can_manage ?? false,
 );
@@ -43,6 +48,47 @@ const liveArrivalLocked = computed(() =>
 const prepareLocked = computed(() =>
     ['prepared', 'in_progress'].includes(payload.value?.session.status ?? ''),
 );
+const canReorderQueuePreview = computed(
+    () => payload.value?.queue_preview.can_reorder ?? false,
+);
+
+watch(
+    () => payload.value?.queue_preview.entries ?? [],
+    (entries) => {
+        queuePreviewEntries.value = entries.map((entry) => ({ ...entry }));
+    },
+    { immediate: true, deep: true },
+);
+
+const queuePreviewPositionById = computed(
+    () => new Map(queuePreviewEntries.value.map((entry) => [entry.id, entry.position])),
+);
+
+function guestQueueLabel(guest: LeagueArrivalPayload['guests'][number]): string {
+    const queuedPosition = queuePreviewPositionById.value.get(guest.id);
+
+    if (queuedPosition !== undefined) {
+        return `Cola #${queuedPosition}`;
+    }
+
+    return `Llegada #${guest.arrival_order}`;
+}
+
+function queuePreviewMeta(
+    entry: LeagueArrivalPayload['queue_preview']['entries'][number],
+): string {
+    const labels = [`Cola #${entry.position}`];
+
+    if (!entry.is_guest) {
+        labels.push(`Llegada #${entry.arrival_order}`);
+    }
+
+    if (entry.preferred_position) {
+        labels.push(entry.preferred_position);
+    }
+
+    return labels.join(' Ã‚Â· ');
+}
 
 async function loadPage(): Promise<void> {
     isLoading.value = true;
@@ -180,6 +226,36 @@ function money(amountCents: number): string {
         maximumFractionDigits: 0,
     }).format(amountCents / 100);
 }
+
+async function reorderQueuePreview(
+    event: CustomEvent<{ from: number; to: number; complete: () => void }>,
+): Promise<void> {
+    const updatedEntries = [...queuePreviewEntries.value];
+    const from = event.detail.from;
+    const to = event.detail.to;
+    const [movedEntry] = updatedEntries.splice(from, 1);
+
+    updatedEntries.splice(to, 0, movedEntry);
+    queuePreviewEntries.value = updatedEntries.map((entry, index) => ({
+        ...entry,
+        position: index + 1,
+    }));
+    event.detail.complete();
+
+    try {
+        payload.value = await reorderLeagueArrivalQueue(
+            queuePreviewEntries.value.map((entry) => entry.id),
+        );
+    } catch (error) {
+        actionErrors.value = extractApiErrors(error);
+
+        if (payload.value) {
+            queuePreviewEntries.value = payload.value.queue_preview.entries.map(
+                (entry) => ({ ...entry }),
+            );
+        }
+    }
+}
 </script>
 
 <template>
@@ -200,7 +276,7 @@ function money(amountCents: number): string {
                         :title="payload?.league.name ?? 'Llegada'"
                         :description="
                             payload?.cut.is_past_due
-                                ? 'Solo mantienen prioridad quienes están al día.'
+                                ? 'Solo mantienen prioridad quienes estÃƒÂ¡n al dÃƒÂ­a.'
                                 : 'Todos los miembros siguen con prioridad dentro del corte.'
                         "
                     />
@@ -371,7 +447,7 @@ function money(amountCents: number): string {
                                             ? 'Registrado'
                                             : `#${player.arrival_order}`
                                         : player.current_cut_paid
-                                          ? 'Al día'
+                                          ? 'Al dÃƒÂ­a'
                                           : canManageArrival
                                             ? 'Pendiente'
                                             : 'Ver'
@@ -418,7 +494,7 @@ function money(amountCents: number): string {
                                 <div class="member-row__header">
                                     <p class="member-row__name">{{ guest.name }}</p>
                                     <span class="member-row__meta-chip">
-                                        #{{ guest.arrival_order }}
+                                        {{ guestQueueLabel(guest) }}
                                     </span>
                                 </div>
                                 <p class="member-row__copy">
@@ -466,37 +542,82 @@ function money(amountCents: number): string {
                         </article>
                     </section>
 
-                    <section
-                        v-if="payload?.session.status === 'prepared'"
-                        class="app-surface section-stack"
-                    >
-                        <p class="app-kicker section-head__kicker">
-                            Cola inicial
-                        </p>
-                        <div class="queue-grid">
-                            <div>
-                                <p class="body-copy">Pool</p>
-                                <p
-                                    v-for="entry in payload?.session
-                                        .prepared_pool ?? []"
-                                    :key="entry.id"
-                                    class="queue-row"
-                                >
-                                    {{ entry.name }}
+                    <section class="app-surface section-stack">
+                        <div class="section-head">
+                            <div class="section-head__copy">
+                                <p class="app-kicker section-head__kicker">
+                                    Cola inicial
                                 </p>
-                            </div>
-                            <div>
-                                <p class="body-copy">Cola</p>
-                                <p
-                                    v-for="(entry, index) in payload?.session
-                                        .prepared_queue ?? []"
-                                    :key="entry.id"
-                                    class="queue-row"
-                                >
-                                    {{ index + 1 }}. {{ entry.name }}
-                                </p>
+                                <span class="section-head__badge">
+                                    {{ queuePreviewEntries.length }}
+                                </span>
                             </div>
                         </div>
+                        <p class="body-copy">
+                            Las primeras 10 posiciones alimentan el primer
+                            draft. Los miembros empujan a los invitados solo
+                            dentro de esa ventana; despuÃƒÂ©s, la cola conserva el
+                            orden ya establecido.
+                        </p>
+                        <p
+                            v-if="canReorderQueuePreview"
+                            class="body-copy body-copy--accent"
+                        >
+                            MantÃƒÂ©n presionado y arrastra con el dedo para mover
+                            posiciones antes del primer juego.
+                        </p>
+                        <p
+                            v-if="queuePreviewEntries.length === 0"
+                            class="queue-empty"
+                        >
+                            La cola inicial se llenarÃƒÂ¡ con miembros llegados e
+                            invitados pagados.
+                        </p>
+                        <IonReorderGroup
+                            v-else
+                            :disabled="!canReorderQueuePreview"
+                            @ionItemReorder="reorderQueuePreview"
+                        >
+                            <IonItem
+                                v-for="entry in queuePreviewEntries"
+                                :key="entry.id"
+                                lines="none"
+                                class="queue-reorder-item"
+                            >
+                                <div class="queue-card">
+                                    <div class="queue-card__copy">
+                                        <div class="member-row__header">
+                                            <p class="member-row__name">
+                                                {{ entry.name }}
+                                            </p>
+                                            <span
+                                                v-if="entry.is_guest"
+                                                class="member-row__meta-chip"
+                                            >
+                                                Invitado
+                                            </span>
+                                            <span
+                                                v-else
+                                                class="member-row__meta-chip"
+                                            >
+                                                #{{ entry.jersey_number ?? 'S/N' }}
+                                            </span>
+                                        </div>
+                                        <p class="member-row__copy">
+                                            {{ queuePreviewMeta(entry) }}
+                                        </p>
+                                    </div>
+                                    <div class="queue-card__meta">
+                                        <span class="member-chip member-chip--neutral">
+                                            #{{ entry.position }}
+                                        </span>
+                                        <IonReorder
+                                            v-if="canReorderQueuePreview"
+                                        />
+                                    </div>
+                                </div>
+                            </IonItem>
+                        </IonReorderGroup>
                     </section>
                 </div>
             </div>
@@ -509,7 +630,7 @@ function money(amountCents: number): string {
                 <section class="overlay__panel">
                     <p class="app-kicker overlay__kicker">Registrar llegada</p>
                     <p class="body-copy">
-                        Si este miembro pagó ahora, conserva prioridad.
+                        Si este miembro pagÃƒÂ³ ahora, conserva prioridad.
                     </p>
                     <div class="overlay__actions">
                         <button
@@ -517,14 +638,14 @@ function money(amountCents: number): string {
                             type="button"
                             @click="togglePlayer(selectedPlayerId, false)"
                         >
-                            Llegó sin pagar
+                            LlegÃƒÂ³ sin pagar
                         </button>
                         <button
                             class="action-button action-button--primary"
                             type="button"
                             @click="togglePlayer(selectedPlayerId, true)"
                         >
-                            Pagó y llegó
+                            PagÃƒÂ³ y llegÃƒÂ³
                         </button>
                     </div>
                 </section>
@@ -568,7 +689,7 @@ function money(amountCents: number): string {
                 <section class="overlay__panel">
                     <p class="app-kicker overlay__kicker">Iniciar jornada</p>
                     <p class="body-copy">
-                        Confirma el cobro de invitados. Solo los pagos quedarán
+                        Confirma el cobro de invitados. Solo los pagos quedarÃƒÂ¡n
                         habilitados y necesitas 10 integrantes listos para
                         iniciar.
                     </p>
@@ -685,6 +806,9 @@ function money(amountCents: number): string {
     font-size: 13px;
     line-height: 1.6;
     color: #94a3b8;
+}
+.body-copy--accent {
+    color: #cbd5e1;
 }
 .body-copy--error {
     color: #fca5a5;
@@ -820,15 +944,38 @@ function money(amountCents: number): string {
     color: #fca5a5;
     padding: 0 14px;
 }
-.queue-grid {
-    display: grid;
-    gap: 12px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-.queue-row {
-    padding: 12px 14px;
+.queue-empty {
+    margin: 0;
+    border: 1px dashed rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    background: #0e1628;
+    padding: 14px;
     font-size: 13px;
-    color: #f8fafc;
+    line-height: 1.6;
+    color: #94a3b8;
+}
+.queue-reorder-item {
+    --background: transparent;
+    --padding-start: 0;
+    --inner-padding-end: 0;
+    --inner-border-width: 0;
+    --min-height: auto;
+}
+.queue-card,
+.queue-card__meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.queue-card {
+    width: 100%;
+    justify-content: space-between;
+}
+.queue-card__copy {
+    min-width: 0;
+}
+.queue-card__meta {
+    justify-content: flex-end;
 }
 .overlay {
     position: fixed;

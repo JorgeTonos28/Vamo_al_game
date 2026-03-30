@@ -14,15 +14,21 @@ class UpdateLeagueRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        if (! $this->has('name')) {
-            return;
+        $payload = [];
+
+        if ($this->has('name')) {
+            $payload['name'] = preg_replace('/\s+/', ' ', trim((string) $this->input('name')));
         }
 
-        $name = preg_replace('/\s+/', ' ', trim((string) $this->input('name')));
+        if ($this->has('emoji')) {
+            $payload['emoji'] = filled($this->input('emoji'))
+                ? trim((string) $this->input('emoji'))
+                : null;
+        }
 
-        $this->merge([
-            'name' => $name,
-        ]);
+        if ($payload !== []) {
+            $this->merge($payload);
+        }
     }
 
     /**
@@ -32,6 +38,7 @@ class UpdateLeagueRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'required', 'string', 'max:120'],
+            'emoji' => ['sometimes', 'nullable', 'string', 'max:16'],
         ];
     }
 }

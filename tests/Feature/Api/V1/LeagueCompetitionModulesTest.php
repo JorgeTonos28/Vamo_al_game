@@ -86,7 +86,7 @@ class LeagueCompetitionModulesTest extends TestCase
         [$league, $admin, $players] = $this->makeLeagueContext();
         $this->prepareLeagueSession($league, $admin, $players->take(10));
 
-        $this->actingAs($admin, 'sanctum')
+        $response = $this->actingAs($admin, 'sanctum')
             ->postJson('/api/v1/league/modules/game/draft', [
                 'mode' => 'arrival',
             ])
@@ -94,6 +94,14 @@ class LeagueCompetitionModulesTest extends TestCase
             ->assertJsonPath('data.game.state', 'live')
             ->assertJsonCount(5, 'data.game.current.team_a')
             ->assertJsonCount(5, 'data.game.current.team_b');
+
+        $teamA = collect($response->json('data.game.current.team_a'));
+        $teamB = collect($response->json('data.game.current.team_b'));
+
+        $this->assertSame(1, $teamA->where('is_captain', true)->count());
+        $this->assertSame(1, $teamB->where('is_captain', true)->count());
+        $this->assertTrue((bool) $teamA->first()['is_captain']);
+        $this->assertTrue((bool) $teamB->first()['is_captain']);
     }
 
     public function test_finishing_a_game_returns_the_rotation_notice_payload(): void
@@ -310,6 +318,151 @@ class LeagueCompetitionModulesTest extends TestCase
         ], $teamB);
     }
 
+    public function test_admin_can_reorder_the_pregame_queue_from_api(): void
+    {
+        [$league, $admin, $players] = $this->makeLeagueContext();
+        $this->prepareLeagueSession($league, $admin, $players->take(10));
+
+        $session = $league->sessions()->with('entries.player')->latest('id')->firstOrFail();
+        $orderedIds = $session->entries
+            ->where('session_state', 'pool')
+            ->sortBy('arrival_order')
+            ->pluck('id')
+            ->reverse()
+            ->values()
+            ->all();
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/league/arrival/queue/reorder', [
+                'entry_ids' => $orderedIds,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.queue_preview.entries.0.id', $orderedIds[0])
+            ->assertJsonPath('data.queue_preview.entries.9.id', $orderedIds[9]);
+
+        $preparedPoolIds = collect(
+            $league->sessions()->latest('id')->firstOrFail()->fresh()->initial_pool
+        )->pluck('id')->all();
+
+        $this->assertSame($orderedIds, $preparedPoolIds);
+    }
+
+    public function test_live_queue_reorder_endpoint_is_rejected_and_queue_payload_marks_it_disabled(): void
+    {
+        [$league, $admin, $players] = $this->makeLeagueContext();
+        $this->prepareLeagueSession($league, $admin, $players->take(10));
+
+        $operations = app(LeagueOperationsService::class);
+        $management = app(LeagueManagementService::class);
+        $arrival = app(LeagueArrivalService::class);
+        $cut = $operations->activeCutForLeague($league);
+
+        $benchPlayers = LeaguePlayer::factory()
+            ->count(3)
+            ->for($league)
+            ->create([
+                'created_by_user_id' => $admin->id,
+                'updated_by_user_id' => $admin->id,
+            ]);
+
+        foreach ($benchPlayers as $player) {
+            $management->recordPayment($admin, $player, 60000, false, $cut->id);
+            $arrival->togglePlayerArrival($admin, $player);
+        }
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/league/modules/game/draft', [
+                'mode' => 'arrival',
+            ])
+            ->assertOk();
+
+        $session = $league->sessions()->with('entries.player')->latest('id')->firstOrFail();
+        $reorderedIds = $session->entries
+            ->where('session_state', 'queued')
+            ->sortBy('queue_position')
+            ->pluck('id')
+            ->reverse()
+            ->values()
+            ->all();
+
+        $queueResponse = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/league/modules/queue')
+            ->assertOk()
+            ->assertJsonPath('data.queue.can_reorder', false);
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/league/modules/queue/reorder', [
+                'entry_ids' => $reorderedIds,
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath(
+                'errors.session.0',
+                'La cola operativa no se reordena desde este modulo. Usa Llegada antes del primer juego.',
+            );
+
+        $this->assertFalse($queueResponse->json('data.queue.can_reorder'));
+    }
+
+    public function test_game_payload_exposes_scout_preferred_position_in_draft_entries(): void
+    {
+        [$league, $admin, $players] = $this->makeLeagueContext();
+        $this->prepareLeagueSession($league, $admin, $players->take(10));
+        $this->createScoutProfile($players->firstOrFail(), $admin, 4, 'Equilibrado');
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/league/modules/game')
+            ->assertOk();
+
+        $entry = collect($response->json('data.game.draft.entries'))
+            ->firstWhere('name', $players->firstOrFail()->display_name);
+
+        $this->assertNotNull($entry);
+        $this->assertSame('Base', $entry['preferred_position']);
+    }
+
+    public function test_admin_can_start_a_random_draft_with_manual_captains(): void
+    {
+        [$league, $admin, $players] = $this->makeLeagueContext();
+        $this->prepareLeagueSession($league, $admin, $players->take(10));
+
+        $session = $league->sessions()->with('entries.player')->latest('id')->firstOrFail();
+        $teams = $this->expectedRandomDraftTeams($session);
+        /** @var LeagueSessionEntry|null $captainA */
+        $captainA = $teams['A']->last();
+        /** @var LeagueSessionEntry|null $captainB */
+        $captainB = $teams['B']->last();
+
+        $this->assertNotNull($captainA);
+        $this->assertNotNull($captainB);
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/league/modules/game/draft', [
+                'mode' => 'random',
+                'captain_mode' => 'manual',
+                'captains' => [
+                    'A' => $captainA->id,
+                    'B' => $captainB->id,
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.game.state', 'live')
+            ->assertJsonCount(5, 'data.game.current.team_a')
+            ->assertJsonCount(5, 'data.game.current.team_b');
+
+        $teamA = collect($response->json('data.game.current.team_a'));
+        $teamB = collect($response->json('data.game.current.team_b'));
+
+        $this->assertSame('random', $session->fresh('games')->games->firstWhere('status', 'open')?->draft_mode);
+        $this->assertSame($captainA->id, $teamA->first()['id']);
+        $this->assertSame($captainB->id, $teamB->first()['id']);
+        $this->assertTrue((bool) $teamA->first()['is_captain']);
+        $this->assertTrue((bool) $teamB->first()['is_captain']);
+        $this->assertSame([$captainA->id], $teamA->where('is_captain', true)->pluck('id')->all());
+        $this->assertSame([$captainB->id], $teamB->where('is_captain', true)->pluck('id')->all());
+        $this->assertSame($this->expectedOrderedTeamIds($teams['A'], $captainA->id), $teamA->pluck('id')->all());
+        $this->assertSame($this->expectedOrderedTeamIds($teams['B'], $captainB->id), $teamB->pluck('id')->all());
+    }
+
     /**
      * @return array{0: League, 1: User, 2: Collection<int, LeaguePlayer>}
      */
@@ -456,5 +609,48 @@ class LeagueCompetitionModulesTest extends TestCase
             'is_guest' => false,
             'jersey_number' => $entry->player?->jersey_number,
         ];
+    }
+
+    /**
+     * @return array{A: Collection<int, LeagueSessionEntry>, B: Collection<int, LeagueSessionEntry>}
+     */
+    private function expectedRandomDraftTeams(LeagueSession $session): array
+    {
+        $seed = sprintf('session:%d:%d:random', $session->id, $session->current_game_number);
+        $ordered = $session->entries
+            ->where('session_state', 'pool')
+            ->sortBy(function (LeagueSessionEntry $entry) use ($seed): string {
+                return sprintf(
+                    '%012s-%05d',
+                    substr(hash('sha256', "{$seed}:draft:{$entry->id}"), 0, 12),
+                    (int) $entry->arrival_order,
+                );
+            })
+            ->values();
+
+        return [
+            'A' => $ordered->take(5)->values(),
+            'B' => $ordered->slice(5, 5)->values(),
+        ];
+    }
+
+    /**
+     * @param  Collection<int, LeagueSessionEntry>  $team
+     * @return array<int, int>
+     */
+    private function expectedOrderedTeamIds(Collection $team, int $captainId): array
+    {
+        /** @var LeagueSessionEntry $captain */
+        $captain = $team->firstOrFail(fn (LeagueSessionEntry $entry): bool => $entry->id === $captainId);
+
+        return collect([$captain])
+            ->concat(
+                $team
+                    ->reject(fn (LeagueSessionEntry $entry): bool => $entry->id === $captainId)
+                    ->sortBy(fn (LeagueSessionEntry $entry): string => mb_strtolower((string) $entry->player?->display_name))
+                    ->values(),
+            )
+            ->pluck('id')
+            ->all();
     }
 }

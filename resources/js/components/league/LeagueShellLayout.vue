@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import LeagueSidebarNav from './LeagueSidebarNav.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
+import LeagueSidebarNav from './LeagueSidebarNav.vue';
 
 withDefaults(
     defineProps<{
