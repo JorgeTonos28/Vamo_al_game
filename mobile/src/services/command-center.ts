@@ -89,15 +89,16 @@ export async function toggleCommandCenterLeague(
     return data.data;
 }
 
-export async function renameCommandCenterLeague(
+export async function updateCommandCenterLeague(
     leagueId: number,
-    name: string,
+    payload: {
+        name: string;
+        emoji?: string | null;
+    },
 ): Promise<CommandCenterLeagueResponse['data']> {
     const { data } = await api.patch<CommandCenterLeagueResponse>(
         `/command-center/leagues/${leagueId}`,
-        {
-            name,
-        },
+        payload,
     );
 
     return data.data;

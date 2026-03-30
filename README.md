@@ -54,6 +54,7 @@ La base de trabajo queda definida asi:
 - `PATCH|DELETE /api/v1/league/arrival/guests/{entry}`
 - `POST /api/v1/league/arrival/prepare`
 - `POST /api/v1/league/arrival/reset`
+- `POST /api/v1/league/arrival/queue/reorder`
 - `GET /api/v1/league/management`
 - `POST|DELETE /api/v1/league/management/payments/{player}`
 - `POST /api/v1/league/management/expenses`
@@ -296,8 +297,11 @@ Ups! Lo sentimos, ha ocurrido un problema accediendo a la app. Comuniquese con l
 - Antes del vencimiento del corte, todos los miembros conservan prioridad por llegada.
 - Al vencer el corte, solo mantienen prioridad quienes estan al dia; los demas pasan detras de los que pagaron y quedan alineados con la cola que luego consumira `Juego`.
 - Los invitados pagos cuentan para alcanzar el minimo de 10 jugadores habiles; los que no tienen pago confirmado salen automaticamente al preparar.
+- En el primer juego solo se protege la prioridad de miembros dentro de las primeras 10 posiciones: si faltan miembros, los invitados pueden llenar esos huecos, pero a medida que llegan miembros son desplazados hacia atras solo hasta salir del top 10.
+- Una vez un invitado cae a la posicion 11 o superior, conserva su lugar normal en la cola y los miembros que lleguen despues ya no saltan por encima de el, incluso con la jornada ya iniciada.
+- La cola inicial se puede reordenar manualmente antes del primer juego desde `Llegada`; en web el administrador puede mover una persona seleccionando una nueva posicion de cola desde su numero de llegada.
 - `Iniciar jornada` redirige al modulo `Juego` una vez la jornada queda preparada.
-- Si la jornada ya esta activa, las llegadas nuevas de miembros o invitados no rompen el juego actual: entran directo a la cola operativa y se reordenan segun prioridad real.
+- Si la jornada ya esta activa, las llegadas nuevas de miembros o invitados no rompen el juego actual: entran directo a la cola operativa respetando la prioridad real y el orden ya consolidado.
 - Los administradores de liga no aparecen como jugadores operativos en llegada ni en la cola.
 - Los miembros quedan en modo solo lectura: pueden ver cola, estados y lista de invitados, pero no pueden registrar llegadas ni ejecutar acciones operativas.
 - La gestion de miembros se puede abrir desde Llegada, pero solo para administradores.
@@ -306,9 +310,12 @@ Ups! Lo sentimos, ha ocurrido un problema accediendo a la app. Comuniquese con l
 
 - Es el modulo operativo principal de la jornada actual y solo permite acciones a administradores.
 - Requiere una jornada preparada con 10 jugadores listos en el pool para iniciar el draft.
-- Soporta draft `auto`, `arrival` y `manual`.
+- Soporta draft `auto`, `arrival`, `manual` y `random`.
 - El draft manual valida que todos los integrantes esten asignados antes de confirmar y bloquea en tiempo real equipos con mas de 5 jugadores.
 - El draft automatico combina rating manual de `Scout` con rendimiento de `Temporada`.
+- El draft `random` arma los dos equipos de 5 de forma aleatoria pero deterministica para la jornada actual.
+- Antes de confirmar el draft, el administrador puede definir el capitan de cada equipo por `arrival`, `random` o `manual`; el capitan se muestra con icono, queda primero en la lista del equipo y el resto se ordena alfabeticamente.
+- La lista del draft muestra debajo del nombre la posicion preferida tomada de `Scout` cuando exista perfil para ese jugador.
 - La rotacion de cola limita invitados por equipo entrante usando `incoming_team_guest_limit`; si entran dos equipos nuevos, el tope se duplica. Cuando no hay suficientes miembros para completar el draft, el sistema permite usar invitados adicionales para no frenar la jornada.
 - Durante el juego se pueden registrar puntos por equipo, puntos por jugador, reversar puntos de jugador, marcar salida de jugador, deshacer la ultima accion, cerrar el juego, cerrar la jornada y limpiar el juego actual.
 - El ganador por defecto se determina automaticamente por el marcador al cerrar el juego.
@@ -321,6 +328,7 @@ Ups! Lo sentimos, ha ocurrido un problema accediendo a la app. Comuniquese con l
 - Muestra los jugadores en cancha, la cola de espera y el resumen operativo de la jornada activa o de jornadas anteriores desde un selector de sesion.
 - Cada fila conserva informacion de orden de llegada, juegos jugados, puntos del dia y lado de cancha cuando aplica.
 - El resumen incluye `Racha actual` e `Invitados hoy`.
+- El modulo `Cola` es solo de lectura operativa: refleja el orden vivo consumido por `Juego`, sin reorder manual en web ni mobile.
 - En web y mobile replica la cola consumida por `Juego`; no cierra jornada desde aqui.
 
 ### Stats
@@ -366,7 +374,7 @@ Los administradores generales acceden a un shell separado de la app regular. Por
 - `Panel`: metricas basicas del sistema como usuarios totales, ligas activas, administradores de ligas, miembros, invitados y ligas inactivas.
 - `Usuarios`: formulario para invitar nuevos usuarios con nombre, apellido, cedula, telefono, direccion, correo y rol, con liga inicial opcional si el rol es operativo.
 - `Usuarios`: cada fila tambien muestra las membresias actuales del usuario y permite asignarle nuevas ligas activas con rol `league_admin` o `member`.
-- `Ligas`: listado de ligas, administradores, cantidad de miembros operativos, fecha de creacion, formulario para crear nuevas ligas activas con emoji opcional, toggle de acceso y cambio de nombre sobre la misma pantalla.
+- `Ligas`: listado de ligas, administradores, cantidad de miembros operativos, fecha de creacion, formulario para crear nuevas ligas activas con emoji opcional, toggle de acceso y edicion de nombre y emoji sobre la misma pantalla.
 - `Ajustes`: misma estructura de cuenta del shell regular (`Perfil`, `Seguridad` y `Apariencia`), con el branding global de logo y favicon integrado dentro de `Apariencia`.
 - Los campos opcionales de identidad (`cedula`, `telefono`, `direccion`) se normalizan a `null` cuando llegan vacios para no reservar valores en blanco ni romper constraints unicos.
 

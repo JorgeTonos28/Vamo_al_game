@@ -17,14 +17,20 @@ class GameController extends Controller
     public function draft(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'mode' => ['required', 'string', 'in:auto,arrival,manual'],
+            'mode' => ['required', 'string', 'in:auto,arrival,manual,random'],
+            'captain_mode' => ['nullable', 'string', 'in:arrival,manual,random'],
             'assignments' => ['array'],
+            'captains' => ['array'],
+            'captains.A' => ['nullable', 'integer'],
+            'captains.B' => ['nullable', 'integer'],
         ]);
 
         $this->competition->confirmDraft(
             $request->user(),
             $validated['mode'],
             $validated['assignments'] ?? [],
+            $validated['captain_mode'] ?? 'arrival',
+            $validated['captains'] ?? [],
         );
 
         return back();

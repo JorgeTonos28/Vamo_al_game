@@ -240,8 +240,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Revoca o restaura acceso de una liga */
-        patch: operations["commandCenterToggleLeague"];
+        /** Actualiza nombre, emoji o estado de una liga */
+        patch: operations["commandCenterUpdateLeague"];
         trace?: never;
     };
     "/command-center/settings": {
@@ -505,6 +505,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/league/arrival/queue/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reordena la cola inicial antes del primer juego */
+        post: operations["reorderLeagueArrivalQueue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/league/management": {
         parameters: {
             query?: never;
@@ -738,6 +755,23 @@ export interface paths {
         get: operations["leagueQueue"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/league/modules/queue/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Endpoint legado no habilitado para reorder de cola operativa */
+        post: operations["reorderLeagueQueue"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1084,6 +1118,7 @@ export interface components {
         };
         CommandCenterUpdateLeagueRequest: {
             name?: string;
+            emoji?: string | null;
         };
         CommandCenterAssignLeagueMembershipRequest: {
             league_id: number;
@@ -1541,6 +1576,7 @@ export interface components {
             session: components["schemas"]["LeagueArrivalSession"];
             players: components["schemas"]["LeagueArrivalPlayer"][];
             guests: components["schemas"]["LeagueArrivalGuest"][];
+            queue_preview: components["schemas"]["LeagueArrivalQueuePreview"];
             roster_management: components["schemas"]["LeagueRosterManagement"];
         };
         LeagueArrivalCut: {
@@ -1575,6 +1611,13 @@ export interface components {
             id: number;
             name: string;
             entry_type: string;
+        };
+        LeagueArrivalQueuePreview: {
+            can_reorder: boolean;
+            entries: components["schemas"]["LeagueArrivalQueuePreviewEntry"][];
+        };
+        LeagueArrivalQueuePreviewEntry: components["schemas"]["LeagueCompetitionEntryCard"] & {
+            position: number;
         };
         LeagueArrivalPlayer: {
             id: number;
@@ -1727,6 +1770,7 @@ export interface components {
             is_guest: boolean;
             jersey_number: number | null;
             arrival_order: number | null;
+            preferred_position: string | null;
         };
         LeagueCompetitionShots: {
             1: number;
@@ -1754,13 +1798,18 @@ export interface components {
             state: "idle" | "draft" | "live" | "completed";
             draft: components["schemas"]["LeagueGameDraft"];
             clock: components["schemas"]["LeagueGameClock"];
+            rotation_notice: components["schemas"]["LeagueGameRotationNotice"] | null;
             current: components["schemas"]["LeagueGameCurrent"] | null;
             history: components["schemas"]["LeagueGameHistoryItem"][];
             summary: components["schemas"]["LeagueCompetitionSummary"];
         };
         LeagueGameDraft: {
-            entries: components["schemas"]["LeagueCompetitionEntryCard"][];
+            entries: components["schemas"]["LeagueGameDraftEntry"][];
             can_start: boolean;
+        };
+        LeagueGameDraftEntry: components["schemas"]["LeagueCompetitionEntryCard"] & {
+            scout_role: string | null;
+            auto_draft_rating: number;
         };
         LeagueGameClock: {
             duration_seconds: number | null;
@@ -1768,6 +1817,13 @@ export interface components {
             /** @enum {string} */
             state: "paused" | "running" | "finished" | "unconfigured";
             started_at: string | null;
+        };
+        LeagueGameRotationNotice: {
+            key: string;
+            title: string;
+            body: string[];
+            tone: string;
+            icon: string;
         };
         LeagueGameCurrent: {
             id: number;
@@ -1781,6 +1837,7 @@ export interface components {
             team_b: components["schemas"]["LeagueGameTeamPlayer"][];
         };
         LeagueGameTeamPlayer: components["schemas"]["LeagueCompetitionEntryCard"] & {
+            is_captain: boolean;
             points: number;
             shots: components["schemas"]["LeagueCompetitionShots"];
         };
@@ -1799,6 +1856,7 @@ export interface components {
             waiting: components["schemas"]["LeagueQueueWaitingEntry"][];
             summary: components["schemas"]["LeagueCompetitionSummary"];
             live_game: components["schemas"]["LeagueQueueLiveGame"] | null;
+            can_reorder: boolean;
         };
         LeagueQueueOnCourtEntry: components["schemas"]["LeagueCompetitionEntryCard"] & {
             team_side: ("A" | "B") | null;
@@ -2004,10 +2062,19 @@ export interface components {
         };
         LeagueGameDraftRequest: {
             /** @enum {string} */
-            mode: "auto" | "arrival" | "manual";
+            mode: "auto" | "arrival" | "manual" | "random";
+            /** @enum {string} */
+            captain_mode?: "arrival" | "manual" | "random";
             assignments?: {
                 [key: string]: "A" | "B";
             };
+            captains?: {
+                A?: number | null;
+                B?: number | null;
+            };
+        };
+        LeagueQueueReorderRequest: {
+            entry_ids: number[];
         };
         LeagueGameTeamPointRequest: {
             /** @enum {string} */
@@ -2777,7 +2844,7 @@ export interface operations {
             };
         };
     };
-    commandCenterToggleLeague: {
+    commandCenterUpdateLeague: {
         parameters: {
             query?: never;
             header?: never;
@@ -3684,6 +3751,57 @@ export interface operations {
             };
         };
     };
+    reorderLeagueArrivalQueue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeagueQueueReorderRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueArrivalResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     leagueManagement: {
         parameters: {
             query?: {
@@ -4455,6 +4573,57 @@ export interface operations {
                 };
             };
             /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    reorderLeagueQueue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeagueQueueReorderRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueQueueResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description La cola operativa ya no se reordena desde este modulo */
             422: {
                 headers: {
                     [name: string]: unknown;

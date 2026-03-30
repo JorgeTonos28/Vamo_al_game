@@ -101,26 +101,39 @@ class CommandCenterLeagueDirectoryService
      *     created_at: string|null
      * }
      */
-    public function updateName(League $league, string $name): array
+    public function update(League $league, ?string $name = null, ?string $emoji = null): array
     {
-        $normalizedName = preg_replace('/\s+/', ' ', trim($name)) ?? trim($name);
+        $attributes = [];
 
-        $alreadyExists = League::query()
-            ->whereKeyNot($league->id)
-            ->pluck('name')
-            ->contains(fn ($existingName): bool => $existingName === $normalizedName);
+        if ($name !== null) {
+            $normalizedName = preg_replace('/\s+/', ' ', trim($name)) ?? trim($name);
+            $alreadyExists = League::query()
+                ->whereKeyNot($league->id)
+                ->pluck('name')
+                ->contains(fn ($existingName): bool => $existingName === $normalizedName);
 
-        if ($alreadyExists) {
-            throw ValidationException::withMessages([
-                'name' => 'Ya existe una liga con ese nombre.',
-            ]);
+            if ($alreadyExists) {
+                throw ValidationException::withMessages([
+                    'name' => 'Ya existe una liga con ese nombre.',
+                ]);
+            }
+
+            if ($league->name !== $normalizedName) {
+                $attributes['name'] = $normalizedName;
+                $attributes['slug'] = $this->uniqueSlugFor($normalizedName, $league->id);
+            }
         }
 
-        if ($league->name !== $normalizedName) {
-            $league->forceFill([
-                'name' => $normalizedName,
-                'slug' => $this->uniqueSlugFor($normalizedName, $league->id),
-            ])->save();
+        if (func_num_args() >= 3) {
+            $normalizedEmoji = filled($emoji) ? trim($emoji) : null;
+
+            if ($league->emoji !== $normalizedEmoji) {
+                $attributes['emoji'] = $normalizedEmoji;
+            }
+        }
+
+        if ($attributes !== []) {
+            $league->forceFill($attributes)->save();
         }
 
         return $this->toArray(

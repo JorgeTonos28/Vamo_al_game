@@ -39,14 +39,15 @@ class LeagueController extends Controller
         League $league,
         CommandCenterLeagueDirectoryService $directoryService,
     ): RedirectResponse {
-        if ($request->has('name')) {
-            $directoryService->updateName(
+        if ($request->hasAny(['name', 'emoji'])) {
+            $directoryService->update(
                 $league,
-                $request->string('name')->value(),
+                $request->has('name') ? $request->string('name')->value() : null,
+                $request->has('emoji') ? $request->input('emoji') : null,
             );
 
             return to_route('command-center.leagues.index')
-                ->with('status', 'Nombre de la liga actualizado.');
+                ->with('status', 'Liga actualizada correctamente.');
         }
 
         $directoryService->toggle($league);

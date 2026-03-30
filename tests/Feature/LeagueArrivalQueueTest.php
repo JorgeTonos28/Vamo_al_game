@@ -12,6 +12,7 @@ use Carbon\CarbonImmutable;
 use Database\Factories\LeagueMembershipFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class LeagueArrivalQueueTest extends TestCase
@@ -215,6 +216,132 @@ class LeagueArrivalQueueTest extends TestCase
 
         $this->assertNotNull($session);
         $this->assertContains('Admin en cancha', array_column($session->initial_pool, 'name'));
+    }
+
+    public function test_guests_only_lose_priority_inside_the_first_ten_pregame_positions(): void
+    {
+        [$league, $admin, $players] = $this->makeLeagueContext();
+        $operations = app(LeagueOperationsService::class);
+        $management = app(LeagueManagementService::class);
+        $arrival = app(LeagueArrivalService::class);
+
+        $league->cutConfigurations()->create([
+            'sessions_limit' => 4,
+            'game_days' => ['Sabado'],
+            'cut_day' => CarbonImmutable::now()->addDay()->day,
+            'effective_from' => now()->startOfMonth()->toDateString(),
+            'created_by_user_id' => $admin->id,
+        ]);
+
+        $cut = $operations->activeCutForLeague($league);
+
+        foreach ($players->take(8) as $player) {
+            $management->recordPayment($admin, $player, 60000, false, $cut->id);
+            $arrival->togglePlayerArrival($admin, $player);
+        }
+
+        $arrival->storeGuest($admin, 'Invitado 1');
+        $arrival->storeGuest($admin, 'Invitado 2');
+
+        $session = $operations->currentSessionForLeague($league, $cut, false);
+
+        $guestEntries = $session?->entries()
+            ->where('entry_type', 'guest')
+            ->orderBy('arrival_order')
+            ->get();
+
+        $this->assertNotNull($session);
+        $this->assertNotNull($guestEntries);
+
+        $arrival->updateGuestPayment($admin, $guestEntries[0], true);
+        $arrival->updateGuestPayment($admin, $guestEntries[1], true);
+        $arrival->prepareSession($admin);
+
+        $session = $operations->currentSessionForLeague($league, $cut, false);
+
+        $this->assertNotNull($session);
+        $this->assertSame('prepared', $session->status);
+        $this->assertSame(
+            ['Invitado 1', 'Invitado 2'],
+            array_values(array_intersect(['Invitado 1', 'Invitado 2'], array_column($session->initial_pool, 'name'))),
+        );
+
+        foreach ($players->slice(8, 2) as $player) {
+            $management->recordPayment($admin, $player, 60000, false, $cut->id);
+            $arrival->togglePlayerArrival($admin, $player);
+        }
+
+        $session = $operations->currentSessionForLeague($league, $cut, false);
+
+        $this->assertNotNull($session);
+        $this->assertSame(
+            $players->take(10)->map(fn (LeaguePlayer $player): string => $player->display_name)->all(),
+            array_column($session->initial_pool, 'name'),
+        );
+        $this->assertSame(
+            ['Invitado 1', 'Invitado 2'],
+            array_column($session->initial_queue, 'name'),
+        );
+
+        $lateMember = $players->get(10);
+        $this->assertNotNull($lateMember);
+
+        $management->recordPayment($admin, $lateMember, 60000, false, $cut->id);
+        $arrival->togglePlayerArrival($admin, $lateMember);
+
+        $session = $operations->currentSessionForLeague($league, $cut, false);
+
+        $this->assertNotNull($session);
+        $this->assertSame(
+            ['Invitado 1', 'Invitado 2', $lateMember->display_name],
+            array_column($session->initial_queue, 'name'),
+        );
+    }
+
+    public function test_guest_cannot_be_manually_moved_into_top_ten_when_more_than_ten_members_have_arrived(): void
+    {
+        [$league, $admin, $players] = $this->makeLeagueContext();
+        $operations = app(LeagueOperationsService::class);
+        $management = app(LeagueManagementService::class);
+        $arrival = app(LeagueArrivalService::class);
+
+        $league->cutConfigurations()->create([
+            'sessions_limit' => 4,
+            'game_days' => ['Sabado'],
+            'cut_day' => CarbonImmutable::now()->addDay()->day,
+            'effective_from' => now()->startOfMonth()->toDateString(),
+            'created_by_user_id' => $admin->id,
+        ]);
+
+        $cut = $operations->activeCutForLeague($league);
+
+        foreach ($players as $player) {
+            $management->recordPayment($admin, $player, 60000, false, $cut->id);
+            $arrival->togglePlayerArrival($admin, $player);
+        }
+
+        $arrival->storeGuest($admin, 'Invitado movible');
+        $session = $operations->currentSessionForLeague($league, $cut, false);
+        $guestEntry = $session?->entries()
+            ->where('entry_type', 'guest')
+            ->first();
+
+        $this->assertNotNull($guestEntry);
+
+        $arrival->updateGuestPayment($admin, $guestEntry, true);
+
+        $orderedIds = collect($arrival->pageData($admin)['queue_preview']['entries'])
+            ->pluck('id')
+            ->reject(fn (int $id): bool => $id === $guestEntry->id)
+            ->values()
+            ->all();
+
+        array_splice($orderedIds, 3, 0, [$guestEntry->id]);
+
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('los invitados solo pueden ubicarse desde la posicion 11 en adelante');
+
+        $arrival->reorderPregameQueue($admin, $orderedIds);
     }
 
     /**

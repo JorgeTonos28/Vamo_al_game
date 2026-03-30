@@ -99,4 +99,19 @@ class ArrivalController extends Controller
 
         return back()->with('status', 'Lista de llegada reiniciada.');
     }
+
+    public function reorderQueue(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'entry_ids' => ['required', 'array', 'min:1'],
+            'entry_ids.*' => ['required', 'integer', 'distinct'],
+        ]);
+
+        $this->arrivalService->reorderPregameQueue(
+            $request->user(),
+            $validated['entry_ids'],
+        );
+
+        return back()->with('status', 'Cola inicial reordenada.');
+    }
 }

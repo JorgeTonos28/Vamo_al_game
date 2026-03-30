@@ -49,16 +49,17 @@ class LeagueController extends Controller
         League $league,
         CommandCenterLeagueDirectoryService $directoryService,
     ): JsonResponse {
-        if ($request->has('name')) {
+        if ($request->hasAny(['name', 'emoji'])) {
             return ApiResponse::success(
                 $request,
                 [
-                    'league' => $directoryService->updateName(
+                    'league' => $directoryService->update(
                         $league,
-                        $request->string('name')->value(),
+                        $request->has('name') ? $request->string('name')->value() : null,
+                        $request->has('emoji') ? $request->input('emoji') : null,
                     ),
                 ],
-                'Nombre de la liga actualizado.',
+                'Liga actualizada correctamente.',
             );
         }
 

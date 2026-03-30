@@ -685,8 +685,8 @@
     },
     "/command-center/leagues/{league}": {
       "patch": {
-        "operationId": "commandCenterToggleLeague",
-        "summary": "Revoca o restaura acceso de una liga",
+        "operationId": "commandCenterUpdateLeague",
+        "summary": "Actualiza nombre, emoji o estado de una liga",
         "security": [
           {
             "sanctumBearer": []
@@ -1777,6 +1777,69 @@
         }
       }
     },
+    "/league/arrival/queue/reorder": {
+      "post": {
+        "operationId": "reorderLeagueArrivalQueue",
+        "summary": "Reordena la cola inicial antes del primer juego",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueQueueReorderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueArrivalResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/league/management": {
       "get": {
         "operationId": "leagueManagement",
@@ -2775,6 +2838,69 @@
           },
           "422": {
             "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/modules/queue/reorder": {
+      "post": {
+        "operationId": "reorderLeagueQueue",
+        "summary": "Endpoint legado no habilitado para reorder de cola operativa",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeagueQueueReorderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueQueueResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "La cola operativa ya no se reordena desde este modulo",
             "content": {
               "application/json": {
                 "schema": {
@@ -4000,6 +4126,13 @@
           "name": {
             "type": "string",
             "maxLength": 120
+          },
+          "emoji": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 16
           }
         }
       },
@@ -5722,6 +5855,7 @@
           "session",
           "players",
           "guests",
+          "queue_preview",
           "roster_management"
         ],
         "properties": {
@@ -5748,6 +5882,9 @@
             "items": {
               "$ref": "#/components/schemas/LeagueArrivalGuest"
             }
+          },
+          "queue_preview": {
+            "$ref": "#/components/schemas/LeagueArrivalQueuePreview"
           },
           "roster_management": {
             "$ref": "#/components/schemas/LeagueRosterManagement"
@@ -5899,6 +6036,42 @@
             "type": "string"
           }
         }
+      },
+      "LeagueArrivalQueuePreview": {
+        "type": "object",
+        "required": [
+          "can_reorder",
+          "entries"
+        ],
+        "properties": {
+          "can_reorder": {
+            "type": "boolean"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeagueArrivalQueuePreviewEntry"
+            }
+          }
+        }
+      },
+      "LeagueArrivalQueuePreviewEntry": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LeagueCompetitionEntryCard"
+          },
+          {
+            "type": "object",
+            "required": [
+              "position"
+            ],
+            "properties": {
+              "position": {
+                "type": "integer"
+              }
+            }
+          }
+        ]
       },
       "LeagueArrivalPlayer": {
         "type": "object",
@@ -6526,7 +6699,8 @@
           "name",
           "is_guest",
           "jersey_number",
-          "arrival_order"
+          "arrival_order",
+          "preferred_position"
         ],
         "properties": {
           "id": {
@@ -6547,6 +6721,12 @@
           "arrival_order": {
             "type": [
               "integer",
+              "null"
+            ]
+          },
+          "preferred_position": {
+            "type": [
+              "string",
               "null"
             ]
           }
@@ -6648,6 +6828,7 @@
           "state",
           "draft",
           "clock",
+          "rotation_notice",
           "current",
           "history",
           "summary"
@@ -6667,6 +6848,16 @@
           },
           "clock": {
             "$ref": "#/components/schemas/LeagueGameClock"
+          },
+          "rotation_notice": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LeagueGameRotationNotice"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "current": {
             "anyOf": [
@@ -6699,13 +6890,38 @@
           "entries": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/LeagueCompetitionEntryCard"
+              "$ref": "#/components/schemas/LeagueGameDraftEntry"
             }
           },
           "can_start": {
             "type": "boolean"
           }
         }
+      },
+      "LeagueGameDraftEntry": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/LeagueCompetitionEntryCard"
+          },
+          {
+            "type": "object",
+            "required": [
+              "scout_role",
+              "auto_draft_rating"
+            ],
+            "properties": {
+              "scout_role": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "auto_draft_rating": {
+                "type": "number"
+              }
+            }
+          }
+        ]
       },
       "LeagueGameClock": {
         "type": "object",
@@ -6742,6 +6958,36 @@
               "string",
               "null"
             ]
+          }
+        }
+      },
+      "LeagueGameRotationNotice": {
+        "type": "object",
+        "required": [
+          "key",
+          "title",
+          "body",
+          "tone",
+          "icon"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tone": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
           }
         }
       },
@@ -6802,10 +7048,14 @@
           {
             "type": "object",
             "required": [
+              "is_captain",
               "points",
               "shots"
             ],
             "properties": {
+              "is_captain": {
+                "type": "boolean"
+              },
               "points": {
                 "type": "integer"
               },
@@ -6878,7 +7128,8 @@
           "on_court",
           "waiting",
           "summary",
-          "live_game"
+          "live_game",
+          "can_reorder"
         ],
         "properties": {
           "on_court": {
@@ -6905,6 +7156,9 @@
                 "type": "null"
               }
             ]
+          },
+          "can_reorder": {
+            "type": "boolean"
           }
         }
       },
@@ -7873,7 +8127,16 @@
             "enum": [
               "auto",
               "arrival",
-              "manual"
+              "manual",
+              "random"
+            ]
+          },
+          "captain_mode": {
+            "type": "string",
+            "enum": [
+              "arrival",
+              "manual",
+              "random"
             ]
           },
           "assignments": {
@@ -7884,6 +8147,39 @@
                 "A",
                 "B"
               ]
+            }
+          },
+          "captains": {
+            "type": "object",
+            "properties": {
+              "A": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "B": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "LeagueQueueReorderRequest": {
+        "type": "object",
+        "required": [
+          "entry_ids"
+        ],
+        "properties": {
+          "entry_ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "integer"
             }
           }
         }

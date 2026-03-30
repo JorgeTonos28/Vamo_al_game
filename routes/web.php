@@ -17,6 +17,7 @@ use App\Http\Controllers\Web\League\GameController as LeagueGameController;
 use App\Http\Controllers\Web\League\ManagementController as LeagueManagementController;
 use App\Http\Controllers\Web\League\ModulePlaceholderController as LeagueModulePlaceholderController;
 use App\Http\Controllers\Web\League\PanelController as LeaguePanelController;
+use App\Http\Controllers\Web\League\QueueController as LeagueQueueController;
 use App\Http\Controllers\Web\League\ScoutController as LeagueScoutController;
 use App\Http\Middleware\EnsureGeneralAdmin;
 use App\Http\Middleware\EnsureRegularAppAccess;
@@ -106,6 +107,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     ->name('arrival.prepare');
                 Route::post('llegada/reset', [LeagueArrivalController::class, 'reset'])
                     ->name('arrival.reset');
+                Route::post('llegada/cola/reorder', [LeagueArrivalController::class, 'reorderQueue'])
+                    ->name('arrival.queue.reorder');
 
                 Route::get('gestion', [LeagueManagementController::class, 'index'])
                     ->name('management.index');
@@ -160,6 +163,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     ->name('modules.game.end-session');
                 Route::post('modulos/juego/reset', [LeagueGameController::class, 'reset'])
                     ->name('modules.game.reset');
+                Route::post('modulos/cola/reorder', [LeagueQueueController::class, 'reorder'])
+                    ->name('modules.queue.reorder');
                 Route::patch('modulos/scout/players/{player}', [LeagueScoutController::class, 'update'])
                     ->name('modules.scout.players.update');
             });

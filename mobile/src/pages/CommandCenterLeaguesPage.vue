@@ -17,8 +17,8 @@ import MobileAppTopbar from '@/components/MobileAppTopbar.vue';
 import {
     createCommandCenterLeague,
     fetchCommandCenterLeagues,
-    renameCommandCenterLeague,
     toggleCommandCenterLeague,
+    updateCommandCenterLeague,
 } from '@/services/command-center';
 import type {
     CommandCenterCreateLeaguePayload,
@@ -36,8 +36,10 @@ const isSubmitting = ref(false);
 const activeRequestLeagueId = ref<number | null>(null);
 const renameLeagueId = ref<number | null>(null);
 const renameName = ref('');
+const renameEmoji = ref<string | null>(null);
 const successMessage = ref<string | null>(null);
 const errorMessage = ref<string | null>(null);
+const emojiOptions = ['🏀', '🏆', '🔥', '⚡', '🎯', '💪', '🛡️', '🎽', '👟', '🚀', '🌟', '🏟️'];
 
 function sortLeagues(entries: CommandCenterLeague[]): CommandCenterLeague[] {
     return [...entries].sort((left, right) => {
@@ -111,7 +113,14 @@ async function toggleLeague(leagueId: number): Promise<void> {
 function openRename(league: CommandCenterLeague): void {
     renameLeagueId.value = league.id;
     renameName.value = league.name;
+    renameEmoji.value = league.emoji ?? null;
     errorMessage.value = null;
+}
+
+function closeRename(): void {
+    renameLeagueId.value = null;
+    renameName.value = '';
+    renameEmoji.value = null;
 }
 
 async function submitRename(): Promise<void> {
@@ -120,18 +129,20 @@ async function submitRename(): Promise<void> {
     }
 
     try {
-        const response = await renameCommandCenterLeague(
+        const response = await updateCommandCenterLeague(
             renameLeagueId.value,
-            renameName.value.trim(),
+            {
+                name: renameName.value.trim(),
+                emoji: renameEmoji.value?.trim() || null,
+            },
         );
         leagues.value = sortLeagues(
             leagues.value.map((league) =>
                 league.id === renameLeagueId.value ? response.league : league,
             ),
         );
-        successMessage.value = 'Nombre de liga actualizado.';
-        renameLeagueId.value = null;
-        renameName.value = '';
+        successMessage.value = 'Liga actualizada correctamente.';
+        closeRename();
     } catch (error) {
         const response = (error as AxiosError<ErrorResponse>).response?.data;
         const validationErrors = response?.errors as
@@ -139,6 +150,7 @@ async function submitRename(): Promise<void> {
             | undefined;
         errorMessage.value =
             validationErrors?.name?.[0] ??
+            validationErrors?.emoji?.[0] ??
             response?.message ??
             'No fue posible actualizar la liga.';
     }
@@ -203,6 +215,34 @@ onIonViewWillEnter(loadLeagues);
 
                         <div class="field-group">
                             <IonLabel position="stacked">Emoji</IonLabel>
+                            <div class="emoji-grid">
+                                <button
+                                    type="button"
+                                    :class="[
+                                        'emoji-option',
+                                        form.emoji === null
+                                            ? 'emoji-option--active'
+                                            : '',
+                                    ]"
+                                    @click="form.emoji = null"
+                                >
+                                    Sin
+                                </button>
+                                <button
+                                    v-for="option in emojiOptions"
+                                    :key="`create-${option}`"
+                                    type="button"
+                                    :class="[
+                                        'emoji-option',
+                                        form.emoji === option
+                                            ? 'emoji-option--active'
+                                            : '',
+                                    ]"
+                                    @click="form.emoji = option"
+                                >
+                                    {{ option }}
+                                </button>
+                            </div>
                             <IonItem lines="none">
                                 <IonInput
                                     v-model="form.emoji"
@@ -282,7 +322,7 @@ onIonViewWillEnter(loadLeagues);
                                 expand="block"
                                 @click="openRename(league)"
                             >
-                                Renombrar
+                                Editar nombre y emoji
                             </IonButton>
 
                             <IonButton
@@ -307,10 +347,10 @@ onIonViewWillEnter(loadLeagues);
             <div
                 v-if="renameLeagueId !== null"
                 class="overlay"
-                @click.self="renameLeagueId = null"
+                @click.self="closeRename"
             >
                 <section class="overlay__panel">
-                    <p class="app-kicker section-kicker">Renombrar liga</p>
+                    <p class="app-kicker section-kicker">Editar nombre y emoji</p>
                     <div class="field-group">
                         <IonLabel position="stacked">Nuevo nombre</IonLabel>
                         <IonItem lines="none">
@@ -321,8 +361,36 @@ onIonViewWillEnter(loadLeagues);
                             />
                         </IonItem>
                     </div>
+                    <div class="field-group">
+                        <IonLabel position="stacked">Emoji</IonLabel>
+                        <div class="emoji-grid">
+                            <button
+                                type="button"
+                                :class="['emoji-option', renameEmoji === null ? 'emoji-option--active' : '']"
+                                @click="renameEmoji = null"
+                            >
+                                Sin
+                            </button>
+                            <button
+                                v-for="option in emojiOptions"
+                                :key="`rename-${option}`"
+                                type="button"
+                                :class="['emoji-option', renameEmoji === option ? 'emoji-option--active' : '']"
+                                @click="renameEmoji = option"
+                            >
+                                {{ option }}
+                            </button>
+                        </div>
+                        <IonItem lines="none">
+                            <IonInput
+                                v-model="renameEmoji"
+                                :maxlength="16"
+                                placeholder="🏀"
+                            />
+                        </IonItem>
+                    </div>
                     <div class="overlay__actions">
-                        <IonButton fill="outline" @click="renameLeagueId = null"
+                        <IonButton fill="outline" @click="closeRename"
                             >Cancelar</IonButton
                         >
                         <IonButton @click="submitRename">Guardar</IonButton>
@@ -390,6 +458,27 @@ onIonViewWillEnter(loadLeagues);
 .league-row__name {
     font-size: 17px;
     font-weight: 700;
+}
+
+.emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.emoji-option {
+    min-height: 48px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    background: #131b2f;
+    color: #f8fafc;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.emoji-option--active {
+    border-color: rgba(229, 184, 73, 0.32);
+    background: rgba(229, 184, 73, 0.14);
 }
 
 .status-chip {

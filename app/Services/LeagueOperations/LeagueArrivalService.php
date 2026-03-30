@@ -53,6 +53,9 @@ class LeagueArrivalService
         $guestEntries = $sessionEntries
             ->where('entry_type', 'guest')
             ->values();
+        $queuePreview = $session === null
+            ? collect()
+            : $this->pregameQueueOrder($session, $cut);
         $isPastDue = $this->operations->hasPastDue($cut);
         $draftReadyEntries = $sessionEntries->where('entry_type', 'player')->count()
             + $guestEntries->where('guest_fee_paid', true)->count();
@@ -113,6 +116,7 @@ class LeagueArrivalService
 
                     return [
                         'id' => $player->id,
+                        'session_entry_id' => $entry?->id,
                         'name' => $player->display_name,
                         'jersey_number' => $player->jersey_number,
                         'attendance_count' => $attendanceCounts[$player->id] ?? 0,
@@ -144,6 +148,25 @@ class LeagueArrivalService
                     'guest_fee_paid' => $entry->guest_fee_paid,
                 ])
                 ->all(),
+            'queue_preview' => [
+                'can_reorder' => $context['role']->canManageLeague()
+                    && $session !== null
+                    && in_array($session->status, ['arrival_open', 'prepared'], true),
+                'entries' => $queuePreview
+                    ->values()
+                    ->map(fn (LeagueSessionEntry $entry, int $index): array => [
+                        'id' => $entry->id,
+                        'position' => $index + 1,
+                        'name' => $entry->entry_type === 'guest'
+                            ? $entry->guest_name
+                            : $entry->player?->display_name,
+                        'is_guest' => $entry->entry_type === 'guest',
+                        'jersey_number' => $entry->player?->jersey_number,
+                        'arrival_order' => $entry->arrival_order,
+                        'preferred_position' => $entry->player?->scoutProfile?->position,
+                    ])
+                    ->all(),
+            ],
             'roster_management' => $this->management->rosterData($user),
         ];
     }
@@ -170,6 +193,10 @@ class LeagueArrivalService
         if ($session->status === 'completed') {
             $session = $this->reopenCompletedSession($session);
         }
+
+        $hasCustomPregameOrder = $this->hasCustomPregameOrder($this->draftReadyEntries($session));
+        $isPreparedSession = $session->status === 'prepared';
+        $isLiveSession = $session->status === 'in_progress';
 
         $existingEntry = $session->entries()
             ->where('entry_type', 'player')
@@ -224,15 +251,25 @@ class LeagueArrivalService
             'guest_fee_paid' => false,
             'was_marked_paid_on_arrival' => ! $alreadyPaid && $paid === true,
             'priority_bucket' => $this->playerPriorityBucket($cut, $isPaidForQueue),
+            'queue_seed' => $hasCustomPregameOrder ? $this->nextPregameQueueSeed($session) : null,
             'session_state' => $isLiveSession ? 'queued' : 'arrival',
             'team_side' => null,
-            'queue_position' => null,
+            'queue_position' => $isLiveSession ? $this->nextLiveQueuePosition($session) : null,
         ]);
 
-        $this->resequenceEntries($session->fresh('entries'), $cut);
+        $session = $session->fresh('entries.player.scoutProfile');
+        $this->resequenceEntries($session, $cut);
+
+        if ($isPreparedSession) {
+            $this->syncPreparedSessionState($session->fresh('entries.player.scoutProfile'), $cut);
+
+            return;
+        }
+
+        $this->normalizePregameQueueSeeds($session->fresh('entries.player.scoutProfile'));
 
         if ($isLiveSession) {
-            $this->resequenceLiveQueue($session->fresh('entries'), $cut);
+            $this->resequenceLiveQueue($session->fresh('entries.player.scoutProfile'), $cut);
         }
     }
 
@@ -261,7 +298,8 @@ class LeagueArrivalService
             'session_state' => 'arrival',
         ]);
 
-        $this->resequenceEntries($session->fresh('entries'), $cut);
+        $this->resequenceEntries($session->fresh('entries.player.scoutProfile'), $cut);
+        $this->normalizePregameQueueSeeds($session->fresh('entries.player.scoutProfile'));
     }
 
     public function updateGuestPayment(User $user, LeagueSessionEntry $guestEntry, bool $paid): void
@@ -294,20 +332,38 @@ class LeagueArrivalService
             ]);
         }
 
-        $isLiveSession = in_array($session->status, ['prepared', 'in_progress'], true);
+        $hasCustomPregameOrder = $this->hasCustomPregameOrder($this->draftReadyEntries($session));
+        $isPreparedSession = $session->status === 'prepared';
+        $isLiveSession = $session->status === 'in_progress';
 
         $guestEntry->forceFill([
             'guest_fee_paid' => $paid,
             'priority_bucket' => $paid ? 'guest_paid' : 'guest_unpaid',
-            'session_state' => $paid && $isLiveSession ? 'queued' : (in_array($guestEntry->session_state, ['pool', 'on_court'], true) ? $guestEntry->session_state : 'arrival'),
+            'queue_seed' => $paid && $hasCustomPregameOrder
+                ? ($guestEntry->queue_seed ?? $this->nextPregameQueueSeed($session))
+                : null,
+            'session_state' => $paid && $isLiveSession
+                ? 'queued'
+                : (in_array($guestEntry->session_state, ['pool', 'on_court'], true) ? $guestEntry->session_state : 'arrival'),
             'team_side' => in_array($guestEntry->session_state, ['pool', 'on_court'], true) ? $guestEntry->team_side : null,
-            'queue_position' => $paid && $isLiveSession ? $guestEntry->queue_position : null,
+            'queue_position' => $paid && $isLiveSession
+                ? ($guestEntry->queue_position ?? $this->nextLiveQueuePosition($session))
+                : null,
         ])->save();
 
-        $this->resequenceEntries($session->fresh('entries'), $cut);
+        $session = $session->fresh('entries.player.scoutProfile');
+        $this->resequenceEntries($session, $cut);
+
+        if ($isPreparedSession) {
+            $this->syncPreparedSessionState($session->fresh('entries.player.scoutProfile'), $cut);
+
+            return;
+        }
+
+        $this->normalizePregameQueueSeeds($session->fresh('entries.player.scoutProfile'));
 
         if ($isLiveSession) {
-            $this->resequenceLiveQueue($session->fresh('entries'), $cut);
+            $this->resequenceLiveQueue($session->fresh('entries.player.scoutProfile'), $cut);
         }
     }
 
@@ -339,13 +395,23 @@ class LeagueArrivalService
             ]);
         }
 
-        $isLiveSession = in_array($session->status, ['prepared', 'in_progress'], true);
+        $isPreparedSession = $session->status === 'prepared';
+        $isLiveSession = $session->status === 'in_progress';
 
         $guestEntry->delete();
-        $this->resequenceEntries($session->fresh('entries'), $cut);
+        $session = $session->fresh('entries.player.scoutProfile');
+        $this->resequenceEntries($session, $cut);
+
+        if ($isPreparedSession) {
+            $this->syncPreparedSessionState($session->fresh('entries.player.scoutProfile'), $cut);
+
+            return;
+        }
+
+        $this->normalizePregameQueueSeeds($session->fresh('entries.player.scoutProfile'));
 
         if ($isLiveSession) {
-            $this->resequenceLiveQueue($session->fresh('entries'), $cut);
+            $this->resequenceLiveQueue($session->fresh('entries.player.scoutProfile'), $cut);
         }
     }
 
@@ -376,9 +442,7 @@ class LeagueArrivalService
             ]);
         }
 
-        if ($session->status === 'prepared') {
-            return;
-        }
+        $hadCustomPregameOrder = $this->hasCustomPregameOrder($this->draftReadyEntries($session));
 
         foreach ($guestPayments as $guestPayment) {
             $entry = $session->entries()
@@ -389,119 +453,28 @@ class LeagueArrivalService
                 $entry->forceFill([
                     'guest_fee_paid' => (bool) $guestPayment['paid'],
                     'priority_bucket' => (bool) $guestPayment['paid'] ? 'guest_paid' : 'guest_unpaid',
+                    'queue_seed' => (bool) $guestPayment['paid'] && $hadCustomPregameOrder
+                        ? ($entry->queue_seed ?? $this->nextPregameQueueSeed($session))
+                        : null,
                 ])->save();
             }
         }
 
-        $this->resequenceEntries($session->fresh('entries'), $cut);
+        $session = $session->fresh('entries.player.scoutProfile');
+        $this->resequenceEntries($session, $cut);
+        $this->normalizePregameQueueSeeds($session->fresh('entries.player.scoutProfile'));
 
-        $entries = $session->entries()
-            ->with('player')
-            ->where('session_state', '!=', 'removed')
-            ->orderBy('arrival_order')
-            ->get();
-        $eligiblePlayers = $entries
-            ->where('entry_type', 'player')
-            ->values()
-            ->concat(
-                $entries
-                    ->where('entry_type', 'guest')
-                    ->where('guest_fee_paid', true)
-                    ->values(),
-            )
-            ->values();
-
-        if ($eligiblePlayers->count() < 10) {
+        if ($this->draftReadyEntries($session->fresh('entries.player.scoutProfile'))->count() < 10) {
             throw ValidationException::withMessages([
                 'session' => 'Se necesitan al menos 10 jugadores habiles para iniciar la jornada.',
             ]);
         }
 
-        $playerEntries = $entries->where('entry_type', 'player')->values();
-        $paidGuests = $entries
-            ->where('entry_type', 'guest')
-            ->where('guest_fee_paid', true)
-            ->values();
-        $isPastDue = $this->operations->hasPastDue($cut);
-
-        if ($isPastDue) {
-            $priorityMembers = $playerEntries
-                ->where('current_cut_paid', true)
-                ->values();
-            $lowerPriority = $playerEntries
-                ->where('current_cut_paid', false)
-                ->values()
-                ->concat($paidGuests)
-                ->values();
-        } else {
-            $priorityMembers = $playerEntries;
-            $lowerPriority = $paidGuests;
-        }
-
-        $firstTen = $priorityMembers->take(10)->values();
-
-        if ($firstTen->count() < 10) {
-            $firstTen = $firstTen
-                ->concat($lowerPriority->take(10 - $firstTen->count()))
-                ->values();
-        }
-
-        $selectedIds = $firstTen->pluck('id')->all();
-        $queue = $priorityMembers
-            ->reject(fn (LeagueSessionEntry $entry): bool => in_array($entry->id, $selectedIds, true))
-            ->values()
-            ->concat(
-                $lowerPriority
-                    ->reject(fn (LeagueSessionEntry $entry): bool => in_array($entry->id, $selectedIds, true))
-                    ->values(),
-            )
-            ->values();
-
-        DB::transaction(function () use ($session, $firstTen, $queue): void {
-            $session->entries()
-                ->where('session_state', '!=', 'removed')
-                ->update([
-                    'queue_seed' => null,
-                    'session_state' => 'arrival',
-                    'team_side' => null,
-                    'queue_position' => null,
-                ]);
-
-            foreach ($queue as $index => $entry) {
-                $entry->forceFill([
-                    'queue_seed' => $index + 1,
-                    'session_state' => 'queued',
-                    'queue_position' => $index + 1,
-                ])->save();
-            }
-
-            foreach ($firstTen as $entry) {
-                $entry->forceFill([
-                    'session_state' => 'pool',
-                    'team_side' => null,
-                    'queue_position' => null,
-                ])->save();
-            }
-
-            $session->forceFill([
-                'status' => 'prepared',
-                'current_game_number' => $this->nextGameNumber($session),
-                'started_at' => $session->started_at ?? now(),
-                'prepared_at' => now(),
-                'ended_at' => null,
-                'initial_pool' => $this->serializeEntries($firstTen),
-                'initial_queue' => $this->serializeEntries($queue),
-                'rotation_state' => [
-                    'streak_team' => null,
-                    'streak_count' => 0,
-                    'double_rotation_mode' => false,
-                    'waiting_champion_team' => null,
-                ],
-                'clock_remaining_seconds' => $session->clock_duration_seconds,
-                'clock_state' => 'paused',
-                'clock_started_at' => null,
-            ])->save();
-        });
+        $this->syncPreparedSessionState(
+            $session->fresh('entries.player.scoutProfile'),
+            $cut,
+            $session->status !== 'prepared',
+        );
     }
 
     public function resetSession(User $user): void
@@ -534,21 +507,92 @@ class LeagueArrivalService
         });
     }
 
+    /**
+     * @param  array<int, int>  $orderedEntryIds
+     */
+    public function reorderPregameQueue(User $user, array $orderedEntryIds): void
+    {
+        $context = $this->operations->requireAdminContext($user);
+        $cut = $this->operations->activeCutForLeague($context['league']);
+        $session = $this->operations->currentSessionForLeague($context['league'], $cut);
+
+        if ($session === null) {
+            throw ValidationException::withMessages([
+                'session' => 'No existe una jornada activa para reordenar.',
+            ]);
+        }
+
+        $session = $this->pruneNonOperationalEntries($session, $context['league']);
+
+        if ($session->status === 'completed' || $session->status === 'in_progress') {
+            throw ValidationException::withMessages([
+                'session' => 'La cola inicial solo se puede mover antes del primer juego.',
+            ]);
+        }
+
+        $readyEntries = $this->draftReadyEntries($session)
+            ->values();
+        $readyIds = $readyEntries
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+        $normalizedIds = collect($orderedEntryIds)
+            ->map(fn ($id): int => (int) $id)
+            ->values()
+            ->all();
+
+        sort($readyIds);
+        $expectedIds = $readyIds;
+        $sortedProvidedIds = $normalizedIds;
+        sort($sortedProvidedIds);
+
+        if ($normalizedIds === [] || $sortedProvidedIds !== $expectedIds) {
+            throw ValidationException::withMessages([
+                'entry_ids' => 'Debes enviar exactamente los integrantes listos de la cola inicial.',
+            ]);
+        }
+
+        $entriesById = $readyEntries->keyBy('id');
+        $arrivedMembersCount = $session->entries
+            ->where('entry_type', 'player')
+            ->where('session_state', '!=', 'removed')
+            ->count();
+
+        if ($arrivedMembersCount > 10) {
+            $topTenGuestIds = collect(array_slice($normalizedIds, 0, 10))
+                ->filter(fn (int $entryId): bool => $entriesById->get($entryId)?->entry_type === 'guest')
+                ->values()
+                ->all();
+
+            if ($topTenGuestIds !== []) {
+                throw ValidationException::withMessages([
+                    'entry_ids' => 'Con mas de 10 miembros llegados, los invitados solo pueden ubicarse desde la posicion 11 en adelante.',
+                ]);
+            }
+        }
+
+        DB::transaction(function () use ($normalizedIds, $entriesById, $session, $cut): void {
+            foreach ($normalizedIds as $index => $entryId) {
+                /** @var LeagueSessionEntry $entry */
+                $entry = $entriesById->get($entryId);
+                $entry->forceFill([
+                    'queue_seed' => $index + 1,
+                ])->save();
+            }
+
+            $this->normalizePregameQueueSeeds($session->fresh('entries.player.scoutProfile'));
+
+            if ($session->status === 'prepared') {
+                $this->syncPreparedSessionState($session->fresh('entries.player.scoutProfile'), $cut);
+            }
+        });
+    }
+
     private function resequenceEntries(LeagueSession $session, LeagueCut $cut): void
     {
-        $isPastDue = $this->operations->hasPastDue($cut);
-
         $session->entries
             ->where('session_state', '!=', 'removed')
-            ->sort(function (LeagueSessionEntry $left, LeagueSessionEntry $right) use ($isPastDue): int {
-                $priorityDiff = $this->entryPriorityRank($left, $isPastDue) <=> $this->entryPriorityRank($right, $isPastDue);
-
-                if ($priorityDiff !== 0) {
-                    return $priorityDiff;
-                }
-
-                return ($left->arrival_order ?? PHP_INT_MAX) <=> ($right->arrival_order ?? PHP_INT_MAX);
-            })
+            ->sortBy('arrival_order')
             ->values()
             ->each(function (LeagueSessionEntry $entry, int $index): void {
                 $entry->forceFill([
@@ -559,21 +603,9 @@ class LeagueArrivalService
 
     private function resequenceLiveQueue(LeagueSession $session, LeagueCut $cut): void
     {
-        $isPastDue = $this->operations->hasPastDue($cut);
-
-        // Cuando la jornada ya arranco, las llegadas nuevas no desplazan el pool actual:
-        // entran directo a la cola y la recolocamos por prioridad operativa real.
         $session->entries
             ->where('session_state', 'queued')
-            ->sort(function (LeagueSessionEntry $left, LeagueSessionEntry $right) use ($isPastDue): int {
-                $priorityDiff = $this->entryPriorityRank($left, $isPastDue) <=> $this->entryPriorityRank($right, $isPastDue);
-
-                if ($priorityDiff !== 0) {
-                    return $priorityDiff;
-                }
-
-                return ($left->arrival_order ?? PHP_INT_MAX) <=> ($right->arrival_order ?? PHP_INT_MAX);
-            })
+            ->sortBy('queue_position')
             ->values()
             ->each(function (LeagueSessionEntry $entry, int $index): void {
                 $entry->forceFill([
@@ -589,6 +621,56 @@ class LeagueArrivalService
             : 'member_priority';
     }
 
+    /**
+     * @return Collection<int, LeagueSessionEntry>
+     */
+    private function draftReadyEntries(LeagueSession $session): Collection
+    {
+        return $session->entries
+            ->where('session_state', '!=', 'removed')
+            ->filter(fn (LeagueSessionEntry $entry): bool => $entry->entry_type === 'player' || $entry->guest_fee_paid)
+            ->values();
+    }
+
+    private function hasCustomPregameOrder(Collection $readyEntries): bool
+    {
+        return $readyEntries->isNotEmpty()
+            && $readyEntries->whereNotNull('queue_seed')->count() === $readyEntries->count();
+    }
+
+    private function nextPregameQueueSeed(LeagueSession $session): int
+    {
+        return ((int) $this->draftReadyEntries($session)->max('queue_seed')) + 1;
+    }
+
+    private function nextLiveQueuePosition(LeagueSession $session): int
+    {
+        return ((int) $session->entries
+            ->where('session_state', 'queued')
+            ->max('queue_position')) + 1;
+    }
+
+    private function normalizePregameQueueSeeds(LeagueSession $session): void
+    {
+        $readyEntries = $this->draftReadyEntries($session);
+
+        if (! $this->hasCustomPregameOrder($readyEntries)) {
+            return;
+        }
+
+        $readyEntries
+            ->sortBy([
+                ['queue_seed', 'asc'],
+                ['arrival_order', 'asc'],
+            ])
+            ->values()
+            ->each(function (LeagueSessionEntry $entry, int $index): void {
+                $entry->forceFill([
+                    'queue_seed' => $index + 1,
+                ])->save();
+            });
+    }
+
     private function entryPriorityRank(LeagueSessionEntry $entry, bool $isPastDue): int
     {
         if (! $isPastDue) {
@@ -601,6 +683,135 @@ class LeagueArrivalService
             $entry->entry_type === 'guest' && $entry->guest_fee_paid => 2,
             default => 3,
         };
+    }
+
+    /**
+     * @return Collection<int, LeagueSessionEntry>
+     */
+    private function pregameQueueOrder(LeagueSession $session, LeagueCut $cut): Collection
+    {
+        $readyEntries = $this->draftReadyEntries($session);
+
+        if ($readyEntries->isEmpty()) {
+            return collect();
+        }
+
+        if ($this->hasCustomPregameOrder($readyEntries)) {
+            return $readyEntries
+                ->sortBy([
+                    ['queue_seed', 'asc'],
+                    ['arrival_order', 'asc'],
+                ])
+                ->values();
+        }
+
+        $baseOrder = $readyEntries
+            ->sortBy('arrival_order')
+            ->values();
+        $isPastDue = $this->operations->hasPastDue($cut);
+        $protectedEntries = $baseOrder
+            ->sort(function (LeagueSessionEntry $left, LeagueSessionEntry $right) use ($isPastDue): int {
+                $priorityDiff = $this->entryPriorityRank($left, $isPastDue) <=> $this->entryPriorityRank($right, $isPastDue);
+
+                if ($priorityDiff !== 0) {
+                    return $priorityDiff;
+                }
+
+                return ($left->arrival_order ?? PHP_INT_MAX) <=> ($right->arrival_order ?? PHP_INT_MAX);
+            })
+            ->take(10)
+            ->values();
+        $protectedIds = $protectedEntries
+            ->pluck('id')
+            ->all();
+
+        return $protectedEntries
+            ->concat(
+                $baseOrder
+                    ->reject(fn (LeagueSessionEntry $entry): bool => in_array($entry->id, $protectedIds, true))
+                    ->values(),
+            )
+            ->values();
+    }
+
+    private function syncPreparedSessionState(LeagueSession $session, LeagueCut $cut, bool $markPrepared = false): void
+    {
+        $orderedReady = $this->pregameQueueOrder($session, $cut);
+
+        if ($markPrepared && $orderedReady->count() < 10) {
+            throw ValidationException::withMessages([
+                'session' => 'Se necesitan al menos 10 jugadores habiles para iniciar la jornada.',
+            ]);
+        }
+
+        $firstTen = $orderedReady->take(10)->values();
+        $queue = $orderedReady->slice(10)->values();
+        $orderMap = $orderedReady
+            ->values()
+            ->mapWithKeys(fn (LeagueSessionEntry $entry, int $index): array => [$entry->id => $index + 1]);
+        $poolIds = $firstTen->pluck('id')->all();
+        $queueIds = $queue->pluck('id')->all();
+        $hasCustomOrder = $this->hasCustomPregameOrder($orderedReady);
+
+        DB::transaction(function () use ($session, $firstTen, $queue, $orderMap, $poolIds, $queueIds, $markPrepared, $hasCustomOrder): void {
+            foreach ($session->entries as $entry) {
+                if ($entry->session_state === 'removed') {
+                    continue;
+                }
+
+                if (in_array($entry->id, $poolIds, true)) {
+                    $entry->forceFill([
+                        'queue_seed' => $hasCustomOrder ? $orderMap[$entry->id] : null,
+                        'session_state' => 'pool',
+                        'team_side' => null,
+                        'queue_position' => null,
+                    ])->save();
+
+                    continue;
+                }
+
+                $queueIndex = array_search($entry->id, $queueIds, true);
+
+                if ($queueIndex !== false) {
+                    $entry->forceFill([
+                        'queue_seed' => $hasCustomOrder ? $orderMap[$entry->id] : $queueIndex + 1,
+                        'session_state' => 'queued',
+                        'team_side' => null,
+                        'queue_position' => $queueIndex + 1,
+                    ])->save();
+
+                    continue;
+                }
+
+                $entry->forceFill([
+                    'queue_seed' => null,
+                    'session_state' => 'arrival',
+                    'team_side' => null,
+                    'queue_position' => null,
+                ])->save();
+            }
+
+            $session->forceFill([
+                'status' => 'prepared',
+                'current_game_number' => $markPrepared
+                    ? $this->nextGameNumber($session)
+                    : $session->current_game_number,
+                'started_at' => $session->started_at ?? now(),
+                'prepared_at' => $markPrepared ? now() : ($session->prepared_at ?? now()),
+                'ended_at' => null,
+                'initial_pool' => $this->serializeEntries($firstTen),
+                'initial_queue' => $this->serializeEntries($queue),
+                'rotation_state' => $session->rotation_state ?? [
+                    'streak_team' => null,
+                    'streak_count' => 0,
+                    'double_rotation_mode' => false,
+                    'waiting_champion_team' => null,
+                ],
+                'clock_remaining_seconds' => $session->clock_duration_seconds,
+                'clock_state' => 'paused',
+                'clock_started_at' => null,
+            ])->save();
+        });
     }
 
     private function nextGameNumber(LeagueSession $session): int
@@ -636,7 +847,7 @@ class LeagueArrivalService
             ])->save();
         });
 
-        return $session->fresh('entries');
+        return $session->fresh('entries.player.scoutProfile');
     }
 
     /**
@@ -683,6 +894,6 @@ class LeagueArrivalService
 
         $query->delete();
 
-        return $session->fresh('entries.player');
+        return $session->fresh('entries.player.scoutProfile');
     }
 }

@@ -7,9 +7,8 @@ import {
     ListOrdered,
     RefreshCcw,
     UserPlus,
-    Users,
 } from 'lucide-vue-next';
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import LeagueRosterManagerDialog from '@/components/league/LeagueRosterManagerDialog.vue';
 import LeagueShellLayout from '@/components/league/LeagueShellLayout.vue';
 import { Button } from '@/components/ui/button';
@@ -26,6 +25,7 @@ import type { BreadcrumbItem } from '@/types';
 
 type PlayerRow = {
     id: number;
+    session_entry_id: number | null;
     name: string;
     jersey_number: number | null;
     attendance_count: number;
@@ -41,6 +41,16 @@ type GuestRow = {
     name: string;
     arrival_order: number;
     guest_fee_paid: boolean;
+};
+
+type QueuePreviewEntry = {
+    id: number;
+    position: number;
+    name: string;
+    is_guest: boolean;
+    jersey_number: number | null;
+    arrival_order: number;
+    preferred_position: string | null;
 };
 
 type RosterManagement = {
@@ -107,6 +117,10 @@ type ModulePayload = {
     };
     players: PlayerRow[];
     guests: GuestRow[];
+    queue_preview: {
+        can_reorder: boolean;
+        entries: QueuePreviewEntry[];
+    };
     roster_management: RosterManagement;
 };
 
@@ -129,6 +143,12 @@ const prepareDialogOpen = ref(false);
 const prepareError = ref('');
 const prepareSubmitting = ref(false);
 const guestPayments = reactive<Record<number, boolean>>({});
+const queuePreviewEntries = ref<QueuePreviewEntry[]>([]);
+const reorderDialogOpen = ref(false);
+const reorderEntryId = ref<number | null>(null);
+const reorderTargetPosition = ref<number>(1);
+const reorderError = ref('');
+const reorderSubmitting = ref(false);
 
 const canManageArrival = computed(() => props.module.role.can_manage);
 const sortedPlayers = computed(() => props.module.players);
@@ -147,6 +167,161 @@ const draftStatus = computed(() => {
         ? { label: 'Draft listo', className: 'app-badge-positive' }
         : { label: 'Sin draft', className: 'app-badge-negative' };
 });
+
+watch(
+    () => props.module.queue_preview.entries,
+    (entries) => {
+        queuePreviewEntries.value = entries.map((entry) => ({ ...entry }));
+    },
+    { immediate: true, deep: true },
+);
+
+const queuePreviewPositionById = computed(
+    () => new Map(queuePreviewEntries.value.map((entry) => [entry.id, entry.position])),
+);
+const arrivalDisplayPositionByEntryId = computed(() => {
+    const positions = new Map<number, number>();
+    const queuedIds = new Set<number>();
+    let nextPosition = 1;
+
+    queuePreviewEntries.value.forEach((entry) => {
+        positions.set(entry.id, nextPosition);
+        queuedIds.add(entry.id);
+        nextPosition += 1;
+    });
+
+    props.module.guests
+        .filter((guest) => !queuedIds.has(guest.id))
+        .sort((left, right) => left.arrival_order - right.arrival_order)
+        .forEach((guest) => {
+            positions.set(guest.id, nextPosition);
+            nextPosition += 1;
+        });
+
+    return positions;
+});
+
+function guestQueueLabel(guest: GuestRow): string {
+    const queuedPosition = arrivalDisplayPositionByEntryId.value.get(guest.id);
+
+    if (queuedPosition !== undefined) {
+        return `Cola #${queuedPosition}`;
+    }
+
+    return `Llegada #${guest.arrival_order}`;
+}
+
+function queuePreviewMeta(entry: QueuePreviewEntry): string {
+    const labels = [`Cola #${entry.position}`];
+
+    if (!entry.is_guest) {
+        labels.push(`Llegada #${entry.arrival_order}`);
+    }
+
+    if (entry.preferred_position) {
+        labels.push(entry.preferred_position);
+    }
+
+    return labels.join(' · ');
+}
+
+function memberQueueLabel(player: PlayerRow): string {
+    if (player.session_entry_id === null) {
+        return 'Solo lectura';
+    }
+
+    const queuedPosition = arrivalDisplayPositionByEntryId.value.get(player.session_entry_id);
+
+    if (queuedPosition !== undefined) {
+        return `Cola #${queuedPosition}`;
+    }
+
+    return `Llegada #${player.arrival_order}`;
+}
+
+const reorderableEntries = computed(() => queuePreviewEntries.value);
+const selectedReorderEntry = computed(() =>
+    reorderableEntries.value.find((entry) => entry.id === reorderEntryId.value) ?? null,
+);
+const arrivedMembersCount = computed(() => props.module.session.counts.arrived_members);
+
+function openReorderDialog(entryId: number): void {
+    if (!props.module.queue_preview.can_reorder) {
+        return;
+    }
+
+    const entry = reorderableEntries.value.find((item) => item.id === entryId);
+
+    if (!entry) {
+        return;
+    }
+
+    reorderEntryId.value = entry.id;
+    reorderTargetPosition.value = entry.position;
+    reorderError.value = '';
+    reorderDialogOpen.value = true;
+}
+
+function closeReorderDialog(): void {
+    reorderDialogOpen.value = false;
+    reorderEntryId.value = null;
+    reorderTargetPosition.value = 1;
+    reorderError.value = '';
+    reorderSubmitting.value = false;
+}
+
+function applyPregameReorder(entryId: number, targetPosition: number): number[] {
+    const reordered = [...reorderableEntries.value];
+    const fromIndex = reordered.findIndex((entry) => entry.id === entryId);
+    const toIndex = targetPosition - 1;
+
+    if (fromIndex === -1 || toIndex < 0 || toIndex >= reordered.length) {
+        return reordered.map((entry) => entry.id);
+    }
+
+    const [movedEntry] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, movedEntry);
+
+    return reordered.map((entry) => entry.id);
+}
+
+function submitReorderDialog(): void {
+    const entry = selectedReorderEntry.value;
+
+    if (!entry || reorderSubmitting.value) {
+        return;
+    }
+
+    if (entry.is_guest && arrivedMembersCount.value > 10 && reorderTargetPosition.value < 11) {
+        reorderError.value = 'Con mas de 10 miembros llegados, los invitados solo pueden ir desde la posicion 11.';
+
+        return;
+    }
+
+    reorderError.value = '';
+    reorderSubmitting.value = true;
+
+    router.post(
+        '/liga/llegada/cola/reorder',
+        {
+            entry_ids: applyPregameReorder(entry.id, reorderTargetPosition.value),
+        },
+        {
+            preserveScroll: true,
+            onError: (errors) => {
+                reorderError.value = String(
+                    errors.entry_ids ?? errors.session ?? 'No se pudo actualizar la posicion.',
+                );
+            },
+            onFinish: () => {
+                reorderSubmitting.value = false;
+            },
+            onSuccess: () => {
+                closeReorderDialog();
+            },
+        },
+    );
+}
 
 function statusIcon(player: PlayerRow) {
     if (player.current_cut_paid) {
@@ -312,6 +487,7 @@ function resetSession(): void {
         },
     );
 }
+
 </script>
 
 <template>
@@ -466,9 +642,9 @@ function resetSession(): void {
                     <div>
                         <p class="app-kicker text-[#E5B849]">Miembros</p>
                         <p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">
-                            La prioridad operativa siempre coloca primero a los
-                            miembros habilitados y reordena a invitados debajo
-                            de ellos.
+                            Antes del primer juego, los miembros solo protegen
+                            las primeras 10 posiciones. Después de ahí, la cola
+                            conserva el orden ya establecido.
                         </p>
                     </div>
                     <span
@@ -514,12 +690,15 @@ function resetSession(): void {
                                     >
                                         #{{ player.jersey_number ?? 'S/N' }}
                                     </span>
-                                    <span
+                                    <button
                                         v-if="player.has_arrived"
-                                        class="rounded-full border border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] px-2 py-0.5 text-[11px] font-semibold text-[#4ADE80]"
+                                        type="button"
+                                        class="rounded-full border border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] px-2 py-0.5 text-[11px] font-semibold text-[#4ADE80] transition active:scale-[0.97] active:opacity-80"
+                                        :disabled="!props.module.queue_preview.can_reorder || player.session_entry_id === null"
+                                        @click="player.session_entry_id !== null ? openReorderDialog(player.session_entry_id) : null"
                                     >
-                                        Llegada #{{ player.arrival_order }}
-                                    </span>
+                                        {{ memberQueueLabel(player) }}
+                                    </button>
                                 </div>
                                 <p
                                     class="mt-2 text-[13px] leading-6 text-[#94A3B8]"
@@ -566,7 +745,7 @@ function resetSession(): void {
                         >
                             {{
                                 player.has_arrived
-                                    ? `Llegada #${player.arrival_order}`
+                                    ? memberQueueLabel(player)
                                     : 'Solo lectura'
                             }}
                         </span>
@@ -636,9 +815,14 @@ function resetSession(): void {
                                 <p class="text-sm font-semibold text-[#F8FAFC]">
                                     {{ guest.name }}
                                 </p>
-                                <p class="mt-1 text-[12px] text-[#94A3B8]">
-                                    Llegada #{{ guest.arrival_order }}
-                                </p>
+                                <button
+                                    type="button"
+                                    class="mt-1 rounded-full border border-white/6 bg-[#131B2F] px-2 py-0.5 text-[12px] text-[#94A3B8] transition active:scale-[0.97] active:opacity-80"
+                                    :disabled="!props.module.queue_preview.can_reorder"
+                                    @click="openReorderDialog(guest.id)"
+                                >
+                                    {{ guestQueueLabel(guest) }}
+                                </button>
                             </div>
 
                             <div class="flex gap-2">
@@ -674,43 +858,145 @@ function resetSession(): void {
             </article>
         </section>
 
-        <section
-            v-if="props.module.session.status === 'prepared'"
-            class="grid gap-4 xl:grid-cols-2"
-        >
-            <article class="app-surface space-y-4">
-                <div class="flex items-center gap-3">
-                    <Users class="size-5 text-[#E5B849]" />
-                    <p class="app-kicker text-[#E5B849]">Pool inicial</p>
-                </div>
-                <div class="grid gap-2">
-                    <div
-                        v-for="entry in props.module.session.prepared_pool"
-                        :key="entry.id"
-                        class="rounded-[12px] border border-white/6 bg-[#0E1628] px-4 py-3 text-sm text-[#F8FAFC]"
-                    >
-                        {{ entry.name }}
+        <section class="app-surface space-y-4">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <div class="flex items-center gap-3">
+                        <ListOrdered class="size-5 text-[#E5B849]" />
+                        <p class="app-kicker text-[#E5B849]">Cola inicial</p>
                     </div>
+                    <p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">
+                        Las primeras 10 posiciones alimentan el draft. Usa el
+                        numero de llegada en miembros o invitados para mover a
+                        alguien a otra posicion antes del primer juego.
+                    </p>
                 </div>
-            </article>
+                <span
+                    class="rounded-full border border-white/6 bg-[#0E1628] px-3 py-1 text-[12px] text-[#94A3B8]"
+                >
+                    {{ queuePreviewEntries.length }}
+                </span>
+            </div>
 
-            <article class="app-surface space-y-4">
-                <div class="flex items-center gap-3">
-                    <ListOrdered class="size-5 text-[#E5B849]" />
-                    <p class="app-kicker text-[#E5B849]">Cola inicial</p>
-                </div>
-                <div class="grid gap-2">
-                    <div
-                        v-for="(entry, index) in props.module.session
-                            .prepared_queue"
-                        :key="entry.id"
-                        class="rounded-[12px] border border-white/6 bg-[#0E1628] px-4 py-3 text-sm text-[#F8FAFC]"
+            <div
+                v-if="queuePreviewEntries.length === 0"
+                class="rounded-[14px] border border-dashed border-white/8 bg-[#0E1628] p-4 text-sm text-[#94A3B8]"
+            >
+                La cola inicial se llena con los miembros llegados y los
+                invitados pagados.
+            </div>
+
+            <div v-else class="grid gap-3">
+                <div
+                    v-for="entry in queuePreviewEntries"
+                    :key="entry.id"
+                    class="flex items-center justify-between gap-3 rounded-[14px] border border-white/6 bg-[#0E1628] p-4"
+                >
+                    <div class="flex min-w-0 items-center gap-3">
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <p
+                                    class="text-[15px] font-semibold text-[#F8FAFC]"
+                                >
+                                    {{ entry.name }}
+                                </p>
+                                <span
+                                    class="rounded-full border border-white/6 bg-[#131B2F] px-2 py-0.5 text-[11px] text-[#94A3B8]"
+                                >
+                                    {{
+                                        entry.is_guest
+                                            ? 'Invitado'
+                                            : `#${entry.jersey_number ?? 'S/N'}`
+                                    }}
+                                </span>
+                                <span
+                                    v-if="entry.position <= 10"
+                                    class="rounded-full border border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] px-2 py-0.5 text-[11px] font-semibold text-[#4ADE80]"
+                                >
+                                    Draft
+                                </span>
+                            </div>
+                            <p class="mt-2 text-[12px] text-[#94A3B8]">
+                                {{ queuePreviewMeta(entry) }}
+                            </p>
+                        </div>
+                    </div>
+                    <span
+                        class="rounded-full border border-white/6 bg-[#131B2F] px-3 py-1 text-[11px] font-semibold text-[#F8FAFC]"
                     >
-                        {{ index + 1 }}. {{ entry.name }}
+                        #{{ entry.position }}
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <Dialog :open="reorderDialogOpen" @update:open="(open) => { if (!open) closeReorderDialog(); }">
+            <DialogContent class="border-white/8 bg-[#1A243A] text-[#F8FAFC] sm:max-w-[420px]">
+                <DialogHeader class="space-y-3">
+                    <DialogTitle class="app-display text-[28px]">
+                        Cambiar posicion
+                    </DialogTitle>
+                    <DialogDescription class="text-[13px] leading-6 text-[#94A3B8]">
+                        {{
+                            selectedReorderEntry
+                                ? `Mueve a ${selectedReorderEntry.name} dentro de la cola inicial.`
+                                : ''
+                        }}
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div class="grid gap-4">
+                    <div class="grid gap-2">
+                        <label class="text-sm font-medium text-[#F8FAFC]">
+                            Nueva posicion
+                        </label>
+                        <select
+                            v-model.number="reorderTargetPosition"
+                            class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none"
+                        >
+                            <option
+                                v-for="entry in reorderableEntries"
+                                :key="`position-${entry.id}`"
+                                :value="entry.position"
+                            >
+                                Posicion #{{ entry.position }}
+                            </option>
+                        </select>
+                        <p
+                            v-if="selectedReorderEntry?.is_guest && arrivedMembersCount > 10"
+                            class="text-[12px] leading-5 text-[#FCA5A5]"
+                        >
+                            Este invitado solo puede colocarse desde la posicion 11 en adelante.
+                        </p>
+                        <p
+                            v-if="reorderError"
+                            class="rounded-[12px] border border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] px-3 py-2 text-[12px] text-[#FCA5A5]"
+                        >
+                            {{ reorderError }}
+                        </p>
                     </div>
                 </div>
-            </article>
-        </section>
+
+                <DialogFooter class="gap-2">
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        class="border border-white/8 bg-[#0E1628]"
+                        @click="closeReorderDialog"
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        type="button"
+                        class="bg-[#E5B849] text-[#0A0F1D] hover:bg-[#e8c25d]"
+                        :disabled="reorderSubmitting"
+                        @click="submitReorderDialog"
+                    >
+                        {{ reorderSubmitting ? 'Moviendo...' : 'Guardar posicion' }}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
         <Dialog
             :open="selectedPlayer !== null"

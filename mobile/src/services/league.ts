@@ -115,6 +115,18 @@ export type LeagueArrivalPayload = {
         arrival_order: number;
         guest_fee_paid: boolean;
     }>;
+    queue_preview: {
+        can_reorder: boolean;
+        entries: Array<{
+            id: number;
+            position: number;
+            name: string;
+            is_guest: boolean;
+            jersey_number: number | null;
+            arrival_order: number;
+            preferred_position: string | null;
+        }>;
+    };
     roster_management: LeagueRosterManagement;
 };
 
@@ -267,6 +279,19 @@ export async function prepareLeagueArrival(
 export async function resetLeagueArrival(): Promise<LeagueArrivalPayload> {
     const { data } = await api.post<ApiSuccess<LeagueArrivalPayload>>(
         '/league/arrival/reset',
+    );
+
+    return data.data;
+}
+
+export async function reorderLeagueArrivalQueue(
+    entryIds: number[],
+): Promise<LeagueArrivalPayload> {
+    const { data } = await api.post<ApiSuccess<LeagueArrivalPayload>>(
+        '/league/arrival/queue/reorder',
+        {
+            entry_ids: entryIds,
+        },
     );
 
     return data.data;
@@ -485,9 +510,11 @@ export type LeagueEntryCard = {
     is_guest: boolean;
     jersey_number: number | null;
     arrival_order: number;
+    preferred_position: string | null;
 };
 
 export type LeagueTeamPlayer = LeagueEntryCard & {
+    is_captain: boolean;
     points: number;
     shots: { 1: number; 2: number; 3: number };
 };
@@ -495,7 +522,15 @@ export type LeagueTeamPlayer = LeagueEntryCard & {
 export type LeagueGamePayload = LeagueCompetitionBase & {
     game: {
         state: 'idle' | 'draft' | 'live' | 'completed';
-        draft: { entries: LeagueEntryCard[]; can_start: boolean };
+        draft: {
+            entries: Array<
+                LeagueEntryCard & {
+                    scout_role: string | null;
+                    auto_draft_rating: number;
+                }
+            >;
+            can_start: boolean;
+        };
         clock: {
             duration_seconds: number | null;
             remaining_seconds: number | null;
@@ -562,6 +597,7 @@ export type LeagueQueuePayload = LeagueCompetitionBase & {
             unpaid_members_count: number;
         };
         live_game: null | { game_number: number; score: string };
+        can_reorder: boolean;
     };
 };
 
@@ -805,12 +841,27 @@ export async function fetchLeagueScout(): Promise<LeagueScoutPayload> {
 }
 
 export async function draftLeagueGame(payload: {
-    mode: 'auto' | 'arrival' | 'manual';
+    mode: 'auto' | 'arrival' | 'manual' | 'random';
+    captain_mode: 'arrival' | 'manual' | 'random';
     assignments?: Record<number, 'A' | 'B'>;
+    captains?: { A?: number; B?: number };
 }): Promise<LeagueGamePayload> {
     const { data } = await api.post<ApiSuccess<LeagueGamePayload>>(
         '/league/modules/game/draft',
         payload,
+    );
+
+    return data.data;
+}
+
+export async function reorderLeagueQueue(
+    entryIds: number[],
+): Promise<LeagueQueuePayload> {
+    const { data } = await api.post<ApiSuccess<LeagueQueuePayload>>(
+        '/league/modules/queue/reorder',
+        {
+            entry_ids: entryIds,
+        },
     );
 
     return data.data;

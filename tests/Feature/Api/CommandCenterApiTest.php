@@ -141,20 +141,24 @@ class CommandCenterApiTest extends TestCase
         $generalAdmin = User::factory()->generalAdmin()->create();
         $league = League::factory()->create([
             'name' => 'Liga Aurora',
+            'emoji' => 'A',
             'slug' => 'liga-aurora',
         ]);
 
         $this->actingAs($generalAdmin, 'sanctum')
             ->patchJson("/api/v1/command-center/leagues/{$league->id}", [
                 'name' => 'Liga Impacto',
+                'emoji' => 'B',
             ])
             ->assertOk()
             ->assertJsonPath('data.league.name', 'Liga Impacto')
+            ->assertJsonPath('data.league.emoji', 'B')
             ->assertJsonPath('data.league.slug', 'liga-impacto');
 
         $this->assertDatabaseHas('leagues', [
             'id' => $league->id,
             'name' => 'Liga Impacto',
+            'emoji' => 'B',
             'slug' => 'liga-impacto',
         ]);
     }

@@ -45,6 +45,8 @@ class LeagueCompetitionService
         $context = $this->operationalContext($user);
         $session = $context['session'];
         $openGame = $this->openGame($session);
+        $seasonStats = $this->seasonStats($context['season']->sessions)->keyBy('season_key');
+        $scoutStatBaseline = $this->scoutStatBaseline($seasonStats);
         $completedGames = $session->games
             ->where('status', 'completed')
             ->sortByDesc('game_number')
@@ -60,7 +62,7 @@ class LeagueCompetitionService
                 'state' => $this->gameState($session, $openGame),
                 'draft' => [
                     'entries' => $this->pendingPoolEntries($session)
-                        ->map(fn (LeagueSessionEntry $entry): array => $this->entryCard($entry))
+                        ->map(fn (LeagueSessionEntry $entry): array => $this->draftEntryCard($entry, $seasonStats, $scoutStatBaseline))
                         ->values()
                         ->all(),
                     'can_start' => $openGame === null && $this->pendingPoolEntries($session)->count() === 10,
@@ -130,7 +132,18 @@ class LeagueCompetitionService
                     'game_number' => $openGame->game_number,
                     'score' => "{$openGame->team_a_score} - {$openGame->team_b_score}",
                 ],
+                'can_reorder' => false,
             ],
+        ]);
+    }
+
+    /**
+     * @param  array<int, int>  $orderedEntryIds
+     */
+    public function reorderQueue(User $user, array $orderedEntryIds): void
+    {
+        throw ValidationException::withMessages([
+            'session' => 'La cola operativa no se reordena desde este modulo. Usa Llegada antes del primer juego.',
         ]);
     }
 
@@ -372,7 +385,13 @@ class LeagueCompetitionService
         ]);
     }
 
-    public function confirmDraft(User $user, string $mode, array $assignments = []): void
+    public function confirmDraft(
+        User $user,
+        string $mode,
+        array $assignments = [],
+        string $captainMode = 'arrival',
+        array $captains = [],
+    ): void
     {
         $context = $this->adminContext($user);
         $session = $context['session'];
@@ -391,20 +410,25 @@ class LeagueCompetitionService
             ]);
         }
 
+        $seasonStats = $this->seasonStats($context['season']->sessions)->keyBy('season_key');
+        $randomSeed = $this->deterministicDraftSeed($session, $mode);
         $teams = match ($mode) {
             'auto' => $this->autoDraft(
                 $pool,
-                $this->seasonStats($context['season']->sessions)->keyBy('season_key'),
+                $seasonStats,
             ),
             'arrival' => $this->arrivalDraft($pool),
+            'random' => $this->randomDraft($pool, $randomSeed),
             'manual' => $this->manualDraft($pool, $assignments),
             default => throw ValidationException::withMessages([
                 'mode' => 'Modo de reparto invalido.',
             ]),
         };
+        $captainIds = $this->resolveDraftCaptains($teams, $captainMode, $captains, $randomSeed);
+        $orderedTeams = $this->orderDraftTeamsForGame($teams, $captainIds);
 
-        DB::transaction(function () use ($session, $user, $mode, $teams): void {
-            foreach ($teams['A'] as $entry) {
+        DB::transaction(function () use ($session, $user, $mode, $orderedTeams, $captainIds): void {
+            foreach ($orderedTeams['A'] as $entry) {
                 $entry->forceFill([
                     'session_state' => 'on_court',
                     'team_side' => 'A',
@@ -412,7 +436,7 @@ class LeagueCompetitionService
                 ])->save();
             }
 
-            foreach ($teams['B'] as $entry) {
+            foreach ($orderedTeams['B'] as $entry) {
                 $entry->forceFill([
                     'session_state' => 'on_court',
                     'team_side' => 'B',
@@ -424,7 +448,15 @@ class LeagueCompetitionService
                 'status' => 'in_progress',
             ])->save();
 
-            $this->createOpenGameFromCurrentCourt($session->fresh(['entries.player', 'games']), $user, $mode, 'standard');
+            $this->createOpenGame(
+                $session->fresh(['entries.player.scoutProfile', 'games']),
+                $user,
+                $mode,
+                'standard',
+                $orderedTeams['A'],
+                $orderedTeams['B'],
+                $captainIds,
+            );
         });
     }
 
@@ -1164,21 +1196,59 @@ class LeagueCompetitionService
     {
         $points = $game->player_points ?? [];
         $shots = $game->player_shots ?? [];
+        $snapshotMeta = collect($teamSide === 'A' ? ($game->team_a_snapshot ?? []) : ($game->team_b_snapshot ?? []))
+            ->values()
+            ->mapWithKeys(fn (array $row, int $index): array => [
+                (int) ($row['entry_id'] ?? 0) => [
+                    'order' => $index,
+                    'is_captain' => (bool) ($row['is_captain'] ?? false),
+                ],
+            ]);
 
         return $this->onCourtEntries($session)
             ->where('team_side', $teamSide)
-            ->sortBy('arrival_order')
+            ->sort(function (LeagueSessionEntry $left, LeagueSessionEntry $right) use ($snapshotMeta): int {
+                $leftMeta = $snapshotMeta->get($left->id);
+                $rightMeta = $snapshotMeta->get($right->id);
+
+                if ($leftMeta !== null && $rightMeta !== null) {
+                    return ($leftMeta['order'] ?? PHP_INT_MAX) <=> ($rightMeta['order'] ?? PHP_INT_MAX);
+                }
+
+                return ($left->arrival_order ?? PHP_INT_MAX) <=> ($right->arrival_order ?? PHP_INT_MAX);
+            })
             ->values()
-            ->map(function (LeagueSessionEntry $entry) use ($points, $shots): array {
+            ->map(function (LeagueSessionEntry $entry) use ($points, $shots, $snapshotMeta): array {
                 $entryKey = (string) $entry->id;
+                $meta = $snapshotMeta->get($entry->id, [
+                    'is_captain' => false,
+                ]);
 
                 return [
                     ...$this->entryCard($entry),
+                    'is_captain' => (bool) ($meta['is_captain'] ?? false),
                     'points' => (int) ($points[$entryKey] ?? 0),
                     'shots' => $shots[$entryKey] ?? ['1' => 0, '2' => 0, '3' => 0],
                 ];
             })
             ->all();
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $seasonStats
+     * @param  array<string, mixed>  $scoutStatBaseline
+     * @return array<string, mixed>
+     */
+    private function draftEntryCard(LeagueSessionEntry $entry, Collection $seasonStats, array $scoutStatBaseline): array
+    {
+        $candidate = $this->scoutDraftCandidate($entry, $seasonStats, $scoutStatBaseline);
+
+        return [
+            ...$this->entryCard($entry),
+            'preferred_position' => $entry->player?->scoutProfile?->position,
+            'scout_role' => $candidate['role'],
+            'auto_draft_rating' => $candidate['rating'],
+        ];
     }
 
     /**
@@ -1192,6 +1262,7 @@ class LeagueCompetitionService
             'is_guest' => $entry->entry_type === 'guest',
             'jersey_number' => $entry->player?->jersey_number,
             'arrival_order' => $entry->arrival_order,
+            'preferred_position' => $entry->player?->scoutProfile?->position,
         ];
     }
 
@@ -1298,6 +1369,30 @@ class LeagueCompetitionService
     /**
      * @return array<string, Collection<int, LeagueSessionEntry>>
      */
+    private function randomDraft(Collection $pool, string $seed): array
+    {
+        $ordered = $pool
+            ->sort(function (LeagueSessionEntry $left, LeagueSessionEntry $right) use ($seed): int {
+                $leftWeight = $this->deterministicEntryOrderValue("{$seed}:draft", $left->id);
+                $rightWeight = $this->deterministicEntryOrderValue("{$seed}:draft", $right->id);
+
+                if ($leftWeight !== $rightWeight) {
+                    return $leftWeight <=> $rightWeight;
+                }
+
+                return ($left->arrival_order ?? PHP_INT_MAX) <=> ($right->arrival_order ?? PHP_INT_MAX);
+            })
+            ->values();
+
+        return [
+            'A' => $ordered->take(5)->values(),
+            'B' => $ordered->slice(5, 5)->values(),
+        ];
+    }
+
+    /**
+     * @return array<string, Collection<int, LeagueSessionEntry>>
+     */
     private function autoDraft(Collection $pool, Collection $seasonStats, ?array $scoutStatBaseline = null): array
     {
         $scoutStatBaseline ??= $this->scoutStatBaseline($seasonStats);
@@ -1378,6 +1473,156 @@ class LeagueCompetitionService
         ];
     }
 
+    private function deterministicDraftSeed(LeagueSession $session, string $mode): string
+    {
+        return implode(':', [
+            'session',
+            $session->id,
+            $session->current_game_number,
+            $mode,
+        ]);
+    }
+
+    private function deterministicEntryOrderValue(string $seed, int $entryId): int
+    {
+        $hash = substr(hash('sha256', "{$seed}:{$entryId}"), 0, 12);
+
+        return (int) hexdec($hash);
+    }
+
+    /**
+     * @param  array<string, Collection<int, LeagueSessionEntry>>  $teams
+     * @param  array<string, mixed>  $captains
+     * @return array{A: int, B: int}
+     */
+    private function resolveDraftCaptains(array $teams, string $captainMode, array $captains, string $seed): array
+    {
+        return match ($captainMode) {
+            'arrival' => [
+                'A' => (int) $teams['A']->sortBy('arrival_order')->firstOrFail()->id,
+                'B' => (int) $teams['B']->sortBy('arrival_order')->firstOrFail()->id,
+            ],
+            'random' => [
+                'A' => (int) $teams['A']
+                    ->sortBy(fn (LeagueSessionEntry $entry): int => $this->deterministicEntryOrderValue("{$seed}:captain:A", $entry->id))
+                    ->firstOrFail()
+                    ->id,
+                'B' => (int) $teams['B']
+                    ->sortBy(fn (LeagueSessionEntry $entry): int => $this->deterministicEntryOrderValue("{$seed}:captain:B", $entry->id))
+                    ->firstOrFail()
+                    ->id,
+            ],
+            'manual' => $this->validateManualDraftCaptains($teams, $captains),
+            default => throw ValidationException::withMessages([
+                'captain_mode' => 'Modo de capitan invalido.',
+            ]),
+        };
+    }
+
+    /**
+     * @param  array<string, Collection<int, LeagueSessionEntry>>  $teams
+     * @param  array<string, mixed>  $captains
+     * @return array{A: int, B: int}
+     */
+    private function validateManualDraftCaptains(array $teams, array $captains): array
+    {
+        $captainA = (int) ($captains['A'] ?? 0);
+        $captainB = (int) ($captains['B'] ?? 0);
+
+        if ($captainA < 1 || $captainB < 1 || $captainA === $captainB) {
+            throw ValidationException::withMessages([
+                'captains' => 'Debes elegir un capitan valido para cada equipo.',
+            ]);
+        }
+
+        if (! $teams['A']->contains(fn (LeagueSessionEntry $entry): bool => $entry->id === $captainA)) {
+            throw ValidationException::withMessages([
+                'captains.A' => 'El capitan del Equipo A debe pertenecer al mismo equipo.',
+            ]);
+        }
+
+        if (! $teams['B']->contains(fn (LeagueSessionEntry $entry): bool => $entry->id === $captainB)) {
+            throw ValidationException::withMessages([
+                'captains.B' => 'El capitan del Equipo B debe pertenecer al mismo equipo.',
+            ]);
+        }
+
+        return [
+            'A' => $captainA,
+            'B' => $captainB,
+        ];
+    }
+
+    /**
+     * @param  array<string, Collection<int, LeagueSessionEntry>>  $teams
+     * @param  array{A: int, B: int}  $captainIds
+     * @return array<string, Collection<int, LeagueSessionEntry>>
+     */
+    private function orderDraftTeamsForGame(array $teams, array $captainIds): array
+    {
+        return [
+            'A' => $this->orderDraftTeam($teams['A'], $captainIds['A']),
+            'B' => $this->orderDraftTeam($teams['B'], $captainIds['B']),
+        ];
+    }
+
+    /**
+     * @return Collection<int, LeagueSessionEntry>
+     */
+    private function orderDraftTeam(Collection $team, int $captainId): Collection
+    {
+        /** @var LeagueSessionEntry $captain */
+        $captain = $team->firstOrFail(fn (LeagueSessionEntry $entry): bool => $entry->id === $captainId);
+
+        return collect([$captain])
+            ->concat(
+                $team
+                    ->reject(fn (LeagueSessionEntry $entry): bool => $entry->id === $captainId)
+                    ->sortBy(fn (LeagueSessionEntry $entry): string => mb_strtolower((string) ($entry->entry_type === 'guest'
+                        ? $entry->guest_name
+                        : $entry->player?->display_name)))
+                    ->values(),
+            )
+            ->values();
+    }
+
+    /**
+     * @param  array{A: int, B: int}  $captainIds
+     */
+    private function createOpenGame(
+        LeagueSession $session,
+        User $user,
+        ?string $draftMode,
+        string $phase,
+        Collection $teamA,
+        Collection $teamB,
+        array $captainIds = [],
+    ): LeagueSessionGame
+    {
+        return $session->games()->create([
+            'game_number' => $session->current_game_number,
+            'draft_mode' => $draftMode,
+            'status' => 'open',
+            'phase' => $phase,
+            'team_a_snapshot' => $teamA->map(
+                fn (LeagueSessionEntry $entry): array => $this->entrySnapshot(
+                    $entry,
+                    ($captainIds['A'] ?? null) === $entry->id,
+                )
+            )->all(),
+            'team_b_snapshot' => $teamB->map(
+                fn (LeagueSessionEntry $entry): array => $this->entrySnapshot(
+                    $entry,
+                    ($captainIds['B'] ?? null) === $entry->id,
+                )
+            )->all(),
+            'player_points' => [],
+            'player_shots' => [],
+            'started_at' => now(),
+            'created_by_user_id' => $user->id,
+        ]);
+    }
+
     private function createOpenGameFromCurrentCourt(LeagueSession $session, User $user, ?string $draftMode, string $phase): ?LeagueSessionGame
     {
         $teamA = $this->onCourtEntries($session)->where('team_side', 'A')->sortBy('arrival_order')->values();
@@ -1387,44 +1632,160 @@ class LeagueCompetitionService
             return null;
         }
 
-        return $session->games()->create([
-            'game_number' => $session->current_game_number,
-            'draft_mode' => $draftMode,
-            'status' => 'open',
-            'phase' => $phase,
-            'team_a_snapshot' => $teamA->map(fn (LeagueSessionEntry $entry): array => $this->entrySnapshot($entry))->all(),
-            'team_b_snapshot' => $teamB->map(fn (LeagueSessionEntry $entry): array => $this->entrySnapshot($entry))->all(),
-            'player_points' => [],
-            'player_shots' => [],
-            'started_at' => now(),
-            'created_by_user_id' => $user->id,
-        ]);
+        $captainIds = $this->captainIdsFromLatestSnapshot($session, $teamA, $teamB);
+
+        return $this->createOpenGame(
+            $session,
+            $user,
+            $draftMode,
+            $phase,
+            $this->orderExistingTeamForSnapshot($teamA, $captainIds['A']),
+            $this->orderExistingTeamForSnapshot($teamB, $captainIds['B']),
+            $captainIds,
+        );
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function entrySnapshot(LeagueSessionEntry $entry): array
+    private function entrySnapshot(LeagueSessionEntry $entry, bool $isCaptain = false): array
     {
         return [
             'entry_id' => $entry->id,
             'player_id' => $entry->player?->id,
             'name' => $entry->entry_type === 'guest' ? $entry->guest_name : $entry->player?->display_name,
             'is_guest' => $entry->entry_type === 'guest',
+            'is_captain' => $isCaptain,
             'jersey_number' => $entry->player?->jersey_number,
             'arrival_order' => $entry->arrival_order,
+            'preferred_position' => $entry->player?->scoutProfile?->position,
         ];
     }
 
     private function syncGameSnapshots(LeagueSessionGame $game, LeagueSession $session): void
     {
-        $teamA = $this->onCourtEntries($session)->where('team_side', 'A')->sortBy('arrival_order')->values();
-        $teamB = $this->onCourtEntries($session)->where('team_side', 'B')->sortBy('arrival_order')->values();
+        $previousTeamA = collect($game->team_a_snapshot ?? []);
+        $previousTeamB = collect($game->team_b_snapshot ?? []);
+        $captainIds = [
+            'A' => $previousTeamA
+                ->first(fn (array $participant): bool => (bool) ($participant['is_captain'] ?? false))['entry_id'] ?? null,
+            'B' => $previousTeamB
+                ->first(fn (array $participant): bool => (bool) ($participant['is_captain'] ?? false))['entry_id'] ?? null,
+        ];
+        $orderMaps = [
+            'A' => $previousTeamA
+                ->values()
+                ->mapWithKeys(fn (array $participant, int $index): array => [(int) ($participant['entry_id'] ?? 0) => $index]),
+            'B' => $previousTeamB
+                ->values()
+                ->mapWithKeys(fn (array $participant, int $index): array => [(int) ($participant['entry_id'] ?? 0) => $index]),
+        ];
+        $teamA = $this->orderedOnCourtTeamForSnapshot($session, 'A', $orderMaps['A'], $captainIds['A']);
+        $teamB = $this->orderedOnCourtTeamForSnapshot($session, 'B', $orderMaps['B'], $captainIds['B']);
 
         $game->forceFill([
-            'team_a_snapshot' => $teamA->map(fn (LeagueSessionEntry $entry): array => $this->entrySnapshot($entry))->all(),
-            'team_b_snapshot' => $teamB->map(fn (LeagueSessionEntry $entry): array => $this->entrySnapshot($entry))->all(),
+            'team_a_snapshot' => $teamA->map(
+                fn (LeagueSessionEntry $entry): array => $this->entrySnapshot(
+                    $entry,
+                    $captainIds['A'] === $entry->id,
+                )
+            )->all(),
+            'team_b_snapshot' => $teamB->map(
+                fn (LeagueSessionEntry $entry): array => $this->entrySnapshot(
+                    $entry,
+                    $captainIds['B'] === $entry->id,
+                )
+            )->all(),
         ])->save();
+    }
+
+    /**
+     * @return array{A: int|null, B: int|null}
+     */
+    private function captainIdsFromLatestSnapshot(LeagueSession $session, Collection $teamA, Collection $teamB): array
+    {
+        $latestGame = $session->games
+            ->sortByDesc('game_number')
+            ->first();
+
+        if ($latestGame === null) {
+            return [
+                'A' => $teamA->sortBy('arrival_order')->first()?->id,
+                'B' => $teamB->sortBy('arrival_order')->first()?->id,
+            ];
+        }
+
+        $previousCaptains = [
+            'A' => collect($latestGame->team_a_snapshot ?? [])
+                ->first(fn (array $participant): bool => (bool) ($participant['is_captain'] ?? false))['entry_id'] ?? null,
+            'B' => collect($latestGame->team_b_snapshot ?? [])
+                ->first(fn (array $participant): bool => (bool) ($participant['is_captain'] ?? false))['entry_id'] ?? null,
+        ];
+
+        return [
+            'A' => $teamA->contains(fn (LeagueSessionEntry $entry): bool => $entry->id === $previousCaptains['A'])
+                ? (int) $previousCaptains['A']
+                : $teamA->sortBy('arrival_order')->first()?->id,
+            'B' => $teamB->contains(fn (LeagueSessionEntry $entry): bool => $entry->id === $previousCaptains['B'])
+                ? (int) $previousCaptains['B']
+                : $teamB->sortBy('arrival_order')->first()?->id,
+        ];
+    }
+
+    /**
+     * @param  Collection<int, LeagueSessionEntry>  $team
+     * @return Collection<int, LeagueSessionEntry>
+     */
+    private function orderExistingTeamForSnapshot(Collection $team, ?int $captainId): Collection
+    {
+        if ($captainId === null || ! $team->contains(fn (LeagueSessionEntry $entry): bool => $entry->id === $captainId)) {
+            return $team
+                ->sortBy('arrival_order')
+                ->values();
+        }
+
+        /** @var LeagueSessionEntry $captain */
+        $captain = $team->firstOrFail(fn (LeagueSessionEntry $entry): bool => $entry->id === $captainId);
+
+        return collect([$captain])
+            ->concat(
+                $team
+                    ->reject(fn (LeagueSessionEntry $entry): bool => $entry->id === $captainId)
+                    ->sortBy('arrival_order')
+                    ->values(),
+            )
+            ->values();
+    }
+
+    /**
+     * @param  Collection<int, int>  $previousOrder
+     * @return Collection<int, LeagueSessionEntry>
+     */
+    private function orderedOnCourtTeamForSnapshot(LeagueSession $session, string $teamSide, Collection $previousOrder, ?int $captainId): Collection
+    {
+        $team = $this->onCourtEntries($session)
+            ->where('team_side', $teamSide)
+            ->sort(function (LeagueSessionEntry $left, LeagueSessionEntry $right) use ($previousOrder): int {
+                $leftOrder = $previousOrder->get($left->id);
+                $rightOrder = $previousOrder->get($right->id);
+
+                if ($leftOrder !== null && $rightOrder !== null && $leftOrder !== $rightOrder) {
+                    return $leftOrder <=> $rightOrder;
+                }
+
+                if ($leftOrder !== null) {
+                    return -1;
+                }
+
+                if ($rightOrder !== null) {
+                    return 1;
+                }
+
+                return ($left->arrival_order ?? PHP_INT_MAX) <=> ($right->arrival_order ?? PHP_INT_MAX);
+            })
+            ->values();
+
+        return $this->orderExistingTeamForSnapshot($team, $captainId);
     }
 
     private function requireOpenGame(LeagueSession $session): LeagueSessionGame
