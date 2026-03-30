@@ -9,7 +9,8 @@ import {
 import { ref, watch } from 'vue';
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue';
 import { extractApiErrors } from '@/services/api';
-import { fetchLeagueQueue, type LeagueQueuePayload } from '@/services/league';
+import { fetchLeagueQueue  } from '@/services/league';
+import type {LeagueQueuePayload} from '@/services/league';
 
 const payload = ref<LeagueQueuePayload | null>(null);
 const isLoading = ref(false);

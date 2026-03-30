@@ -176,9 +176,6 @@ watch(
     { immediate: true, deep: true },
 );
 
-const queuePreviewPositionById = computed(
-    () => new Map(queuePreviewEntries.value.map((entry) => [entry.id, entry.position])),
-);
 const arrivalDisplayPositionByEntryId = computed(() => {
     const positions = new Map<number, number>();
     const queuedIds = new Set<number>();
