@@ -164,12 +164,12 @@ function tipToneClass(tone: ScoutTip['tone']) {
     <section class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
       <article class="app-surface space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <div><p class="app-kicker text-[#E5B849]">Ranking de calidad</p><p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">Ordenado por rating combinado. El modo automático de Juego usa esta misma base.</p></div>
+          <div><p class="app-kicker text-[#E5B849]">Ranking de calidad</p><p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">Ordenado por rating combinado. Incluye todos los jugadores con perfil manual o con suficiente data estadística acumulada (3+ juegos). El modo automático de Juego usa esta misma base.</p></div>
           <span class="rounded-full border border-white/6 bg-[#0E1628] px-3 py-1 text-[12px] text-[#94A3B8]">{{ props.scout.ranking.length }} jugadores</span>
         </div>
         <div v-if="props.scout.ranking.length === 0" class="rounded-[14px] border border-dashed border-white/8 bg-[#0E1628] p-4 text-sm text-[#94A3B8]">Todavía no hay perfiles o estadísticas suficientes para ordenar.</div>
         <div v-else class="grid gap-3">
-          <div v-for="(row, index) in props.scout.ranking.slice(0, 8)" :key="row.player.id" class="rounded-[16px] border border-white/6 bg-[#0E1628] p-4">
+          <div v-for="(row, index) in props.scout.ranking" :key="row.player.id" class="rounded-[16px] border border-white/6 bg-[#0E1628] p-4">
             <div class="flex items-center justify-between gap-3">
               <div class="min-w-0">
                 <div class="flex items-center gap-3">

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { onIonViewWillEnter, IonButton, IonContent, IonPage } from '@ionic/vue'
+import { onIonViewWillEnter, IonButton, IonContent, IonPage, IonRefresher, IonRefresherContent } from '@ionic/vue'
 import { ref } from 'vue'
+import { handleMobileRefresher } from '@/services/app-refresh'
 import { fetchHealth } from '@/services/auth'
 
 const health = ref<Awaited<ReturnType<typeof fetchHealth>> | null>(null)
@@ -17,11 +18,21 @@ async function loadHealth(): Promise<void> {
 }
 
 onIonViewWillEnter(loadHealth)
+
+async function handleRefresh(event: CustomEvent): Promise<void> {
+  await handleMobileRefresher(event, loadHealth)
+}
 </script>
 
 <template>
   <IonPage>
     <IonContent :fullscreen="true">
+      <template #fixed>
+        <IonRefresher @ionRefresh="handleRefresh">
+          <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
+        </IonRefresher>
+      </template>
+
       <div class="mobile-shell">
         <div class="mobile-stack">
           <section class="app-surface health-card">

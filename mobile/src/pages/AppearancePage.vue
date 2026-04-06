@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { IonContent, IonPage } from '@ionic/vue'
+import { IonContent, IonPage, IonRefresher, IonRefresherContent } from '@ionic/vue'
 import { Monitor, Moon, Sun } from 'lucide-vue-next'
 import SettingsLayout from '@/components/SettingsLayout.vue'
+import { handleMobileRefresher } from '@/services/app-refresh'
 import { useAppearance } from '@/composables/useAppearance'
 import type { Appearance } from '@/composables/useAppearance'
 
@@ -12,11 +13,21 @@ const tabs: Array<{ value: Appearance; label: string; icon: typeof Sun }> = [
   { value: 'dark', label: 'Oscuro', icon: Moon },
   { value: 'system', label: 'Sistema', icon: Monitor },
 ]
+
+async function handleRefresh(event: CustomEvent): Promise<void> {
+  await handleMobileRefresher(event)
+}
 </script>
 
 <template>
   <IonPage>
     <IonContent :fullscreen="true">
+      <template #fixed>
+        <IonRefresher @ionRefresh="handleRefresh">
+          <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
+        </IonRefresher>
+      </template>
+
       <div class="mobile-shell">
         <SettingsLayout>
           <section class="appearance-section">

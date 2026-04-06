@@ -318,6 +318,148 @@ class LeagueCompetitionModulesTest extends TestCase
         ], $teamB);
     }
 
+    public function test_clock_can_only_be_reconfigured_when_it_has_been_reset(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-05 10:00:00'));
+
+        try {
+            [$league, $admin, $players] = $this->makeLeagueContext();
+            $this->prepareLeagueSession($league, $admin, $players->take(10));
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/draft', [
+                    'mode' => 'arrival',
+                ])
+                ->assertOk();
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/clock', [
+                    'duration_seconds' => 1200,
+                ])
+                ->assertOk();
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/clock/start')
+                ->assertOk();
+
+            CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-05 10:00:05'));
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/clock/pause')
+                ->assertOk();
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/clock', [
+                    'duration_seconds' => 900,
+                ])
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors(['clock']);
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/clock/reset')
+                ->assertOk();
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/clock', [
+                    'duration_seconds' => 900,
+                ])
+                ->assertOk()
+                ->assertJsonPath('data.game.clock.duration_seconds', 900)
+                ->assertJsonPath('data.game.clock.remaining_seconds', 900)
+                ->assertJsonPath('data.game.clock.state', 'paused');
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    public function test_previous_day_open_session_is_auto_closed_and_modules_reset_for_today(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-05 10:00:00'));
+
+        try {
+            [$league, $admin, $players] = $this->makeLeagueContext();
+            $this->prepareLeagueSession($league, $admin, $players->take(10));
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/draft', [
+                    'mode' => 'arrival',
+                ])
+                ->assertOk();
+
+            $session = $league->sessions()->latest('id')->firstOrFail();
+            $this->assertSame('in_progress', $session->status);
+
+            CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-06 09:00:00'));
+
+            $this->actingAs($admin, 'sanctum')
+                ->getJson('/api/v1/league/modules/game')
+                ->assertOk()
+                ->assertJsonPath('data.session.id', null)
+                ->assertJsonPath('data.session.status', 'idle')
+                ->assertJsonPath('data.game.state', 'idle')
+                ->assertJsonPath('data.game.current', null);
+
+            $this->actingAs($admin, 'sanctum')
+                ->getJson('/api/v1/league/modules/queue')
+                ->assertOk()
+                ->assertJsonPath('data.session.id', null)
+                ->assertJsonPath('data.session.status', 'idle')
+                ->assertJsonPath('data.queue.live_game', null)
+                ->assertJsonCount(0, 'data.queue.waiting')
+                ->assertJsonCount(0, 'data.queue.on_court');
+
+            $session->refresh();
+
+            $this->assertSame('completed', $session->status);
+            $this->assertNull($session->clock_started_at);
+            $this->assertSame(0, $session->games()->where('status', '!=', 'completed')->count());
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    public function test_admin_can_delete_a_session_from_stats_endpoint(): void
+    {
+        [$league, $admin, $players] = $this->makeLeagueContext();
+        $this->prepareLeagueSession($league, $admin, $players->take(10));
+
+        $session = $league->sessions()->latest('id')->firstOrFail();
+
+        $this->actingAs($admin, 'sanctum')
+            ->deleteJson("/api/v1/league/modules/stats/sessions/{$session->id}")
+            ->assertOk()
+            ->assertJsonPath('message', 'Jornada eliminada.')
+            ->assertJsonPath('data.session.id', null)
+            ->assertJsonCount(0, 'data.session_selector.sessions');
+
+        $this->assertDatabaseMissing('league_sessions', [
+            'id' => $session->id,
+        ]);
+    }
+
+    public function test_table_endpoint_can_load_a_previous_session_from_the_selector(): void
+    {
+        [$league, $admin, $players] = $this->makeLeagueContext();
+        $this->prepareLeagueSession($league, $admin, $players->take(10));
+
+        $historicalSession = $league->sessions()->with('entries.player')->latest('id')->firstOrFail();
+        $this->seedScoutSeasonHistory($historicalSession, $admin, $players);
+        $historicalSession->forceFill([
+            'status' => 'completed',
+            'session_date' => now()->subDay()->toDateString(),
+            'ended_at' => now()->subDay(),
+        ])->save();
+
+        $this->prepareLeagueSession($league, $admin, $players->take(10));
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson("/api/v1/league/modules/table?session_id={$historicalSession->id}")
+            ->assertOk()
+            ->assertJsonPath('data.session_selector.selected_session_id', $historicalSession->id)
+            ->assertJsonPath('data.table.banner.games', 3)
+            ->assertJsonPath('data.table.banner.points', 79);
+    }
+
     public function test_admin_can_reorder_the_pregame_queue_from_api(): void
     {
         [$league, $admin, $players] = $this->makeLeagueContext();

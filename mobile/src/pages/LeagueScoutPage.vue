@@ -24,6 +24,7 @@ import {
 import type { LucideIcon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue';
+import { handleMobileRefresher } from '@/services/app-refresh';
 import { fetchLeagueScout, updateLeagueScoutPlayer } from '@/services/league';
 import type { LeagueScoutPayload } from '@/services/league';
 
@@ -154,11 +155,7 @@ async function loadPage(): Promise<void> {
 }
 
 async function handleRefresh(event: CustomEvent): Promise<void> {
-    try {
-        await loadPage();
-    } finally {
-        await (event.target as HTMLIonRefresherElement).complete();
-    }
+    await handleMobileRefresher(event, loadPage);
 }
 
 onIonViewWillEnter(loadPage);
@@ -288,14 +285,14 @@ function tipToneClass(tone: ScoutTip['tone']): string {
 <template>
     <IonPage>
         <IonContent :fullscreen="true">
-            <template #fixed>
-                <IonRefresher @ionRefresh="handleRefresh">
-                    <IonRefresherContent
-                        pulling-text="Desliza para refrescar"
-                        refreshing-spinner="crescent"
-                    />
-                </IonRefresher>
-            </template>
+            <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
+                <IonRefresherContent
+                    pulling-icon="refresh-circle"
+                    pulling-text="Desliza para refrescar"
+                    refreshing-spinner="crescent"
+                    refreshing-text="Actualizando..."
+                />
+            </IonRefresher>
             <div class="mobile-shell">
                 <div class="mobile-stack">
                     <MobileAppTopbar
@@ -331,13 +328,13 @@ function tipToneClass(tone: ScoutTip['tone']): string {
                         <div class="section-banner">
                             <div>
                                 <p class="app-kicker section-kicker">Ranking de calidad</p>
-                                <p class="body-copy">Ordenado por rating combinado. Juego usa esta misma base para repartir.</p>
+                                <p class="body-copy">Ordenado por rating combinado. Incluye todos los jugadores con perfil manual o con suficiente data estadistica acumulada (3+ juegos). Juego usa esta misma base para repartir.</p>
                             </div>
                             <button class="icon-button" type="button" @click="tip = tipMap.rating">
                                 <BadgeInfo :size="16" />
                             </button>
                         </div>
-                        <article v-for="(row, index) in payload?.scout.ranking.slice(0, 8) ?? []" :key="row.player.id" class="ranking-row">
+                        <article v-for="(row, index) in payload?.scout.ranking ?? []" :key="row.player.id" class="ranking-row">
                             <div class="ranking-row__identity">
                                 <span class="ranking-row__order">{{ ['#1', '#2', '#3'][index] ?? `#${index + 1}` }}</span>
                                 <div>
@@ -808,5 +805,3 @@ function tipToneClass(tone: ScoutTip['tone']): string {
     line-height: 1.7;
 }
 </style>
-
-

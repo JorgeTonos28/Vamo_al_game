@@ -187,6 +187,7 @@ class LeagueOperationsService
     public function currentSessionForLeague(League $league, LeagueCut $cut, bool $createIfMissing = true): ?LeagueSession
     {
         $today = $this->today()->toDateString();
+        $this->closeStaleSessionsForLeague($league, $today);
 
         $session = LeagueSession::query()
             ->with(['entries.player'])
@@ -223,6 +224,8 @@ class LeagueOperationsService
 
     public function findSessionForLeague(League $league, int $sessionId): ?LeagueSession
     {
+        $this->closeStaleSessionsForLeague($league, $this->today()->toDateString());
+
         /** @var LeagueSession|null $session */
         $session = LeagueSession::query()
             ->with(['entries.player', 'cut'])
@@ -256,6 +259,39 @@ class LeagueOperationsService
         return ($now ?? CarbonImmutable::now($timezone))
             ->setTimezone($timezone)
             ->startOfDay();
+    }
+
+    private function closeStaleSessionsForLeague(League $league, string $today): void
+    {
+        $staleSessions = LeagueSession::query()
+            ->with(['games'])
+            ->where('league_id', $league->id)
+            ->whereDate('session_date', '<', $today)
+            ->where('status', '!=', 'completed')
+            ->get();
+
+        foreach ($staleSessions as $session) {
+            DB::transaction(function () use ($session): void {
+                foreach ($session->games as $game) {
+                    if ($game->status !== 'completed') {
+                        $game->delete();
+                    }
+                }
+
+                $sessionDate = $session->session_date?->toImmutable() ?? $this->today();
+                $endedAt = $sessionDate->endOfDay();
+                $duration = $session->clock_duration_seconds ?? self::DEFAULT_GAME_CLOCK_SECONDS;
+
+                $session->forceFill([
+                    'status' => 'completed',
+                    'ended_at' => $endedAt,
+                    'clock_duration_seconds' => $duration,
+                    'clock_remaining_seconds' => $duration,
+                    'clock_state' => 'paused',
+                    'clock_started_at' => null,
+                ])->save();
+            });
+        }
     }
 
     public function currentConfigurationForLeague(League $league, ?CarbonImmutable $today = null): LeagueCutConfiguration

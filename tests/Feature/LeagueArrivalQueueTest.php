@@ -19,6 +19,25 @@ class LeagueArrivalQueueTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_viewing_arrival_page_does_not_create_a_session_until_there_is_admin_activity(): void
+    {
+        [$league, $admin] = $this->makeLeagueContext();
+        $arrival = app(LeagueArrivalService::class);
+
+        $league->cutConfigurations()->create([
+            'sessions_limit' => 4,
+            'game_days' => ['Sabado'],
+            'cut_day' => CarbonImmutable::now()->addDay()->day,
+            'effective_from' => now()->startOfMonth()->toDateString(),
+            'created_by_user_id' => $admin->id,
+        ]);
+
+        $payload = $arrival->pageData($admin);
+
+        $this->assertNull($payload['session']['id']);
+        $this->assertSame(0, $league->sessions()->count());
+    }
+
     public function test_unpaid_members_lose_priority_when_the_cut_is_past_due(): void
     {
         [$league, $admin, $players] = $this->makeLeagueContext();

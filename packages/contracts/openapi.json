@@ -3025,7 +3025,17 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
       }
     },
     "/league/modules/season": {
@@ -3949,6 +3959,69 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LeagueScoutResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No autorizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validacion fallida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/league/modules/stats/sessions/{session}": {
+      "delete": {
+        "operationId": "deleteLeagueStatsSession",
+        "summary": "Elimina una jornada desde Stats",
+        "security": [
+          {
+            "sanctumBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Solicitud completada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeagueStatsResponse"
                 }
               }
             }
@@ -6567,7 +6640,10 @@
         ],
         "properties": {
           "id": {
-            "type": "integer"
+            "type": [
+              "integer",
+              "null"
+            ]
           },
           "status": {
             "type": "string"
@@ -6579,7 +6655,10 @@
             ]
           },
           "current_game_number": {
-            "type": "integer"
+            "type": [
+              "integer",
+              "null"
+            ]
           },
           "streak": {
             "$ref": "#/components/schemas/LeagueCompetitionStreak"
@@ -6603,7 +6682,10 @@
         ],
         "properties": {
           "selected_session_id": {
-            "type": "integer"
+            "type": [
+              "integer",
+              "null"
+            ]
           },
           "sessions": {
             "type": "array",
@@ -7528,7 +7610,10 @@
         ],
         "properties": {
           "id": {
-            "type": "integer"
+            "type": [
+              "integer",
+              "null"
+            ]
           },
           "label": {
             "type": "string"

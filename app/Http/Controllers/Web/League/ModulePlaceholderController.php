@@ -38,7 +38,7 @@ class ModulePlaceholderController extends Controller
                 'juego' => ['component' => 'league/Game', 'payload' => $this->competition->gamePageData($request->user())],
                 'cola' => ['component' => 'league/Queue', 'payload' => $this->competition->queuePageData($request->user(), $request->integer('session_id') ?: null)],
                 'stats' => ['component' => 'league/Stats', 'payload' => $this->competition->statsPageData($request->user(), $request->integer('session_id') ?: null)],
-                'tabla' => ['component' => 'league/Table', 'payload' => $this->competition->tablePageData($request->user())],
+                'tabla' => ['component' => 'league/Table', 'payload' => $this->competition->tablePageData($request->user(), $request->integer('session_id') ?: null)],
                 'temporada' => ['component' => 'league/Season', 'payload' => $this->competition->seasonPageData($request->user())],
                 'scout' => ['component' => 'league/Scout', 'payload' => $this->competition->scoutPageData($request->user())],
             };

@@ -42,10 +42,14 @@ class LeagueCompetitionService
      */
     public function gamePageData(User $user): array
     {
-        $context = $this->operationalContext($user);
+        $context = $this->operationalContext($user, null, false);
+        $session = $context['session'] ?? $this->emptyCompetitionSession($context['cut']);
+        $context['session'] = $session;
         $session = $context['session'];
         $openGame = $this->openGame($session);
-        $seasonStats = $this->seasonStats($context['season']->sessions)->keyBy('season_key');
+        $seasonStats = $context['season'] === null
+            ? collect()
+            : $this->seasonStats($context['season']->sessions)->keyBy('season_key');
         $scoutStatBaseline = $this->scoutStatBaseline($seasonStats);
         $completedGames = $session->games
             ->where('status', 'completed')
@@ -102,7 +106,8 @@ class LeagueCompetitionService
      */
     public function queuePageData(User $user, ?int $selectedSessionId = null): array
     {
-        $context = $this->operationalContext($user, $selectedSessionId);
+        $context = $this->operationalContext($user, $selectedSessionId, false);
+        $context['session'] = $context['session'] ?? $this->emptyCompetitionSession($context['cut']);
         $session = $context['session'];
         $openGame = $this->openGame($session);
 
@@ -154,11 +159,11 @@ class LeagueCompetitionService
     {
         $context = $this->operationalContext($user, $selectedSessionId);
         $session = $context['session'];
-        $stats = $this->sessionStats($session);
+        $stats = $session === null ? collect() : $this->sessionStats($session);
 
         return array_merge($this->basePayload($context), [
             'stats' => [
-                'games_count' => $session->games->where('status', 'completed')->count(),
+                'games_count' => $session?->games->where('status', 'completed')->count() ?? 0,
                 'points_leaders' => $stats
                     ->filter(fn (array $row): bool => $row['points'] > 0 || $row['games'] > 0)
                     ->sortByDesc('points')
@@ -186,20 +191,22 @@ class LeagueCompetitionService
     /**
      * @return array<string, mixed>
      */
-    public function tablePageData(User $user): array
+    public function tablePageData(User $user, ?int $selectedSessionId = null): array
     {
-        $context = $this->operationalContext($user);
+        $context = $this->operationalContext($user, $selectedSessionId);
         $session = $context['session'];
-        $stats = $this->sessionStats($session)
-            ->filter(fn (array $row): bool => $row['games'] > 0 || $row['points'] > 0)
-            ->values();
+        $stats = $session === null
+            ? collect()
+            : $this->sessionStats($session)
+                ->filter(fn (array $row): bool => $row['games'] > 0 || $row['points'] > 0)
+                ->values();
 
         return array_merge($this->basePayload($context), [
             'table' => [
                 'banner' => [
-                    'games' => $session->games->where('status', 'completed')->count(),
+                    'games' => $session?->games->where('status', 'completed')->count() ?? 0,
                     'points' => $stats->sum('points'),
-                    'players' => $session->entries->count(),
+                    'players' => $session?->entries->count() ?? 0,
                 ],
                 'standings' => $stats
                     ->sortBy([
@@ -248,6 +255,33 @@ class LeagueCompetitionService
     {
         $context = $this->operationalContext($user);
         $season = $context['season'];
+
+        if ($season === null) {
+            return array_merge($this->basePayload($context), [
+                'season' => [
+                    'season' => [
+                        'id' => null,
+                        'label' => 'Sin temporada activa',
+                        'starts_on' => null,
+                        'sessions_count' => 0,
+                        'totals' => [
+                            'games' => 0,
+                            'points' => 0,
+                            'revenue_cents' => 0,
+                            'show_revenue' => $context['role']->canManageLeague(),
+                        ],
+                    ],
+                    'leaders' => [
+                        'points' => [],
+                        'wins' => [],
+                        'games' => [],
+                    ],
+                    'sessions' => [],
+                    'profiles' => [],
+                ],
+            ]);
+        }
+
         $stats = $this->seasonStats($season->sessions);
         $sessions = $season->sessions
             ->sortByDesc('session_date')
@@ -305,7 +339,9 @@ class LeagueCompetitionService
         $context = $this->operationalContext($user);
         $league = $context['league'];
         $session = $context['session'];
-        $seasonStats = $this->seasonStats($context['season']->sessions)->keyBy('season_key');
+        $seasonStats = $context['season'] === null
+            ? collect()
+            : $this->seasonStats($context['season']->sessions)->keyBy('season_key');
         $scoutStatBaseline = $this->scoutStatBaseline($seasonStats);
         $players = $this->operations->activePlayablePlayersQuery($league)
             ->with('scoutProfile')
@@ -351,7 +387,9 @@ class LeagueCompetitionService
         $profiledPlayers = $players
             ->filter(fn (LeaguePlayer $player): bool => $player->scoutProfile !== null)
             ->count();
-        $autoPreviewPool = $this->pendingPoolEntries($session);
+        $autoPreviewPool = $session === null
+            ? collect()
+            : $this->pendingPoolEntries($session);
         $autoPreview = $autoPreviewPool->count() === 10
             ? $this->scoutAutoPreview($autoPreviewPool, $seasonStats, $scoutStatBaseline)
             : null;
@@ -383,6 +421,26 @@ class LeagueCompetitionService
                 'auto_preview' => $autoPreview,
             ],
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function destroySession(User $user, LeagueSession $session): array
+    {
+        $context = $this->operations->requireAdminContext($user);
+
+        if ($session->league_id !== $context['league']->id) {
+            throw ValidationException::withMessages([
+                'session_id' => 'La jornada seleccionada no existe dentro de la liga activa.',
+            ]);
+        }
+
+        DB::transaction(function () use ($session): void {
+            $session->delete();
+        });
+
+        return $this->statsPageData($user);
     }
 
     public function confirmDraft(
@@ -701,6 +759,12 @@ class LeagueCompetitionService
             ]);
         }
 
+        if (! $this->canConfigureClock($session)) {
+            throw ValidationException::withMessages([
+                'clock' => 'Solo puedes cambiar el cronómetro cuando está reiniciado.',
+            ]);
+        }
+
         $session->forceFill([
             'clock_duration_seconds' => $durationSeconds,
             'clock_remaining_seconds' => $durationSeconds,
@@ -774,7 +838,7 @@ class LeagueCompetitionService
     /**
      * @return array<string, mixed>
      */
-    private function operationalContext(User $user, ?int $selectedSessionId = null): array
+    private function operationalContext(User $user, ?int $selectedSessionId = null, bool $requireSession = false): array
     {
         $context = $this->operations->requireOperationalContext($user);
         $activeCut = $this->operations->activeCutForLeague($context['league']);
@@ -783,18 +847,20 @@ class LeagueCompetitionService
             $activeCut,
             $selectedSessionId,
             $user,
+            false,
+            $requireSession,
         );
-        $currentSession = $this->operations->currentSessionForLeague($context['league'], $activeCut);
+        $currentSession = $this->operations->currentSessionForLeague($context['league'], $activeCut, false);
 
         return [
             ...$context,
-            'cut' => $session->cut ?? $activeCut,
+            'cut' => $session?->cut ?? $activeCut,
             'session' => $session,
-            'season' => $session->season,
+            'season' => $session?->season,
             'session_selector' => $this->sessionSelectorPayload(
                 $context['league'],
                 $session,
-                $currentSession ?? $session,
+                $currentSession,
             ),
         ];
     }
@@ -812,8 +878,9 @@ class LeagueCompetitionService
             null,
             $user,
             true,
+            true,
         );
-        $currentSession = $this->operations->currentSessionForLeague($context['league'], $activeCut);
+        $currentSession = $this->operations->currentSessionForLeague($context['league'], $activeCut, false);
 
         return [
             ...$context,
@@ -834,15 +901,26 @@ class LeagueCompetitionService
         ?int $selectedSessionId,
         User $user,
         bool $withActionLogs = false,
-    ): LeagueSession {
+        bool $requireSession = false,
+    ): ?LeagueSession {
         $session = $selectedSessionId === null
-            ? $this->operations->currentSessionForLeague($league, $activeCut)
+            ? $this->operations->currentSessionForLeague($league, $activeCut, false)
             : $this->operations->findSessionForLeague($league, $selectedSessionId);
 
-        if ($session === null) {
+        if ($session === null && $selectedSessionId !== null) {
             throw ValidationException::withMessages([
                 'session_id' => 'La jornada seleccionada no existe dentro de la liga activa.',
             ]);
+        }
+
+        if ($session === null) {
+            if ($requireSession) {
+                throw ValidationException::withMessages([
+                    'session' => 'No existe una jornada activa para la liga seleccionada.',
+                ]);
+            }
+
+            return null;
         }
 
         $session = $this->seasons->attachSessionToActiveSeason($session, $league, $user);
@@ -953,14 +1031,19 @@ class LeagueCompetitionService
             ],
             'session_selector' => $context['session_selector'],
             'session' => [
-                'id' => $session->id,
-                'status' => $session->status,
-                'session_date' => $session->session_date?->toDateString(),
-                'current_game_number' => $session->current_game_number,
-                'streak' => $this->streakPayload($session),
-                'participants_count' => $session->entries->count(),
-                'pending_pool_count' => $this->pendingPoolEntries($session)->count(),
-                'queue_count' => $this->queueEntries($session)->count(),
+                'id' => $session?->id,
+                'status' => $session?->status ?? 'idle',
+                'session_date' => $session?->session_date?->toDateString(),
+                'current_game_number' => $session?->current_game_number,
+                'streak' => $session === null ? [
+                    'team' => null,
+                    'count' => 0,
+                    'double_rotation_mode' => false,
+                    'waiting_champion_team' => null,
+                ] : $this->streakPayload($session),
+                'participants_count' => $session?->entries->count() ?? 0,
+                'pending_pool_count' => $session === null ? 0 : $this->pendingPoolEntries($session)->count(),
+                'queue_count' => $session === null ? 0 : $this->queueEntries($session)->count(),
             ],
         ];
     }
@@ -968,10 +1051,10 @@ class LeagueCompetitionService
     /**
      * @return array<string, mixed>
      */
-    private function sessionSelectorPayload($league, LeagueSession $selectedSession, LeagueSession $currentSession): array
+    private function sessionSelectorPayload($league, ?LeagueSession $selectedSession, ?LeagueSession $currentSession): array
     {
         return [
-            'selected_session_id' => $selectedSession->id,
+            'selected_session_id' => $selectedSession?->id,
             'sessions' => $this->operations->sessionHistoryForLeague($league)
                 ->map(fn (LeagueSession $session): array => [
                     'id' => $session->id,
@@ -979,10 +1062,45 @@ class LeagueCompetitionService
                     'status' => $session->status,
                     'entries_count' => (int) ($session->entries_count ?? 0),
                     'completed_games_count' => (int) ($session->completed_games_count ?? 0),
-                    'is_current' => $session->is($currentSession),
+                    'is_current' => $currentSession !== null && $session->is($currentSession),
                 ])
                 ->all(),
         ];
+    }
+
+    private function latestSessionForLeague($league): ?LeagueSession
+    {
+        $sessionId = $this->operations->sessionHistoryForLeague($league, 1)
+            ->first()?->id;
+
+        if ($sessionId === null) {
+            return null;
+        }
+
+        return $this->operations->findSessionForLeague($league, (int) $sessionId);
+    }
+
+    private function emptyCompetitionSession($cut): LeagueSession
+    {
+        $duration = LeagueOperationsService::DEFAULT_GAME_CLOCK_SECONDS;
+        $session = new LeagueSession([
+            'league_cut_id' => $cut->id,
+            'session_date' => $this->operations->today()->toDateString(),
+            'status' => 'idle',
+            'current_game_number' => 0,
+            'clock_duration_seconds' => $duration,
+            'clock_remaining_seconds' => $duration,
+            'clock_state' => 'paused',
+            'initial_pool' => [],
+            'initial_queue' => [],
+            'rotation_state' => [],
+        ]);
+
+        $session->setRelation('cut', $cut);
+        $session->setRelation('entries', collect());
+        $session->setRelation('games', collect());
+
+        return $session;
     }
 
     private function gameState(LeagueSession $session, ?LeagueSessionGame $game): string
@@ -1093,6 +1211,16 @@ class LeagueCompetitionService
             'clock_state' => 'paused',
             'clock_started_at' => null,
         ])->save();
+    }
+
+    private function canConfigureClock(LeagueSession $session): bool
+    {
+        if ($session->clock_duration_seconds === null || $session->clock_remaining_seconds === null) {
+            return true;
+        }
+
+        return $session->clock_state !== 'running'
+            && $this->clockRemainingSeconds($session) === $session->clock_duration_seconds;
     }
 
     /**

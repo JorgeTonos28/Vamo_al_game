@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { IonButton, IonContent, IonPage, IonText, onIonViewWillEnter } from '@ionic/vue'
+import { IonButton, IonContent, IonPage, IonRefresher, IonRefresherContent, IonText, onIonViewWillEnter } from '@ionic/vue'
 import type { AxiosError } from 'axios'
 import { reactive, ref } from 'vue'
 import BrandLogo from '@/components/BrandLogo.vue'
 import SettingsLayout from '@/components/SettingsLayout.vue'
+import { handleMobileRefresher } from '@/services/app-refresh'
 import { useAppearance } from '@/composables/useAppearance'
 import {
   fetchCommandCenterSettings,
@@ -61,11 +62,21 @@ async function submit(): Promise<void> {
 }
 
 onIonViewWillEnter(loadSettings)
+
+async function handleRefresh(event: CustomEvent): Promise<void> {
+  await handleMobileRefresher(event, loadSettings)
+}
 </script>
 
 <template>
   <IonPage>
     <IonContent :fullscreen="true">
+      <template #fixed>
+        <IonRefresher @ionRefresh="handleRefresh">
+          <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
+        </IonRefresher>
+      </template>
+
       <div class="mobile-shell">
         <SettingsLayout
           :tabs="settingsTabs"

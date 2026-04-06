@@ -2,6 +2,7 @@ import { IonicVue } from '@ionic/vue'
 import { createApp } from 'vue'
 import App from './App.vue'
 import { initializeTheme } from './composables/useAppearance'
+import { mobileNavAnimation } from './lib/mobile-nav-animation'
 import router from './router'
 import '@ionic/vue/css/core.css'
 import '@ionic/vue/css/normalize.css'
@@ -19,7 +20,9 @@ initializeTheme()
 
 const app = createApp(App)
 
-app.use(IonicVue)
+app.use(IonicVue, {
+  navAnimation: mobileNavAnimation,
+})
 app.use(router)
 
 router.isReady().then(() => {

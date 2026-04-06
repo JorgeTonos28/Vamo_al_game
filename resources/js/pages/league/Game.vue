@@ -74,6 +74,7 @@ type DraftAlert = {
     title: string;
     body: string[];
 };
+const DEFAULT_CLOCK_DURATION_SECONDS = 20 * 60;
 
 const props = defineProps<{
     league: { id: number; name: string; emoji: string | null; slug: string };
@@ -153,10 +154,9 @@ const scoreBumpSide = ref<TeamSide | null>(null);
 const gameActionError = ref('');
 const rotationNotice = ref<RotationNotice | null>(props.game.rotation_notice);
 const draftAlert = ref<DraftAlert | null>(null);
-const clockForm = reactive({
-    minutes: '20',
-    seconds: '00',
-});
+const clockEditorOpen = ref(false);
+const clockMinutes = ref('20');
+const clockSeconds = ref('00');
 const clockDisplaySeconds = ref<number | null>(props.game.clock.remaining_seconds);
 let lastRotationNoticeKey = props.game.rotation_notice?.key ?? null;
 
@@ -187,6 +187,53 @@ const draftErrorContext = computed(() =>
 );
 const clockState = computed(() => props.game.clock.state);
 const clockDurationSeconds = computed(() => props.game.clock.duration_seconds);
+const canEditClock = computed(() => {
+    if (!canManage.value || clockState.value === 'running') {
+        return false;
+    }
+
+    if (clockDurationSeconds.value === null || clockDisplaySeconds.value === null) {
+        return true;
+    }
+
+    return clockDisplaySeconds.value === clockDurationSeconds.value;
+});
+const clockPickerValue = computed(() =>
+    formatClockPickerValue(
+        clockDurationSeconds.value ?? DEFAULT_CLOCK_DURATION_SECONDS,
+    ),
+);
+const clockMinuteOptions = computed(() =>
+    Array.from({ length: 120 }, (_, index) => index + 1).map((value) => ({
+        value: value.toString(),
+        label: value.toString().padStart(2, '0'),
+    })),
+);
+const clockSecondOptions = computed(() =>
+    Array.from({ length: 60 }, (_, index) => ({
+        value: index.toString(),
+        label: index.toString().padStart(2, '0'),
+    })),
+);
+const clockStatusLabel = computed(() => {
+    if (clockState.value === 'running') {
+        return 'Corriendo';
+    }
+
+    if (clockState.value === 'finished') {
+        return 'Tiempo agotado. Reinicia para volver a editarlo.';
+    }
+
+    if (clockState.value === 'unconfigured') {
+        return canManage.value
+            ? 'Haz clic en el marcador para cargar minutos y segundos.'
+            : 'Sin configurar';
+    }
+
+    return canEditClock.value
+        ? 'Haz clic en el marcador para cargar minutos y segundos.'
+        : 'Reinicia el cronómetro para volver a editarlo.';
+});
 const formattedClock = computed(() => {
     if (clockDisplaySeconds.value === null) {
         return '--:--';
@@ -316,9 +363,6 @@ watch(
 watch(
     () => props.game.clock,
     (clock) => {
-        const durationSeconds = clock.duration_seconds ?? 1200;
-        clockForm.minutes = String(Math.floor(durationSeconds / 60)).padStart(2, '0');
-        clockForm.seconds = String(durationSeconds % 60).padStart(2, '0');
         clockDisplaySeconds.value = clock.remaining_seconds;
 
         if (clockTicker !== null) {
@@ -345,6 +389,51 @@ watch(
     },
     { deep: true, immediate: true },
 );
+
+function formatClockPickerValue(totalSeconds: number): string {
+    const safeTotalSeconds = Math.min(
+        7200,
+        Math.max(60, Math.floor(totalSeconds)),
+    );
+    const hours = Math.floor(safeTotalSeconds / 3600)
+        .toString()
+        .padStart(2, '0');
+    const minutes = Math.floor((safeTotalSeconds % 3600) / 60)
+        .toString()
+        .padStart(2, '0');
+    const seconds = (safeTotalSeconds % 60).toString().padStart(2, '0');
+
+    return `${hours}:${minutes}:${seconds}`;
+}
+
+function parseClockPickerValue(value: string): number | null {
+    const segments = value.split(':').map((segment) => Number(segment));
+
+    if (segments.some((segment) => !Number.isFinite(segment))) {
+        return null;
+    }
+
+    const [hours, minutes, seconds = 0] = segments;
+    const totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
+
+    if (totalSeconds < 60 || totalSeconds > 7200) {
+        return null;
+    }
+
+    return totalSeconds;
+}
+
+function syncClockEditor(totalSeconds: number | null): void {
+    const safeTotalSeconds = Math.min(
+        7200,
+        Math.max(60, Math.floor(totalSeconds ?? DEFAULT_CLOCK_DURATION_SECONDS)),
+    );
+    const minutes = Math.floor(safeTotalSeconds / 60);
+    const seconds = safeTotalSeconds % 60;
+
+    clockMinutes.value = minutes.toString();
+    clockSeconds.value = seconds.toString();
+}
 
 onBeforeUnmount(() => {
     if (scoreFlashTimer !== null) {
@@ -684,25 +773,21 @@ return;
     });
 }
 
-function parsedClockDuration(): number | null {
-    const minutes = Number(clockForm.minutes || 0);
-    const seconds = Number(clockForm.seconds || 0);
-
-    if (!Number.isFinite(minutes) || !Number.isFinite(seconds)) {
-        return null;
-    }
-
-    const total = (Math.max(0, Math.floor(minutes)) * 60) + Math.max(0, Math.floor(seconds));
-
-    return total > 0 ? total : null;
-}
-
-function saveClockDuration(): void {
-    if (!canManage.value) {
+function configureClockFromPicker(event: Event): void {
+    if (!canEditClock.value) {
         return;
     }
 
-    const total = parsedClockDuration();
+    const target = event.target as HTMLInputElement;
+    const total = parseClockPickerValue(target.value);
+
+    configureClockDuration(total);
+}
+
+function configureClockDuration(total: number | null): void {
+    if (!canEditClock.value) {
+        return;
+    }
 
     if (total === null) {
         gameActionError.value = 'Configura un tiempo válido para el cronómetro.';
@@ -719,6 +804,40 @@ function saveClockDuration(): void {
             gameActionError.value = String(errors.duration_seconds ?? errors.clock ?? 'No se pudo actualizar el cronómetro.');
         },
     });
+}
+
+function openClockPicker(): void {
+    if (!canEditClock.value) {
+        return;
+    }
+
+    syncClockEditor(clockDurationSeconds.value ?? clockDisplaySeconds.value);
+    clockEditorOpen.value = true;
+}
+
+function saveClockEditor(): void {
+    if (!canEditClock.value) {
+        return;
+    }
+
+    const minutes = Number(clockMinutes.value);
+    const seconds = Number(clockSeconds.value);
+
+    if (
+        !Number.isInteger(minutes)
+        || !Number.isInteger(seconds)
+        || minutes < 1
+        || minutes > 120
+        || seconds < 0
+        || seconds > 59
+    ) {
+        gameActionError.value = 'Configura un tiempo válido para el cronómetro.';
+
+        return;
+    }
+
+    configureClockDuration((minutes * 60) + seconds);
+    clockEditorOpen.value = false;
 }
 
 function toggleClock(): void {
@@ -1076,56 +1195,35 @@ function rotationNoticeToneClasses(tone: string): string {
                     <div class="mb-5 grid gap-4 rounded-[18px] border border-white/6 bg-[#131B2F]/85 p-4">
                         <div class="rounded-[16px] border border-white/6 bg-[#10192d] px-4 py-4 text-center">
                             <p class="app-kicker text-[#E5B849]">Cronómetro</p>
-                            <p class="mt-2 font-['Bebas_Neue'] text-[clamp(3.25rem,9vw,4.75rem)] leading-none text-[#F8FAFC]">
-                                {{ formattedClock }}
-                            </p>
+                            <div class="relative mt-2">
+                                <p
+                                    class="font-['Bebas_Neue'] text-[clamp(3.25rem,9vw,4.75rem)] leading-none text-[#F8FAFC]"
+                                    :class="{ 'clock-display-editable': canEditClock }"
+                                    role="button"
+                                    tabindex="0"
+                                    @click="openClockPicker"
+                                    @keydown.enter.prevent="openClockPicker"
+                                    @keydown.space.prevent="openClockPicker"
+                                >
+                                    {{ formattedClock }}
+                                </p>
+                                <input
+                                    v-if="canManage"
+                                    ref="clockPicker"
+                                    class="clock-picker-input"
+                                    type="time"
+                                    step="1"
+                                    min="00:01:00"
+                                    max="02:00:00"
+                                    :value="clockPickerValue"
+                                    :disabled="!canEditClock"
+                                    aria-label="Configurar cronómetro"
+                                    @change="configureClockFromPicker"
+                                >
+                            </div>
                             <p class="mt-2 text-[12px] uppercase tracking-[0.22em] text-[#94A3B8]">
-                                {{
-                                    clockState === 'running'
-                                        ? 'Corriendo'
-                                        : clockState === 'finished'
-                                          ? 'Tiempo agotado'
-                                          : clockState === 'unconfigured'
-                                            ? 'Sin configurar'
-                                            : 'Listo'
-                                }}
+                                {{ clockStatusLabel }}
                             </p>
-                        </div>
-
-                        <div
-                            v-if="canManage"
-                            class="grid gap-3 rounded-[16px] border border-white/6 bg-[#10192d] p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
-                        >
-                            <label class="grid gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">
-                                <span>Minutos</span>
-                                <input
-                                    v-model="clockForm.minutes"
-                                    type="number"
-                                    min="0"
-                                    max="120"
-                                    class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-lg font-semibold text-[#F8FAFC] outline-none"
-                                    placeholder="20"
-                                >
-                            </label>
-                            <label class="grid gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">
-                                <span>Segundos</span>
-                                <input
-                                    v-model="clockForm.seconds"
-                                    type="number"
-                                    min="0"
-                                    max="59"
-                                    class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-lg font-semibold text-[#F8FAFC] outline-none"
-                                    placeholder="00"
-                                >
-                            </label>
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 hover:bg-[#22304f]"
-                                @click="saveClockDuration"
-                            >
-                                Cargar
-                            </Button>
                         </div>
 
                         <div
@@ -1436,6 +1534,51 @@ function rotationNoticeToneClasses(tone: string): string {
             </DialogContent>
         </Dialog>
 
+        <Dialog :open="clockEditorOpen" @update:open="clockEditorOpen = $event">
+            <DialogContent class="border-white/8 bg-[#1A243A] text-[#F8FAFC] sm:max-w-[420px]">
+                <DialogHeader>
+                    <DialogTitle class="app-display text-[28px]">Cronómetro</DialogTitle>
+                    <DialogDescription class="text-[13px] leading-6 text-[#94A3B8]">
+                        Configura una duración en minutos y segundos.
+                    </DialogDescription>
+                </DialogHeader>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <label class="grid gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">
+                        <span>Minutos</span>
+                        <select v-model="clockMinutes" class="clock-editor-select">
+                            <option
+                                v-for="option in clockMinuteOptions"
+                                :key="`clock-minute-${option.value}`"
+                                :value="option.value"
+                            >
+                                {{ option.label }}
+                            </option>
+                        </select>
+                    </label>
+                    <label class="grid gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">
+                        <span>Segundos</span>
+                        <select v-model="clockSeconds" class="clock-editor-select">
+                            <option
+                                v-for="option in clockSecondOptions"
+                                :key="`clock-second-${option.value}`"
+                                :value="option.value"
+                            >
+                                {{ option.label }}
+                            </option>
+                        </select>
+                    </label>
+                </div>
+                <DialogFooter class="grid gap-2 sm:grid-cols-2">
+                    <Button type="button" variant="secondary" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F]" @click="clockEditorOpen = false">
+                        Cancelar
+                    </Button>
+                    <Button type="button" class="min-h-12 rounded-[12px] bg-[#E5B849] text-[#0A0F1D] hover:bg-[#e8c25d]" @click="saveClockEditor">
+                        Guardar
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
         <Dialog :open="selectedPlayer !== null" @update:open="selectedPlayer = null">
             <DialogContent class="border-white/8 bg-[#1A243A] text-[#F8FAFC]">
                 <DialogHeader>
@@ -1535,6 +1678,34 @@ function rotationNoticeToneClasses(tone: string): string {
 
 .scoreboard-value--bump {
     animation: scoreboard-bump 0.18s ease-out;
+}
+
+.clock-picker-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.clock-picker-input:disabled {
+    pointer-events: none;
+}
+
+.clock-display-editable {
+    text-decoration: underline;
+    text-decoration-color: rgba(229, 184, 73, 0.42);
+    text-underline-offset: 8px;
+}
+
+.clock-editor-select {
+    min-height: 48px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #0e1628;
+    padding: 0 14px;
+    color: #f8fafc;
+    outline: none;
 }
 
 .score-flash {

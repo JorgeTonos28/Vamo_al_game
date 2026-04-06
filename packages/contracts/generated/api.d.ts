@@ -1084,6 +1084,23 @@ export interface paths {
         patch: operations["updateLeagueScoutPlayer"];
         trace?: never;
     };
+    "/league/modules/stats/sessions/{session}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Elimina una jornada desde Stats */
+        delete: operations["deleteLeagueStatsSession"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1737,17 +1754,17 @@ export interface components {
             session: components["schemas"]["LeagueCompetitionSession"];
         };
         LeagueCompetitionSession: {
-            id: number;
+            id: number | null;
             status: string;
             session_date: string | null;
-            current_game_number: number;
+            current_game_number: number | null;
             streak: components["schemas"]["LeagueCompetitionStreak"];
             participants_count: number;
             pending_pool_count: number;
             queue_count: number;
         };
         LeagueCompetitionSessionSelector: {
-            selected_session_id: number;
+            selected_session_id: number | null;
             sessions: components["schemas"]["LeagueCompetitionSessionSelectorItem"][];
         };
         LeagueCompetitionSessionSelectorItem: {
@@ -1934,7 +1951,7 @@ export interface components {
             profiles: components["schemas"]["LeagueSeasonProfile"][];
         };
         LeagueSeasonMeta: {
-            id: number;
+            id: number | null;
             label: string;
             starts_on: string | null;
             sessions_count: number;
@@ -4685,7 +4702,9 @@ export interface operations {
     };
     leagueTable: {
         parameters: {
-            query?: never;
+            query?: {
+                session_id?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5487,6 +5506,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LeagueScoutResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteLeagueStatsSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueStatsResponse"];
                 };
             };
             /** @description No autenticado */

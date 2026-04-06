@@ -82,7 +82,8 @@ La base de trabajo queda definida asi:
 - `POST /api/v1/league/modules/game/reset`
 - `GET /api/v1/league/modules/queue?session_id={id}`
 - `GET /api/v1/league/modules/stats?session_id={id}`
-- `GET /api/v1/league/modules/table`
+- `DELETE /api/v1/league/modules/stats/sessions/{session}`
+- `GET /api/v1/league/modules/table?session_id={id}`
 - `GET /api/v1/league/modules/season`
 - `GET /api/v1/league/modules/scout`
 - `PATCH /api/v1/league/modules/scout/players/{player}`
@@ -190,6 +191,8 @@ php artisan db:seed
 
 La app usa `APP_TIMEZONE` para definir el dia operativo de cortes y jornadas. El `.env.example` ya viene con `America/Santo_Domingo`; mantenlo asi en Republica Dominicana para evitar cierres automaticos antes del fin del dia local.
 
+Las jornadas operativas ya no se crean por solo abrir `Panel`, `Llegada`, `Stats` o `Tabla`. Una jornada se registra cuando un administrador realiza actividad operativa real en la liga. Si una jornada queda abierta y cambia el dia operativo, el backend la cierra automaticamente, limpia cualquier juego sin terminar y evita que `Juego` o `Cola` sigan mostrando datos vivos del dia anterior. `Stats` y `Tabla` permiten navegar jornadas anteriores con `session_id`, y `Stats` expone tambien eliminacion explicita de jornadas para web y movil.
+
 9. Inicia backend + web:
 
 ```bash
@@ -203,6 +206,15 @@ npm run mobile:dev
 ```
 
 El comando `composer run dev` levanta el servidor Laravel, el listener de colas y Vite del frontend web. La app movil corre por separado desde `mobile/`.
+
+Para probar el shell movil en navegador web local usa `VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1`. Si pruebas desde Android Emulator usa `VITE_API_BASE_URL=http://10.0.2.2:8000/api/v1`.
+
+### Icono Android del shell mobile
+
+- Coloca la imagen fuente en [`mobile/resources/icon.png`](./mobile/resources/icon.png) siguiendo la guia de [`mobile/resources/README.md`](./mobile/resources/README.md).
+- Genera los assets nativos con `npx @capacitor/assets generate --android --assetPath mobile/resources`.
+- Sincroniza la plataforma con `npm run mobile:sync`.
+- Los iconos finales para el launcher de Android quedan en `mobile/android/app/src/main/res/mipmap-*`.
 
 ## Seeders seguros y despliegue
 
@@ -319,7 +331,7 @@ Ups! Lo sentimos, ha ocurrido un problema accediendo a la app. Comuniquese con l
 - La rotacion de cola limita invitados por equipo entrante usando `incoming_team_guest_limit`; si entran dos equipos nuevos, el tope se duplica. Cuando no hay suficientes miembros para completar el draft, el sistema permite usar invitados adicionales para no frenar la jornada.
 - Durante el juego se pueden registrar puntos por equipo, puntos por jugador, reversar puntos de jugador, marcar salida de jugador, deshacer la ultima accion, cerrar el juego, cerrar la jornada y limpiar el juego actual.
 - El ganador por defecto se determina automaticamente por el marcador al cerrar el juego.
-- El marcador incluye cronometro configurable con cargar, iniciar, pausar, reanudar y reiniciar; parte por defecto en `20:00` al abrir una jornada nueva y al pasar de un juego al siguiente.
+- El marcador incluye cronometro configurable desde el mismo display grande en web y mobile: al tocar o hacer clic en el marcador se abre un editor de duracion `MM:SS` y el tiempo queda guardado al confirmar. Solo puede editarse cuando el cronometro esta reiniciado; durante corrida, pausa parcial o tiempo agotado hay que reiniciarlo antes de cambiarlo.
 - La rotacion posterior usa la cola activa, la racha del equipo ganador y la regla de doble rotacion cuando hay 20 o mas participantes.
 - Los miembros solo ven el marcador, las alineaciones y el historial; los montos cobrados del juego quedan reservados a administradores.
 
@@ -434,7 +446,7 @@ Ademas, el seeder crea ligas de muestra y membresias para probar el contexto mul
 10. Si la liga activa fue revocada, la app movil muestra la misma pantalla de acceso no disponible que web y conserva el switch de ligas.
 11. Cerrar sesion con `POST /api/v1/auth/logout`.
 
-Al abrir la app movil, el flujo visible arranca con un starter breve de marca y luego entra directo a `Login` o al shell autenticado segun exista sesion. Los administradores generales ven el Centro de mando mobile con `Panel`, `Usuarios`, `Ligas` y `Ajustes`. Los administradores de ligas, miembros e invitados ven el shell regular con branding compartido, hamburger menu, switch multi-tenant de ligas y los modulos `Panel`, `Llegada`, `Juego`, `Cola`, `Stats`, `Tabla`, `Temporada`, `Scout` y `Gestion` segun su rol activo. `Iniciar jornada` en mobile tambien lleva al modulo `Juego`. Las pantallas mobile con datos remotos habilitan `pull-to-refresh`, `Gestion de miembros` soporta cambio de tab por swipe horizontal y el emoji de cada liga acompana su nombre en el selector y en la navegacion.
+Al abrir la app movil, el flujo visible arranca con un starter breve de marca y luego entra directo a `Login` o al shell autenticado segun exista sesion. Los administradores generales ven el Centro de mando mobile con `Panel`, `Usuarios`, `Ligas` y `Ajustes`. Los administradores de ligas, miembros e invitados ven el shell regular con branding compartido, hamburger menu, switch multi-tenant de ligas y los modulos `Panel`, `Llegada`, `Juego`, `Cola`, `Stats`, `Tabla`, `Temporada`, `Scout` y `Gestion` segun su rol activo. `Iniciar jornada` en mobile tambien lleva al modulo `Juego`. Las pantallas mobile autenticadas habilitan `pull-to-refresh` para refrescar contexto global de la app y el payload de la vista actual. El swipe horizontal entre modulos avanza o retrocede un tab por gesto con una transicion unificada, y `Gestion de miembros` mantiene su cambio de tab por swipe dentro del modal. El emoji de cada liga acompana su nombre en el selector y en la navegacion.
 
 Variables relevantes para web y movil:
 

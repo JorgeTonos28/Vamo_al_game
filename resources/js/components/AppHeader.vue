@@ -71,21 +71,21 @@ const switchLeague = (leagueId: number) => {
         <div
             class="app-shell-width py-[calc(env(safe-area-inset-top)+8px)] md:py-[calc(env(safe-area-inset-top)+6px)]"
         >
-            <div class="hidden items-center justify-between gap-6 xl:flex">
-                <div class="flex min-w-0 flex-1 items-center gap-8">
+            <div class="hidden items-center justify-between gap-4 xl:flex 2xl:gap-6">
+                <div class="flex min-w-0 flex-1 items-center gap-4 overflow-hidden 2xl:gap-8">
                     <Link :href="dashboard()" class="shrink-0">
                         <AppLogo compact />
                     </Link>
 
                     <nav
-                        class="grid min-w-0 flex-1 grid-flow-col auto-cols-fr gap-2"
+                        class="scrollbar-none flex min-w-0 flex-1 items-center gap-2 overflow-x-auto pb-1"
                     >
                         <Link
                             v-for="item in mainNavItems"
                             :key="item.title"
                             :href="item.href"
                             :class="[
-                                'app-tab-link min-h-10 min-w-0 justify-center rounded-[14px] border border-transparent px-4',
+                                'app-tab-link shrink-0 justify-center rounded-[14px] border border-transparent px-4',
                                 {
                                     'is-active border-[rgba(229,184,73,0.2)] bg-[rgba(229,184,73,0.08)]':
                                         isCurrentOrParentUrl(item.href),
@@ -97,14 +97,14 @@ const switchLeague = (leagueId: number) => {
                     </nav>
                 </div>
 
-                <div class="flex shrink-0 items-center gap-3">
+                <div class="flex shrink-0 items-center gap-2 2xl:gap-3">
                     <DropdownMenu
                         v-if="tenancy?.active_league || tenancy?.guest_mode"
                     >
                         <DropdownMenuTrigger :as-child="true">
                             <Button
                                 variant="secondary"
-                                class="min-h-12 rounded-full border border-white/6 bg-[#131B2F] px-4 text-left hover:bg-[#1A243A]"
+                                class="min-h-12 max-w-[220px] rounded-full border border-white/6 bg-[#131B2F] px-4 text-left hover:bg-[#1A243A] 2xl:max-w-[260px]"
                             >
                                 <span
                                     :class="
@@ -113,11 +113,13 @@ const switchLeague = (leagueId: number) => {
                                             : 'mr-2 app-kicker text-[#E5B849]'
                                     "
                                 >
-                                    {{
-                                        tenancy?.active_league
-                                            ? tenancy.active_league.name
-                                            : 'Modo invitado'
-                                    }}
+                                    <span class="inline-flex max-w-[160px] truncate align-middle 2xl:max-w-[200px]">
+                                        {{
+                                            tenancy?.active_league
+                                                ? tenancy.active_league.name
+                                                : 'Modo invitado'
+                                        }}
+                                    </span>
                                 </span>
                             </Button>
                         </DropdownMenuTrigger>

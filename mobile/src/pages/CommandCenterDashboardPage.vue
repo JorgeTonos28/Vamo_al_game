@@ -2,6 +2,7 @@
 import { IonContent, IonPage, IonRefresher, IonRefresherContent, onIonViewWillEnter } from '@ionic/vue'
 import { ref } from 'vue'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
+import { handleMobileRefresher } from '@/services/app-refresh'
 import { fetchCommandCenterDashboard } from '@/services/command-center'
 import type { CommandCenterMetrics } from '@/types/api'
 
@@ -29,11 +30,7 @@ async function loadDashboard(): Promise<void> {
 }
 
 async function handleRefresh(event: CustomEvent): Promise<void> {
-  try {
-    await loadDashboard()
-  } finally {
-    await (event.target as HTMLIonRefresherElement).complete()
-  }
+  await handleMobileRefresher(event, loadDashboard)
 }
 
 onIonViewWillEnter(loadDashboard)

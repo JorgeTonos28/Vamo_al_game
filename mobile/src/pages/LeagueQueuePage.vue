@@ -8,6 +8,7 @@ import {
 } from '@ionic/vue';
 import { ref, watch } from 'vue';
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue';
+import { handleMobileRefresher } from '@/services/app-refresh';
 import { extractApiErrors } from '@/services/api';
 import { fetchLeagueQueue  } from '@/services/league';
 import type {LeagueQueuePayload} from '@/services/league';
@@ -39,11 +40,10 @@ async function loadPage(sessionId?: number): Promise<void> {
 }
 
 async function handleRefresh(event: CustomEvent): Promise<void> {
-    try {
-        await loadPage(payload.value?.session_selector.selected_session_id);
-    } finally {
-        await (event.target as HTMLIonRefresherElement).complete();
-    }
+    await handleMobileRefresher(
+        event,
+        () => loadPage(payload.value?.session_selector.selected_session_id ?? undefined),
+    );
 }
 
 onIonViewWillEnter(() => loadPage());
@@ -76,14 +76,14 @@ function sessionLabel(
 <template>
     <IonPage>
         <IonContent :fullscreen="true">
-            <template #fixed>
-                <IonRefresher @ionRefresh="handleRefresh">
-                    <IonRefresherContent
-                        pulling-text="Desliza para refrescar"
-                        refreshing-spinner="crescent"
-                    />
-                </IonRefresher>
-            </template>
+            <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
+                <IonRefresherContent
+                    pulling-icon="refresh-circle"
+                    pulling-text="Desliza para refrescar"
+                    refreshing-spinner="crescent"
+                    refreshing-text="Actualizando..."
+                />
+            </IonRefresher>
 
             <div class="mobile-shell">
                 <div class="mobile-stack">

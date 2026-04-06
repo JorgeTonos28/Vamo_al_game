@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onIonViewWillEnter, IonButton, IonContent, IonInput, IonItem, IonLabel, IonPage, IonText } from '@ionic/vue'
+import { onIonViewWillEnter, IonButton, IonContent, IonInput, IonItem, IonLabel, IonPage, IonRefresher, IonRefresherContent, IonText } from '@ionic/vue'
 import type { AxiosError } from 'axios'
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import SettingsLayout from '@/components/SettingsLayout.vue'
+import { handleMobileRefresher } from '@/services/app-refresh'
 import { fetchCurrentUser, logout } from '@/services/auth'
 import { deleteAccount, resendVerificationEmail, updateProfile } from '@/services/settings'
 import { sessionState } from '@/state/session'
@@ -51,6 +52,10 @@ async function loadProfile(): Promise<void> {
 
 onIonViewWillEnter(loadProfile)
 
+async function handleRefresh(event: CustomEvent): Promise<void> {
+  await handleMobileRefresher(event, loadProfile)
+}
+
 async function submitProfile(): Promise<void> {
   isSaving.value = true
   profileMessage.value = null
@@ -94,6 +99,12 @@ async function handleLogout(): Promise<void> {
 <template>
   <IonPage>
     <IonContent :fullscreen="true">
+      <template #fixed>
+        <IonRefresher @ionRefresh="handleRefresh">
+          <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
+        </IonRefresher>
+      </template>
+
       <div class="mobile-shell">
         <SettingsLayout
           :tabs="settingsTabs"

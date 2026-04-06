@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { BarChart3, Medal, Trophy, Users } from 'lucide-vue-next';
 import LeagueShellLayout from '@/components/league/LeagueShellLayout.vue';
 import type { BreadcrumbItem } from '@/types';
@@ -7,6 +7,17 @@ import type { BreadcrumbItem } from '@/types';
 const props = defineProps<{
     league: { id: number; name: string; emoji: string | null; slug: string };
     role: { value: string; label: string; can_manage: boolean };
+    session_selector: {
+        selected_session_id: number | null;
+        sessions: Array<{
+            id: number;
+            session_date: string | null;
+            status: string;
+            entries_count: number;
+            completed_games_count: number;
+            is_current: boolean;
+        }>;
+    };
     table: {
         banner: { games: number; points: number; players: number };
         standings: Array<{
@@ -31,6 +42,37 @@ const props = defineProps<{
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Tabla', href: '/liga/modulos/tabla' }];
+
+function changeSession(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    const sessionId = Number(target.value);
+
+    if (!Number.isFinite(sessionId) || sessionId <= 0) {
+        return;
+    }
+
+    router.get(
+        '/liga/modulos/tabla',
+        { session_id: sessionId },
+        { preserveScroll: true, preserveState: true },
+    );
+}
+
+function sessionLabel(session: {
+    session_date: string | null;
+    status: string;
+    completed_games_count: number;
+    is_current: boolean;
+}): string {
+    const base = session.session_date ?? 'Sin fecha';
+    const suffix = session.is_current
+        ? ' · actual'
+        : session.status === 'completed'
+          ? ' · cerrada'
+          : ' · abierta';
+
+    return `${base}${suffix} · ${session.completed_games_count} juegos`;
+}
 </script>
 
 <template>
@@ -45,17 +87,40 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Tabla', href: '/liga/modulos/ta
         :can-manage-league="props.role.can_manage"
     >
         <section class="app-surface space-y-4">
-            <div class="flex items-center gap-3">
-                <Trophy class="size-5 text-[#E5B849]" />
-                <div>
-                    <p class="app-kicker text-[#E5B849]">Tabla del día</p>
-                    <h1 class="app-display app-module-title mt-2 text-[#F8FAFC]">
-                        Líderes de la jornada
-                    </h1>
-                    <p class="mt-3 text-[14px] leading-7 text-[#94A3B8]">
-                        La tabla combina victorias, puntos y volumen de juegos de la jornada actual para ordenar el desempeño del día.
-                    </p>
+            <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                <div class="flex items-center gap-3">
+                    <Trophy class="size-5 text-[#E5B849]" />
+                    <div>
+                        <p class="app-kicker text-[#E5B849]">Tabla de jornada</p>
+                        <h1 class="app-display app-module-title mt-2 text-[#F8FAFC]">
+                            Líderes por jornada
+                        </h1>
+                        <p class="mt-3 text-[14px] leading-7 text-[#94A3B8]">
+                            La tabla combina victorias, puntos y volumen de juegos de la jornada seleccionada para ordenar el desempeño.
+                        </p>
+                    </div>
                 </div>
+
+                <select
+                    :value="props.session_selector.selected_session_id ?? ''"
+                    :disabled="props.session_selector.sessions.length === 0"
+                    class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                    @change="changeSession"
+                >
+                    <option
+                        v-if="props.session_selector.sessions.length === 0"
+                        value=""
+                    >
+                        Sin jornadas registradas
+                    </option>
+                    <option
+                        v-for="session in props.session_selector.sessions"
+                        :key="session.id"
+                        :value="session.id"
+                    >
+                        {{ sessionLabel(session) }}
+                    </option>
+                </select>
             </div>
         </section>
 
@@ -73,7 +138,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Tabla', href: '/liga/modulos/ta
             <article class="app-surface space-y-2">
                 <p class="app-kicker">Jugadores activos</p>
                 <p class="text-[30px] font-semibold text-[#F8FAFC]">{{ props.table.banner.players }}</p>
-                <p class="text-[12px] text-[#94A3B8]">Participantes registrados hoy</p>
+                <p class="text-[12px] text-[#94A3B8]">Participantes registrados en la jornada</p>
             </article>
         </section>
 
@@ -84,7 +149,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Tabla', href: '/liga/modulos/ta
                     <div>
                         <p class="app-kicker text-[#E5B849]">Tabla general</p>
                         <p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">
-                            Se ordena por victorias y se desempata por puntos totales dentro de la jornada.
+                            Se ordena por victorias y se desempata por puntos totales dentro de la jornada visible.
                         </p>
                     </div>
                 </div>
@@ -134,7 +199,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Tabla', href: '/liga/modulos/ta
                         <div>
                             <p class="app-kicker text-[#E5B849]">Top anotadores</p>
                             <p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">
-                                Los cinco perfiles con mayor producción ofensiva del día.
+                                Los cinco perfiles con mayor producción ofensiva de la jornada visible.
                             </p>
                         </div>
                     </div>
@@ -171,7 +236,7 @@ const breadcrumbs: BreadcrumbItem[] = [{ title: 'Tabla', href: '/liga/modulos/ta
                         <div>
                             <p class="app-kicker text-[#E5B849]">Más usados</p>
                             <p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">
-                                Quienes más tiempo han pasado rotando durante la jornada.
+                                Quienes más tiempo han pasado rotando durante la jornada seleccionada.
                             </p>
                         </div>
                     </div>

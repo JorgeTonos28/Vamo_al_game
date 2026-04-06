@@ -60,6 +60,13 @@ ion-button {
   font-weight: 700;
 }
 
+ion-refresher-content {
+  --color: #e5b849;
+  --icon-color: #e5b849;
+  --spinner-color: #e5b849;
+  --text-color: #cbd5e1;
+}
+
 .mobile-shell {
   width: 100%;
   min-height: 100svh;
@@ -72,4 +79,33 @@ ion-button {
   display: flex;
   flex-direction: column;
   gap: var(--app-section-gap);
+}
+
+.sheet-input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: #0e1628;
+  padding: 0 14px;
+  color: #f8fafc;
+  color-scheme: dark;
+}
+
+select.sheet-input {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(248, 250, 252, 0.72) 50%),
+    linear-gradient(135deg, rgba(248, 250, 252, 0.72) 50%, transparent 50%);
+  background-position:
+    calc(100% - 20px) calc(50% - 3px),
+    calc(100% - 14px) calc(50% - 3px);
+  background-repeat: no-repeat;
+  background-size: 6px 6px;
+  padding-right: 34px;
+}
+
+select.sheet-input option {
+  background: #0e1628;
+  color: #f8fafc;
 }

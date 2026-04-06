@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import {
     IonContent,
     IonPage,
@@ -10,6 +10,7 @@ import { Crown, Flame, RotateCcw, Trophy } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue';
 import { extractApiError } from '@/services/api';
+import { handleMobileRefresher } from '@/services/app-refresh';
 import {
     addLeaguePlayerPoint,
     addLeagueTeamPoint,
@@ -47,6 +48,7 @@ type RotationNotice = NonNullable<LeagueGamePayload['game']['rotation_notice']>;
 type DraftAlert = { title: string; body: string[] };
 type DraftEntry = LeagueGamePayload['game']['draft']['entries'][number];
 type DraftPreviewTeamPlayer = DraftPreviewPlayer<DraftEntry>;
+const DEFAULT_CLOCK_DURATION_SECONDS = 20 * 60;
 
 const payload = ref<LeagueGamePayload | null>(null);
 const isLoading = ref(false);
@@ -70,7 +72,9 @@ const scoreBumpSide = ref<TeamSide | null>(null);
 const actionError = ref('');
 const rotationNotice = ref<RotationNotice | null>(null);
 const draftAlert = ref<DraftAlert | null>(null);
-const clockForm = reactive({ minutes: '20', seconds: '00' });
+const clockEditorOpen = ref(false);
+const clockMinutes = ref('20');
+const clockSeconds = ref('00');
 const clockDisplaySeconds = ref<number | null>(null);
 let lastRotationNoticeKey: string | null = null;
 
@@ -100,6 +104,53 @@ const clockState = computed(
 const clockDurationSeconds = computed(
     () => payload.value?.game.clock.duration_seconds ?? null,
 );
+const canEditClock = computed(() => {
+    if (!canManage.value || clockState.value === 'running') {
+        return false;
+    }
+
+    if (clockDurationSeconds.value === null || clockDisplaySeconds.value === null) {
+        return true;
+    }
+
+    return clockDisplaySeconds.value === clockDurationSeconds.value;
+});
+const clockPickerValue = computed(() =>
+    formatClockPickerValue(
+        clockDurationSeconds.value ?? DEFAULT_CLOCK_DURATION_SECONDS,
+    ),
+);
+const clockMinuteOptions = computed(() =>
+    Array.from({ length: 120 }, (_, index) => index + 1).map((value) => ({
+        value: value.toString(),
+        label: value.toString().padStart(2, '0'),
+    })),
+);
+const clockSecondOptions = computed(() =>
+    Array.from({ length: 60 }, (_, index) => ({
+        value: index.toString(),
+        label: index.toString().padStart(2, '0'),
+    })),
+);
+const clockStatusLabel = computed(() => {
+    if (clockState.value === 'running') {
+        return 'Corriendo';
+    }
+
+    if (clockState.value === 'finished') {
+        return 'Tiempo agotado. Reinicia para volver a editarlo.';
+    }
+
+    if (clockState.value === 'unconfigured') {
+        return canManage.value
+            ? 'Toca el marcador para cargar minutos y segundos.'
+            : 'Sin configurar';
+    }
+
+    return canEditClock.value
+        ? 'Toca el marcador para cargar minutos y segundos.'
+        : 'Reinicia el cronómetro para volver a editarlo.';
+});
 const formattedClock = computed(() => {
     if (clockDisplaySeconds.value === null) {
 return '--:--';
@@ -200,8 +251,8 @@ watch(
         const requestId = ++draftPreviewRequestId;
         const preview = await buildDraftPreview({
             entries: draftEntries.value,
-            sessionId: payload.value.session.id,
-            currentGameNumber: payload.value.session.current_game_number,
+            sessionId: payload.value.session.id ?? 0,
+            currentGameNumber: payload.value.session.current_game_number ?? 0,
             mode: draftMode.value,
             captainMode: captainMode.value,
             assignments: { ...manualAssignments },
@@ -233,12 +284,6 @@ watch(
 watch(
     () => payload.value?.game.clock,
     (clock) => {
-        const durationSeconds = clock?.duration_seconds ?? 1200;
-        clockForm.minutes = String(Math.floor(durationSeconds / 60)).padStart(
-            2,
-            '0',
-        );
-        clockForm.seconds = String(durationSeconds % 60).padStart(2, '0');
         clockDisplaySeconds.value = clock?.remaining_seconds ?? null;
 
         if (clockTicker !== null) {
@@ -339,12 +384,53 @@ async function loadPage(): Promise<void> {
     }
 }
 
-async function handleRefresh(event: CustomEvent): Promise<void> {
-    try {
-        await loadPage();
-    } finally {
-        await (event.target as HTMLIonRefresherElement).complete();
+function formatClockPickerValue(totalSeconds: number): string {
+    const safeTotalSeconds = Math.min(
+        7200,
+        Math.max(60, Math.floor(totalSeconds)),
+    );
+    const hours = Math.floor(safeTotalSeconds / 3600)
+        .toString()
+        .padStart(2, '0');
+    const minutes = Math.floor((safeTotalSeconds % 3600) / 60)
+        .toString()
+        .padStart(2, '0');
+    const seconds = (safeTotalSeconds % 60).toString().padStart(2, '0');
+
+    return `${hours}:${minutes}:${seconds}`;
+}
+
+function parseClockPickerValue(value: string): number | null {
+    const segments = value.split(':').map((segment) => Number(segment));
+
+    if (segments.some((segment) => !Number.isFinite(segment))) {
+        return null;
     }
+
+    const [hours, minutes, seconds = 0] = segments;
+    const totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
+
+    if (totalSeconds < 60 || totalSeconds > 7200) {
+        return null;
+    }
+
+    return totalSeconds;
+}
+
+function syncClockEditor(totalSeconds: number | null): void {
+    const safeTotalSeconds = Math.min(
+        7200,
+        Math.max(60, Math.floor(totalSeconds ?? DEFAULT_CLOCK_DURATION_SECONDS)),
+    );
+    const minutes = Math.floor(safeTotalSeconds / 60);
+    const seconds = safeTotalSeconds % 60;
+
+    clockMinutes.value = minutes.toString();
+    clockSeconds.value = seconds.toString();
+}
+
+async function handleRefresh(event: CustomEvent): Promise<void> {
+    await handleMobileRefresher(event, loadPage);
 }
 
 onIonViewWillEnter(loadPage);
@@ -373,7 +459,7 @@ function setAssignment(entryId: number, team: 'A' | 'B'): void {
             title: `Equipo ${team} completo`,
             body: [
                 `El Equipo ${team} ya tiene 5 integrantes asignados.`,
-                'Mueve a otro jugador antes de intentar agregar uno mÃ¡s.',
+                'Mueve a otro jugador antes de intentar agregar uno más.',
             ],
         };
 
@@ -447,8 +533,8 @@ async function submitDraft(): Promise<void> {
         draftAlert.value = {
             title: 'Capitanes pendientes',
             body: [
-                'Para usar capitÃ¡n manual debes tener ambos equipos completos y seleccionar un capitÃ¡n por lado.',
-                `Equipo A: ${manualCaptains.A ? 'listo' : 'falta capitÃ¡n'}. Equipo B: ${manualCaptains.B ? 'listo' : 'falta capitÃ¡n'}.`,
+                'Para usar capitán manual debes tener ambos equipos completos y seleccionar un capitán por lado.',
+                `Equipo A: ${manualCaptains.A ? 'listo' : 'falta capitán'}. Equipo B: ${manualCaptains.B ? 'listo' : 'falta capitán'}.`,
             ],
         };
 
@@ -592,7 +678,7 @@ return;
 }
 
 async function endSession(): Promise<void> {
-    if (!canManage.value || !window.confirm('Â¿Cerrar la jornada del dÃ­a?')) {
+    if (!canManage.value || !window.confirm('¿Cerrar la jornada del día?')) {
 return;
 }
 
@@ -608,7 +694,7 @@ return;
 async function resetGame(): Promise<void> {
     if (
         !canManage.value ||
-        !window.confirm('Â¿Limpiar por completo el juego actual?')
+        !window.confirm('¿Limpiar por completo el juego actual?')
     ) {
 return;
 }
@@ -622,27 +708,33 @@ return;
     }
 }
 
-function parsedClockDuration(): number | null {
-    const minutes = Number(clockForm.minutes || 0);
-    const seconds = Number(clockForm.seconds || 0);
-
-    if (!Number.isFinite(minutes) || !Number.isFinite(seconds)) {
-return null;
-}
-
-    const total =
-        Math.max(0, Math.floor(minutes)) * 60 +
-        Math.max(0, Math.floor(seconds));
-
-    return total > 0 ? total : null;
-}
-
-async function saveClockDuration(): Promise<void> {
-    if (!canManage.value) {
+async function configureClockFromPicker(event: Event): Promise<void> {
+    if (!canEditClock.value) {
 return;
 }
 
-    const total = parsedClockDuration();
+    const target = event.target as HTMLInputElement;
+    const total = parseClockPickerValue(target.value);
+
+    if (total === null) {
+        actionError.value = 'Configura un tiempo válido para el cronómetro.';
+
+        return;
+    }
+
+    actionError.value = '';
+
+    try {
+        payload.value = await configureLeagueGameClock(total);
+    } catch (error) {
+        actionError.value = extractApiError(error);
+    }
+}
+
+async function configureClockDuration(total: number | null): Promise<void> {
+    if (!canEditClock.value) {
+        return;
+    }
 
     if (total === null) {
         actionError.value = 'Configura un tiempo vÃ¡lido para el cronÃ³metro.';
@@ -657,6 +749,40 @@ return;
     } catch (error) {
         actionError.value = extractApiError(error);
     }
+}
+
+function openClockPicker(): void {
+    if (!canEditClock.value) {
+        return;
+    }
+
+    syncClockEditor(clockDurationSeconds.value ?? clockDisplaySeconds.value);
+    clockEditorOpen.value = true;
+}
+
+async function saveClockEditor(): Promise<void> {
+    if (!canEditClock.value) {
+        return;
+    }
+
+    const minutes = Number(clockMinutes.value);
+    const seconds = Number(clockSeconds.value);
+
+    if (
+        !Number.isInteger(minutes)
+        || !Number.isInteger(seconds)
+        || minutes < 1
+        || minutes > 120
+        || seconds < 0
+        || seconds > 59
+    ) {
+        actionError.value = 'Configura un tiempo válido para el cronómetro.';
+
+        return;
+    }
+
+    await configureClockDuration((minutes * 60) + seconds);
+    clockEditorOpen.value = false;
 }
 
 async function toggleClock(): Promise<void> {
@@ -706,14 +832,14 @@ return Flame;
 <template>
     <IonPage>
         <IonContent :fullscreen="true">
-            <template #fixed>
-<IonRefresher @ionRefresh="handleRefresh">
+            <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
                 <IonRefresherContent
+                    pulling-icon="refresh-circle"
                     pulling-text="Desliza para refrescar"
                     refreshing-spinner="crescent"
+                    refreshing-text="Actualizando..."
                 />
             </IonRefresher>
-</template>
 
             <div class="mobile-shell">
                 <div class="mobile-stack">
@@ -744,7 +870,7 @@ return Flame;
                             </div>
                         </div>
                         <p class="body-copy">
-                            Administra el draft inicial, la anotaciÃ³n, las
+                            Administra el draft inicial, la anotación, las
                             salidas y el cierre de cada juego.
                         </p>
                     </section>
@@ -827,11 +953,11 @@ return Flame;
                             <section class="summary-card section-stack">
                                 <div>
                                     <p class="app-kicker section-kicker">
-                                        SelecciÃ³n de capitÃ¡n
+                                        Selección de capitán
                                     </p>
                                     <p class="body-copy">
-                                        El capitÃ¡n va primero y el resto se
-                                        ordena alfabÃ©ticamente.
+                                        El capitán va primero y el resto se
+                                        ordena alfabéticamente.
                                     </p>
                                 </div>
                                 <div class="action-grid action-grid--three">
@@ -888,7 +1014,7 @@ return Flame;
                                         }}<span
                                             v-if="entry.jersey_number !== null"
                                         >
-                                            Â· #{{ entry.jersey_number }}</span
+                                            · #{{ entry.jersey_number }}</span
                                         >
                                     </p>
                                     <p
@@ -1006,7 +1132,7 @@ return Flame;
                                         {{
                                             manualCaptains[teamSide] ===
                                             player.id
-                                                ? 'CapitÃ¡n'
+                                                ? 'Capitán'
                                                 : 'Elegir'
                                         }}
                                     </button>
@@ -1018,7 +1144,7 @@ return Flame;
                                     {{
                                         draftMode === 'manual'
                                             ? 'Asigna jugadores para armar este equipo.'
-                                            : 'Esperando la previsualizaciÃ³n del reparto.'
+                                            : 'Esperando la previsualización del reparto.'
                                     }}
                                 </p>
                             </article>
@@ -1049,55 +1175,47 @@ return Flame;
                             <div class="clock-card">
                                 <div>
                                     <p class="app-kicker section-kicker">
-                                        CronÃ³metro
+                                        Cronómetro
                                     </p>
-                                    <p class="clock-card__value">
-                                        {{ formattedClock }}
-                                    </p>
+                                    <div
+                                        class="clock-card__picker"
+                                        :class="{
+                                            'is-editable': canEditClock,
+                                        }"
+                                        role="button"
+                                        tabindex="0"
+                                        @click="openClockPicker"
+                                        @keydown.enter.prevent="openClockPicker"
+                                        @keydown.space.prevent="openClockPicker"
+                                    >
+                                        <p
+                                            class="clock-card__value"
+                                            :class="{
+                                                'clock-card__value--editable':
+                                                    canEditClock,
+                                            }"
+                                        >
+                                            {{ formattedClock }}
+                                        </p>
+                                        <input
+                                            v-if="canManage"
+                                            ref="clockPicker"
+                                            class="clock-card__picker-input"
+                                            type="time"
+                                            step="1"
+                                            min="00:01:00"
+                                            max="02:00:00"
+                                            :value="clockPickerValue"
+                                            :disabled="!canEditClock"
+                                            aria-label="Configurar cronómetro"
+                                            @change="configureClockFromPicker"
+                                        >
+                                    </div>
                                     <p class="body-copy">
-                                        {{
-                                            clockState === 'running'
-                                                ? 'Corriendo'
-                                                : clockState === 'finished'
-                                                  ? 'Tiempo agotado'
-                                                  : clockState ===
-                                                      'unconfigured'
-                                                    ? 'Sin configurar'
-                                                    : 'Listo'
-                                        }}
+                                        {{ clockStatusLabel }}
                                     </p>
                                 </div>
                                 <div class="clock-card__controls">
-                                    <label class="clock-field"
-                                        ><span class="clock-field__label"
-                                            >Minutos</span
-                                        ><input
-                                            v-model="clockForm.minutes"
-                                            type="number"
-                                            min="0"
-                                            max="120"
-                                            class="sheet-input"
-                                            placeholder="20"
-                                    /></label>
-                                    <label class="clock-field"
-                                        ><span class="clock-field__label"
-                                            >Segundos</span
-                                        ><input
-                                            v-model="clockForm.seconds"
-                                            type="number"
-                                            min="0"
-                                            max="59"
-                                            class="sheet-input"
-                                            placeholder="00"
-                                    /></label>
-                                    <button
-                                        v-if="canManage"
-                                        class="action-button action-button--secondary"
-                                        type="button"
-                                        @click="saveClockDuration"
-                                    >
-                                        Cargar
-                                    </button>
                                     <button
                                         v-if="canManage"
                                         class="action-button action-button--warning"
@@ -1204,9 +1322,9 @@ return Flame;
                                         </p>
                                     </div>
                                     <p class="body-copy">
-                                        {{ player.points }} pts Â· 1P
-                                        {{ player.shots[1] }} Â· 2P
-                                        {{ player.shots[2] }} Â· 3P
+                                        {{ player.points }} pts · 1P
+                                        {{ player.shots[1] }} · 2P
+                                        {{ player.shots[2] }} · 3P
                                         {{ player.shots[3] }}
                                     </p>
                                     <p
@@ -1280,9 +1398,9 @@ return Flame;
                                         </p>
                                     </div>
                                     <p class="body-copy">
-                                        {{ player.points }} pts Â· 1P
-                                        {{ player.shots[1] }} Â· 2P
-                                        {{ player.shots[2] }} Â· 3P
+                                        {{ player.points }} pts · 1P
+                                        {{ player.shots[1] }} · 2P
+                                        {{ player.shots[2] }} · 3P
                                         {{ player.shots[3] }}
                                     </p>
                                     <p
@@ -1338,7 +1456,7 @@ return Flame;
                                     type="button"
                                     @click="undoAction"
                                 >
-                                    Deshacer Ãºltima acciÃ³n
+                                    Deshacer última acción
                                 </button>
                                 <button
                                     v-if="canManage"
@@ -1365,7 +1483,7 @@ return Flame;
                                 v-if="payload.game.history.length === 0"
                                 class="body-copy"
                             >
-                                Sin juegos finalizados todavÃ­a.
+                                Sin juegos finalizados todavía.
                             </p>
                             <article
                                 v-for="row in payload.game.history"
@@ -1408,7 +1526,7 @@ return Flame;
                         {{ selectedPlayer?.name }}
                     </p>
                     <p class="body-copy">
-                        Selecciona cuÃ¡ntos puntos quieres agregarle a este
+                        Selecciona cuántos puntos quieres agregarle a este
                         jugador.
                     </p>
                     <div class="action-grid action-grid--three">
@@ -1432,6 +1550,61 @@ return Flame;
                             @click="addPlayerPoint(3)"
                         >
                             +3
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <div
+                v-if="clockEditorOpen"
+                class="overlay"
+                @click.self="clockEditorOpen = false"
+            >
+                <section class="overlay__panel">
+                    <p class="app-kicker overlay__kicker">Cronómetro</p>
+                    <p class="body-copy">
+                        Configura una duración en minutos y segundos.
+                    </p>
+                    <div class="clock-editor-grid">
+                        <label class="clock-editor-field">
+                            <span class="clock-editor-field__label">Minutos</span>
+                            <select v-model="clockMinutes" class="clock-editor-select">
+                                <option
+                                    v-for="option in clockMinuteOptions"
+                                    :key="`clock-minute-${option.value}`"
+                                    :value="option.value"
+                                >
+                                    {{ option.label }}
+                                </option>
+                            </select>
+                        </label>
+                        <label class="clock-editor-field">
+                            <span class="clock-editor-field__label">Segundos</span>
+                            <select v-model="clockSeconds" class="clock-editor-select">
+                                <option
+                                    v-for="option in clockSecondOptions"
+                                    :key="`clock-second-${option.value}`"
+                                    :value="option.value"
+                                >
+                                    {{ option.label }}
+                                </option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="overlay__actions">
+                        <button
+                            class="action-button action-button--secondary"
+                            type="button"
+                            @click="clockEditorOpen = false"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            class="action-button action-button--warning"
+                            type="button"
+                            @click="saveClockEditor"
+                        >
+                            Guardar
                         </button>
                     </div>
                 </section>
@@ -1497,7 +1670,7 @@ return Flame;
                     </p>
                     <p class="body-copy">
                         Confirma la salida de {{ playerToRemove?.name }}. Si hay
-                        cola activa, el siguiente jugador entrarÃ¡ segÃºn la
+                        cola activa, el siguiente jugador entrará según la
                         prioridad de la jornada.
                     </p>
                     <div class="action-grid action-grid--two">
@@ -1506,7 +1679,7 @@ return Flame;
                             type="button"
                             @click="confirmRemovePlayer"
                         >
-                            SÃ­, se fue
+                            Sí, se fue
                         </button>
                         <button
                             class="action-button action-button--secondary"
@@ -1690,10 +1863,26 @@ return Flame;
 .clock-card__controls {
     gap: 10px;
 }
+.clock-card__picker {
+    position: relative;
+}
+.clock-card__picker.is-editable {
+    cursor: pointer;
+}
 .clock-field {
     display: flex;
     flex-direction: column;
     gap: 6px;
+}
+.clock-card__picker-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    opacity: 0;
+    pointer-events: none;
+}
+.clock-card__picker-input:disabled {
+    pointer-events: none;
 }
 .clock-field__label {
     font-size: 11px;
@@ -1709,6 +1898,35 @@ return Flame;
     line-height: 1;
     color: #f8fafc;
     text-align: center;
+}
+.clock-card__value--editable {
+    text-decoration: underline;
+    text-decoration-color: rgba(229, 184, 73, 0.42);
+    text-underline-offset: 6px;
+}
+.clock-editor-grid,
+.clock-editor-field {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.clock-editor-grid {
+    gap: 12px;
+}
+.clock-editor-field__label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #94a3b8;
+}
+.clock-editor-select {
+    min-height: 48px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #0e1628;
+    padding: 0 14px;
+    color: #f8fafc;
 }
 .error-banner {
     border-color: rgba(248, 113, 113, 0.28);
@@ -1943,6 +2161,12 @@ return Flame;
     background: #0e1628;
     padding: 12px 14px;
 }
+@media (min-width: 540px) {
+    .clock-editor-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
 @keyframes score-flash {
     0% {
         opacity: 0.9;
@@ -1963,4 +2187,3 @@ return Flame;
     }
 }
 </style>
-

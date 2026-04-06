@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\League\HomeController as LeagueHomeController;
 use App\Http\Controllers\Api\V1\League\ManagementController as LeagueManagementController;
 use App\Http\Controllers\Api\V1\League\QueueController as LeagueQueueController;
 use App\Http\Controllers\Api\V1\League\ScoutController as LeagueScoutController;
+use App\Http\Controllers\Api\V1\League\SessionController as LeagueSessionController;
 use App\Http\Controllers\Api\V1\Settings\EmailVerificationNotificationController;
 use App\Http\Controllers\Api\V1\Settings\PasswordController;
 use App\Http\Controllers\Api\V1\Settings\ProfileController as SettingsProfileController;
@@ -138,7 +139,10 @@ Route::middleware([ForceJsonResponse::class])
                     ))->name('modules.stats.show');
                     Route::get('modules/table', fn (Request $request) => ApiResponse::success(
                         $request,
-                        app(\App\Services\LeagueOperations\LeagueCompetitionService::class)->tablePageData($request->user()),
+                        app(\App\Services\LeagueOperations\LeagueCompetitionService::class)->tablePageData(
+                            $request->user(),
+                            $request->integer('session_id') ?: null,
+                        ),
                         'Modulo Tabla cargado.',
                     ))->name('modules.table.show');
                     Route::get('modules/season', fn (Request $request) => ApiResponse::success(
@@ -179,6 +183,8 @@ Route::middleware([ForceJsonResponse::class])
                         ->name('modules.game.reset');
                     Route::post('modules/queue/reorder', [LeagueQueueController::class, 'reorder'])
                         ->name('modules.queue.reorder');
+                    Route::delete('modules/stats/sessions/{session}', [LeagueSessionController::class, 'destroy'])
+                        ->name('modules.stats.sessions.destroy');
                     Route::patch('modules/scout/players/{player}', [LeagueScoutController::class, 'update'])
                         ->name('modules.scout.players.update');
                 });

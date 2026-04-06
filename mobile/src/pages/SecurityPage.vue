@@ -7,11 +7,14 @@ import {
   IonItem,
   IonLabel,
   IonPage,
+  IonRefresher,
+  IonRefresherContent,
   IonText,
 } from '@ionic/vue'
 import type { AxiosError } from 'axios'
 import { reactive, ref } from 'vue'
 import SettingsLayout from '@/components/SettingsLayout.vue'
+import { handleMobileRefresher } from '@/services/app-refresh'
 import {
   confirmTwoFactor,
   disableTwoFactor,
@@ -89,6 +92,10 @@ async function loadTwoFactor(): Promise<void> {
 }
 
 onIonViewWillEnter(loadTwoFactor)
+
+async function handleRefresh(event: CustomEvent): Promise<void> {
+  await handleMobileRefresher(event, loadTwoFactor)
+}
 
 async function activateTwoFactor(): Promise<void> {
   isActivatingTwoFactor.value = true
@@ -192,6 +199,12 @@ function extractStatus(setup: TwoFactorSetupData): TwoFactorStatusData {
 <template>
   <IonPage>
     <IonContent :fullscreen="true">
+      <template #fixed>
+        <IonRefresher @ionRefresh="handleRefresh">
+          <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
+        </IonRefresher>
+      </template>
+
       <div class="mobile-shell">
         <SettingsLayout>
           <section class="settings-section">

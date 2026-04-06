@@ -470,10 +470,10 @@ export async function downloadLeagueManagementReport(
 }
 
 export type LeagueCompetitionSession = {
-    id: number;
+    id: number | null;
     status: string;
     session_date: string | null;
-    current_game_number: number;
+    current_game_number: number | null;
     streak: {
         team: 'A' | 'B' | null;
         count: number;
@@ -486,7 +486,7 @@ export type LeagueCompetitionSession = {
 };
 
 export type LeagueCompetitionSessionSelector = {
-    selected_session_id: number;
+    selected_session_id: number | null;
     sessions: Array<{
         id: number;
         session_date: string | null;
@@ -658,7 +658,7 @@ export type LeagueSeasonProfile = {
 export type LeagueSeasonPayload = LeagueCompetitionBase & {
     season: {
         season: {
-            id: number;
+            id: number | null;
             label: string;
             starts_on: string | null;
             sessions_count: number;
@@ -817,8 +817,27 @@ export async function fetchLeagueStats(
 }
 
 export async function fetchLeagueTable(): Promise<LeagueTablePayload> {
+    return fetchLeagueTableForSession();
+}
+
+export async function fetchLeagueTableForSession(
+    sessionId?: number,
+): Promise<LeagueTablePayload> {
     const { data } = await api.get<ApiSuccess<LeagueTablePayload>>(
         '/league/modules/table',
+        {
+            params: sessionId ? { session_id: sessionId } : undefined,
+        },
+    );
+
+    return data.data;
+}
+
+export async function destroyLeagueSession(
+    sessionId: number,
+): Promise<LeagueStatsPayload> {
+    const { data } = await api.delete<ApiSuccess<LeagueStatsPayload>>(
+        `/league/modules/stats/sessions/${sessionId}`,
     );
 
     return data.data;
