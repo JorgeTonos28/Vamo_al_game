@@ -12,8 +12,8 @@ import { computed, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import LeagueRosterSheet from '@/components/LeagueRosterSheet.vue';
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue';
-import { handleMobileRefresher } from '@/services/app-refresh';
 import { extractApiErrors } from '@/services/api';
+import { handleMobileRefresher } from '@/services/app-refresh';
 import {
     addLeagueArrivalGuest,
     deleteLeagueArrivalGuest,
@@ -258,7 +258,8 @@ async function reorderQueuePreview(
 <template>
     <IonPage>
         <IonContent :fullscreen="true">
-            <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
+            <template v-slot:fixed>
+<IonRefresher  @ionRefresh="handleRefresh">
                 <IonRefresherContent
                     pulling-icon="refresh-circle"
                     pulling-text="Desliza para refrescar"
@@ -266,6 +267,7 @@ async function reorderQueuePreview(
                     refreshing-text="Actualizando..."
                 />
             </IonRefresher>
+</template>
 
             <div class="mobile-shell">
                 <div class="mobile-stack">

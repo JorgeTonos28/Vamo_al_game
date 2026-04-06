@@ -4,8 +4,8 @@ import type { AxiosError } from 'axios'
 import { reactive, ref } from 'vue'
 import BrandLogo from '@/components/BrandLogo.vue'
 import SettingsLayout from '@/components/SettingsLayout.vue'
-import { handleMobileRefresher } from '@/services/app-refresh'
 import { useAppearance } from '@/composables/useAppearance'
+import { handleMobileRefresher } from '@/services/app-refresh'
 import {
   fetchCommandCenterSettings,
   updateCommandCenterSettings,

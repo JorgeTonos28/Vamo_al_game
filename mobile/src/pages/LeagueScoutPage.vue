@@ -285,7 +285,8 @@ function tipToneClass(tone: ScoutTip['tone']): string {
 <template>
     <IonPage>
         <IonContent :fullscreen="true">
-            <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
+            <template v-slot:fixed>
+<IonRefresher  @ionRefresh="handleRefresh">
                 <IonRefresherContent
                     pulling-icon="refresh-circle"
                     pulling-text="Desliza para refrescar"
@@ -293,6 +294,7 @@ function tipToneClass(tone: ScoutTip['tone']): string {
                     refreshing-text="Actualizando..."
                 />
             </IonRefresher>
+</template>
             <div class="mobile-shell">
                 <div class="mobile-stack">
                     <MobileAppTopbar

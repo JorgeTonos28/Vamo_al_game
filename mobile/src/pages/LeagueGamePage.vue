@@ -832,7 +832,8 @@ return Flame;
 <template>
     <IonPage>
         <IonContent :fullscreen="true">
-            <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
+            <template v-slot:fixed>
+<IonRefresher  @ionRefresh="handleRefresh">
                 <IonRefresherContent
                     pulling-icon="refresh-circle"
                     pulling-text="Desliza para refrescar"
@@ -840,6 +841,7 @@ return Flame;
                     refreshing-text="Actualizando..."
                 />
             </IonRefresher>
+</template>
 
             <div class="mobile-shell">
                 <div class="mobile-stack">

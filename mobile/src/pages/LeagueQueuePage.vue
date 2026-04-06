@@ -8,8 +8,8 @@ import {
 } from '@ionic/vue';
 import { ref, watch } from 'vue';
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue';
-import { handleMobileRefresher } from '@/services/app-refresh';
 import { extractApiErrors } from '@/services/api';
+import { handleMobileRefresher } from '@/services/app-refresh';
 import { fetchLeagueQueue  } from '@/services/league';
 import type {LeagueQueuePayload} from '@/services/league';
 
@@ -76,7 +76,8 @@ function sessionLabel(
 <template>
     <IonPage>
         <IonContent :fullscreen="true">
-            <IonRefresher slot="fixed" @ionRefresh="handleRefresh">
+            <template v-slot:fixed>
+<IonRefresher  @ionRefresh="handleRefresh">
                 <IonRefresherContent
                     pulling-icon="refresh-circle"
                     pulling-text="Desliza para refrescar"
@@ -84,6 +85,7 @@ function sessionLabel(
                     refreshing-text="Actualizando..."
                 />
             </IonRefresher>
+</template>
 
             <div class="mobile-shell">
                 <div class="mobile-stack">

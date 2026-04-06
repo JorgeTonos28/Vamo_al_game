@@ -3,11 +3,11 @@ import { IonIcon, useIonRouter } from '@ionic/vue'
 import { logOutOutline, settingsOutline, shieldOutline, speedometerOutline, peopleOutline, menuOutline } from 'ionicons/icons'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import LeagueSwitcherSheet from '@/components/LeagueSwitcherSheet.vue'
 import { regularAppRouteName } from '@/lib/session-routes'
-import { logout } from '@/services/auth'
 import type { LeagueOperationalContext } from '@/services/league'
 import { sessionState } from '@/state/session'
+import LeagueSwitcherSheet from '@/components/LeagueSwitcherSheet.vue'
+import { logout } from '@/services/auth'
 
 const props = defineProps<{
   isOpen: boolean

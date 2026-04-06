@@ -2,9 +2,9 @@
 import { IonContent, IonPage, IonRefresher, IonRefresherContent } from '@ionic/vue'
 import { Monitor, Moon, Sun } from 'lucide-vue-next'
 import SettingsLayout from '@/components/SettingsLayout.vue'
-import { handleMobileRefresher } from '@/services/app-refresh'
 import { useAppearance } from '@/composables/useAppearance'
 import type { Appearance } from '@/composables/useAppearance'
+import { handleMobileRefresher } from '@/services/app-refresh'
 
 const { appearance, updateAppearance } = useAppearance()
 
