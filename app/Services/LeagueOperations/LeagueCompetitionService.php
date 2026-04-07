@@ -51,26 +51,36 @@ class LeagueCompetitionService
         $selectedAbandonedGame = null;
 
         if ($abandonedGameId !== null) {
-            $abandonedContext = $this->loadAbandonedGameContext(
-                $context['league'],
-                $context['cut'],
-                $abandonedGameId,
-                $user,
-            );
+            try {
+                $abandonedContext = $this->loadAbandonedGameContext(
+                    $context['league'],
+                    $context['cut'],
+                    $abandonedGameId,
+                    $user,
+                );
+            } catch (ValidationException $exception) {
+                if (! array_key_exists('abandoned_game_id', $exception->errors())) {
+                    throw $exception;
+                }
 
-            $context['session'] = $abandonedContext['session'];
-            $context['cut'] = $abandonedContext['session']->cut ?? $context['cut'];
-            $context['season'] = $this->contextSeasonForLeague(
-                $context['league'],
-                $abandonedContext['session'],
-                $user,
-            );
-            $context['session_selector'] = $this->sessionSelectorPayload(
-                $context['league'],
-                $abandonedContext['session'],
-                $currentSessionForSelector,
-            );
-            $selectedAbandonedGame = $abandonedContext['game'];
+                $abandonedContext = null;
+            }
+
+            if ($abandonedContext !== null) {
+                $context['session'] = $abandonedContext['session'];
+                $context['cut'] = $abandonedContext['session']->cut ?? $context['cut'];
+                $context['season'] = $this->contextSeasonForLeague(
+                    $context['league'],
+                    $abandonedContext['session'],
+                    $user,
+                );
+                $context['session_selector'] = $this->sessionSelectorPayload(
+                    $context['league'],
+                    $abandonedContext['session'],
+                    $currentSessionForSelector,
+                );
+                $selectedAbandonedGame = $abandonedContext['game'];
+            }
         }
 
         $session = $context['session'] ?? $this->emptyCompetitionSession($context['cut']);

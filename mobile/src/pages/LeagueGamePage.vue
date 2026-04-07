@@ -9,7 +9,7 @@ import {
 import { Crown, Flame, RotateCcw, Trophy } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue';
-import { extractApiError } from '@/services/api';
+import { extractApiError, extractApiFieldErrors } from '@/services/api';
 import { handleMobileRefresher } from '@/services/app-refresh';
 import {
     addLeaguePlayerPoint,
@@ -411,6 +411,20 @@ async function loadPage(abandonedGameId?: number): Promise<void> {
 
     try {
         payload.value = await fetchLeagueGame(abandonedGameId);
+    } catch (error) {
+        const fieldErrors = extractApiFieldErrors(error);
+
+        if (
+            abandonedGameId !== undefined &&
+            Object.prototype.hasOwnProperty.call(fieldErrors, 'abandoned_game_id')
+        ) {
+            abandonedGamesOpen.value = false;
+            payload.value = await fetchLeagueGame();
+
+            return;
+        }
+
+        throw error;
     } finally {
         isLoading.value = false;
     }

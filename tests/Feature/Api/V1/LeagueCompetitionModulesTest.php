@@ -649,6 +649,61 @@ class LeagueCompetitionModulesTest extends TestCase
         }
     }
 
+    public function test_game_module_falls_back_to_normal_view_when_selected_abandoned_game_is_already_resolved(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-05 10:00:00'));
+
+        try {
+            [$league, $admin, $players] = $this->makeLeagueContext();
+            $this->prepareLeagueSession($league, $admin, $players->take(10));
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/draft', [
+                    'mode' => 'arrival',
+                ])
+                ->assertOk();
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/team-point', [
+                    'team_side' => 'A',
+                ])
+                ->assertOk();
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/team-point', [
+                    'team_side' => 'B',
+                ])
+                ->assertOk();
+
+            CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-06 09:00:00'));
+
+            $overview = $this->actingAs($admin, 'sanctum')
+                ->getJson('/api/v1/league/modules/game')
+                ->assertOk()
+                ->assertJsonPath('data.game.state', 'idle')
+                ->assertJsonCount(1, 'data.game.abandoned_games');
+
+            $gameId = (int) $overview->json('data.game.abandoned_games.0.id');
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson("/api/v1/league/modules/game/abandoned/{$gameId}/resolve", [
+                    'winner_side' => 'A',
+                ])
+                ->assertOk()
+                ->assertJsonPath('data.game.review.is_active', false);
+
+            $this->actingAs($admin, 'sanctum')
+                ->getJson("/api/v1/league/modules/game?abandoned_game_id={$gameId}")
+                ->assertOk()
+                ->assertJsonPath('data.game.state', 'idle')
+                ->assertJsonPath('data.game.review.is_active', false)
+                ->assertJsonPath('data.game.review.selected_abandoned_game_id', null)
+                ->assertJsonCount(0, 'data.game.abandoned_games');
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
     public function test_member_cannot_resolve_an_abandoned_game(): void
     {
         CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-05 10:00:00'));
