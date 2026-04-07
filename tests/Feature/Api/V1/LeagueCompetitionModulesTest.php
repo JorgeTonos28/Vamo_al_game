@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\LeagueOperations\LeagueArrivalService;
 use App\Services\LeagueOperations\LeagueManagementService;
 use App\Services\LeagueOperations\LeagueOperationsService;
+use App\Services\LeagueOperations\LeagueSeasonService;
 use Carbon\CarbonImmutable;
 use Database\Factories\LeagueMembershipFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -413,6 +414,108 @@ class LeagueCompetitionModulesTest extends TestCase
             $this->assertSame('completed', $session->status);
             $this->assertNull($session->clock_started_at);
             $this->assertSame(0, $session->games()->where('status', '!=', 'completed')->count());
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    public function test_previous_day_scored_open_game_is_preserved_when_session_auto_closes(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-05 10:00:00'));
+
+        try {
+            [$league, $admin, $players] = $this->makeLeagueContext();
+            $this->prepareLeagueSession($league, $admin, $players->take(10));
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/draft', [
+                    'mode' => 'arrival',
+                ])
+                ->assertOk();
+
+            $session = $league->sessions()->with('entries.player', 'games')->latest('id')->firstOrFail();
+            $scorer = $session->entries
+                ->where('session_state', 'on_court')
+                ->where('team_side', 'A')
+                ->sortBy('arrival_order')
+                ->firstOrFail();
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson("/api/v1/league/modules/game/players/{$scorer->id}/point", [
+                    'points' => 2,
+                ])
+                ->assertOk();
+
+            CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-06 09:00:00'));
+
+            $this->actingAs($admin, 'sanctum')
+                ->getJson('/api/v1/league/modules/game')
+                ->assertOk()
+                ->assertJsonPath('data.session.id', null)
+                ->assertJsonPath('data.game.state', 'idle');
+
+            $session->refresh();
+            $game = $session->games()->firstOrFail();
+
+            $this->assertSame('completed', $session->status);
+            $this->assertSame('completed', $game->status);
+            $this->assertSame(2, $game->team_a_score);
+            $this->assertSame(0, $game->team_b_score);
+            $this->assertSame('A', $game->winner_side);
+            $this->assertSame(2, (int) (($game->player_points ?? [])[(string) $scorer->id] ?? 0));
+            $this->assertSame(1, (int) (($game->player_shots ?? [])[(string) $scorer->id]['2'] ?? 0));
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    public function test_season_and_scout_keep_historical_context_when_today_has_no_session(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-05 10:00:00'));
+
+        try {
+            [$league, $admin, $players] = $this->makeLeagueContext();
+            $this->prepareLeagueSession($league, $admin, $players->take(10));
+
+            $session = $league->sessions()->with('entries.player')->latest('id')->firstOrFail();
+            $season = app(LeagueSeasonService::class)->activeSeasonForLeague($league, $admin);
+
+            $session->forceFill([
+                'league_season_id' => $season->id,
+            ])->save();
+
+            $this->seedScoutSeasonHistory($session->fresh('entries.player'), $admin, $players);
+
+            $session->forceFill([
+                'status' => 'completed',
+                'session_date' => '2026-04-05',
+                'ended_at' => CarbonImmutable::parse('2026-04-05 22:00:00'),
+            ])->save();
+
+            CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-06 09:00:00'));
+
+            $seasonResponse = $this->actingAs($admin, 'sanctum')
+                ->getJson('/api/v1/league/modules/season')
+                ->assertOk()
+                ->assertJsonPath('data.session.id', null)
+                ->assertJsonPath('data.season.season.id', $season->id)
+                ->assertJsonPath('data.season.season.sessions_count', 1)
+                ->assertJsonPath('data.season.season.totals.games', 3)
+                ->assertJsonPath('data.season.season.totals.points', 79);
+
+            $this->assertSame($season->id, $seasonResponse->json('data.season.season.id'));
+
+            $scoutResponse = $this->actingAs($admin, 'sanctum')
+                ->getJson('/api/v1/league/modules/scout')
+                ->assertOk()
+                ->assertJsonPath('data.session.id', null);
+
+            $row = collect($scoutResponse->json('data.scout.players'))
+                ->firstWhere('player.id', $players->firstOrFail()->id);
+
+            $this->assertNotNull($row);
+            $this->assertTrue((bool) $row['has_stats']);
+            $this->assertGreaterThan(0, (float) $row['stat_rating']['overall']);
         } finally {
             CarbonImmutable::setTestNow();
         }

@@ -856,7 +856,7 @@ class LeagueCompetitionService
             ...$context,
             'cut' => $session?->cut ?? $activeCut,
             'session' => $session,
-            'season' => $session?->season,
+            'season' => $this->contextSeasonForLeague($context['league'], $session, $user),
             'session_selector' => $this->sessionSelectorPayload(
                 $context['league'],
                 $session,
@@ -886,7 +886,7 @@ class LeagueCompetitionService
             ...$context,
             'cut' => $session->cut ?? $activeCut,
             'session' => $session,
-            'season' => $session->season,
+            'season' => $this->contextSeasonForLeague($context['league'], $session, $user),
             'session_selector' => $this->sessionSelectorPayload(
                 $context['league'],
                 $session,
@@ -1078,6 +1078,36 @@ class LeagueCompetitionService
         }
 
         return $this->operations->findSessionForLeague($league, (int) $sessionId);
+    }
+
+    private function contextSeasonForLeague($league, ?LeagueSession $session, User $user)
+    {
+        $season = $session?->season;
+
+        if ($season === null) {
+            $latestSession = $this->latestSessionForLeague($league);
+
+            if ($latestSession !== null) {
+                $latestSession = $this->seasons->attachSessionToActiveSeason($latestSession, $league, $user);
+                $season = $latestSession->season;
+            }
+        }
+
+        if ($season === null) {
+            $season = $league->seasons()
+                ->orderByDesc('starts_on')
+                ->orderByDesc('id')
+                ->first();
+        }
+
+        if ($season !== null) {
+            $season->loadMissing([
+                'sessions.games',
+                'sessions.entries.player',
+            ]);
+        }
+
+        return $season;
     }
 
     private function emptyCompetitionSession($cut): LeagueSession

@@ -191,7 +191,7 @@ php artisan db:seed
 
 La app usa `APP_TIMEZONE` para definir el dia operativo de cortes y jornadas. El `.env.example` ya viene con `America/Santo_Domingo`; mantenlo asi en Republica Dominicana para evitar cierres automaticos antes del fin del dia local.
 
-Las jornadas operativas ya no se crean por solo abrir `Panel`, `Llegada`, `Stats` o `Tabla`. Una jornada se registra cuando un administrador realiza actividad operativa real en la liga. Si una jornada queda abierta y cambia el dia operativo, el backend la cierra automaticamente, limpia cualquier juego sin terminar y evita que `Juego` o `Cola` sigan mostrando datos vivos del dia anterior. `Stats` y `Tabla` permiten navegar jornadas anteriores con `session_id`, y `Stats` expone tambien eliminacion explicita de jornadas para web y movil.
+Las jornadas operativas ya no se crean por solo abrir `Panel`, `Llegada`, `Stats` o `Tabla`. Una jornada se registra cuando un administrador realiza actividad operativa real en la liga. Si una jornada queda abierta y cambia el dia operativo, el backend la cierra automaticamente, preserva cualquier juego que ya tenga marcador o detalle estadistico, limpia solo juegos vacios sin iniciar y evita que `Juego` o `Cola` sigan mostrando datos vivos del dia anterior. Aunque ese nuevo dia no tenga jornada creada todavia, `Temporada` y `Scout` conservan el contexto historico de la temporada activa o de la ultima jornada conocida. `Stats` y `Tabla` permiten navegar jornadas anteriores con `session_id`, y `Stats` expone tambien eliminacion explicita de jornadas para web y movil.
 
 9. Inicia backend + web:
 

@@ -12,6 +12,7 @@ use App\Models\LeagueFeeSchedule;
 use App\Models\LeagueMembership;
 use App\Models\LeaguePlayer;
 use App\Models\LeagueSession;
+use App\Models\LeagueSessionGame;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -272,15 +273,25 @@ class LeagueOperationsService
 
         foreach ($staleSessions as $session) {
             DB::transaction(function () use ($session): void {
-                foreach ($session->games as $game) {
-                    if ($game->status !== 'completed') {
-                        $game->delete();
-                    }
-                }
-
                 $sessionDate = $session->session_date?->toImmutable() ?? $this->today();
                 $endedAt = $sessionDate->endOfDay();
                 $duration = $session->clock_duration_seconds ?? self::DEFAULT_GAME_CLOCK_SECONDS;
+
+                foreach ($session->games as $game) {
+                    if ($game->status !== 'completed') {
+                        if ($this->staleGameHasRecordedState($game)) {
+                            $game->forceFill([
+                                'status' => 'completed',
+                                'winner_side' => $this->staleGameWinnerSide($game),
+                                'ended_at' => $endedAt,
+                            ])->save();
+
+                            continue;
+                        }
+
+                        $game->delete();
+                    }
+                }
 
                 $session->forceFill([
                     'status' => 'completed',
@@ -292,6 +303,22 @@ class LeagueOperationsService
                 ])->save();
             });
         }
+    }
+
+    private function staleGameHasRecordedState(LeagueSessionGame $game): bool
+    {
+        return ($game->team_a_score + $game->team_b_score) > 0
+            || ! empty($game->player_points)
+            || ! empty($game->player_shots);
+    }
+
+    private function staleGameWinnerSide(LeagueSessionGame $game): ?string
+    {
+        if ($game->team_a_score === $game->team_b_score) {
+            return null;
+        }
+
+        return $game->team_a_score > $game->team_b_score ? 'A' : 'B';
     }
 
     public function currentConfigurationForLeague(League $league, ?CarbonImmutable $today = null): LeagueCutConfiguration
