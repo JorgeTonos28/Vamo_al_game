@@ -1,54 +1,78 @@
 <script setup lang="ts">
 import {
+    IonAlert,
     IonContent,
     IonPage,
     IonRefresher,
     IonRefresherContent,
     onIonViewWillEnter,
 } from '@ionic/vue';
-import { BarChart3, Target } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { BarChart3, Target, Trash2 } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue';
-import { fetchLeagueStats } from '@/services/league';
+import { handleMobileRefresher } from '@/services/app-refresh';
+import { destroyLeagueSession, fetchLeagueStats } from '@/services/league';
 import type { LeagueStatsPayload } from '@/services/league';
 
 const payload = ref<LeagueStatsPayload | null>(null);
 const isLoading = ref(false);
+const showDeleteAlert = ref(false);
 
-async function loadPage(): Promise<void> {
-    isLoading.value = true;
+const selectedSession = computed(
+    () =>
+        payload.value?.session_selector.sessions.find(
+            (session) =>
+                session.id === payload.value?.session_selector.selected_session_id,
+        ) ?? null,
+);
+const canDeleteSession = computed(
+    () => (payload.value?.role.can_manage ?? false) && selectedSession.value !== null,
+);
 
-    try {
-        payload.value = await fetchLeagueStats();
-    } finally {
-        isLoading.value = false;
-    }
-}
-
-async function handleRefresh(event: CustomEvent): Promise<void> {
-    try {
-        await loadPage();
-    } finally {
-        await (event.target as HTMLIonRefresherElement).complete();
-    }
-}
-
-onIonViewWillEnter(loadPage);
-
-async function changeSession(event: Event): Promise<void> {
-    const target = event.target as HTMLSelectElement;
-    const sessionId = Number(target.value);
-
-    if (!Number.isFinite(sessionId) || sessionId <= 0) {
-        return;
-    }
-
+async function loadPage(sessionId?: number): Promise<void> {
     isLoading.value = true;
 
     try {
         payload.value = await fetchLeagueStats(sessionId);
     } finally {
         isLoading.value = false;
+    }
+}
+
+async function handleRefresh(event: CustomEvent): Promise<void> {
+    await handleMobileRefresher(
+        event,
+        () => loadPage(payload.value?.session_selector.selected_session_id ?? undefined),
+    );
+}
+
+onIonViewWillEnter(() => loadPage());
+
+async function changeSession(event: Event): Promise<void> {
+    const target = event.target as HTMLSelectElement;
+    const sessionId = Number(target.value);
+
+    if (!Number.isFinite(sessionId) || sessionId <= 0) {
+        await loadPage();
+
+        return;
+    }
+
+    await loadPage(sessionId);
+}
+
+async function confirmDeleteSession(): Promise<void> {
+    if (selectedSession.value === null) {
+        return;
+    }
+
+    isLoading.value = true;
+
+    try {
+        payload.value = await destroyLeagueSession(selectedSession.value.id);
+    } finally {
+        isLoading.value = false;
+        showDeleteAlert.value = false;
     }
 }
 
@@ -69,14 +93,16 @@ function sessionLabel(
 <template>
     <IonPage>
         <IonContent :fullscreen="true">
-            <template #fixed>
-                <IonRefresher @ionRefresh="handleRefresh">
-                    <IonRefresherContent
-                        pulling-text="Desliza para refrescar"
-                        refreshing-spinner="crescent"
-                    />
-                </IonRefresher>
-            </template>
+            <template v-slot:fixed>
+<IonRefresher  @ionRefresh="handleRefresh">
+                <IonRefresherContent
+                    pulling-icon="refresh-circle"
+                    pulling-text="Desliza para refrescar"
+                    refreshing-spinner="crescent"
+                    refreshing-text="Actualizando..."
+                />
+            </IonRefresher>
+</template>
 
             <div class="mobile-shell">
                 <div class="mobile-stack">
@@ -92,29 +118,69 @@ function sessionLabel(
                             </div>
                             <div>
                                 <p class="app-kicker section-kicker">
-                                    Estadisticas de jornada
+                                    Estadísticas de jornada
                                 </p>
                                 <p class="body-copy">
                                     Puedes revisar la jornada actual o consultar
-                                    dias anteriores sin salir del modulo.
+                                    días anteriores sin salir del modulo.
                                 </p>
                             </div>
                         </div>
 
-                        <select
-                            class="sheet-input"
-                            :value="payload?.session_selector.selected_session_id"
-                            @change="changeSession"
-                        >
-                            <option
-                                v-for="session in payload?.session_selector
-                                    .sessions ?? []"
-                                :key="session.id"
-                                :value="session.id"
+                        <div class="selector-stack">
+                            <select
+                                class="sheet-input"
+                                :value="
+                                    payload?.session_selector.selected_session_id ??
+                                    ''
+                                "
+                                :disabled="
+                                    (payload?.session_selector.sessions.length ??
+                                        0) === 0
+                                "
+                                @change="changeSession"
                             >
-                                {{ sessionLabel(session) }}
-                            </option>
-                        </select>
+                                <option
+                                    v-if="
+                                        (payload?.session_selector
+                                            .selected_session_id ?? null) === null &&
+                                        (payload?.session_selector.sessions.length ??
+                                            0) > 0
+                                    "
+                                    value=""
+                                >
+                                    Sin jornada activa · vista vacía de hoy
+                                </option>
+                                <option
+                                    v-if="
+                                        (payload?.session_selector.sessions.length ??
+                                            0) === 0
+                                    "
+                                    value=""
+                                >
+                                    Sin jornadas registradas
+                                </option>
+                                <option
+                                    v-for="session in payload?.session_selector
+                                        .sessions ?? []"
+                                    :key="session.id"
+                                    :value="session.id"
+                                >
+                                    {{ sessionLabel(session) }}
+                                </option>
+                            </select>
+
+                            <button
+                                v-if="payload?.role.can_manage"
+                                type="button"
+                                class="danger-button"
+                                :disabled="!canDeleteSession"
+                                @click="showDeleteAlert = true"
+                            >
+                                <Trash2 :size="16" />
+                                Eliminar jornada
+                            </button>
+                        </div>
                     </section>
 
                     <section class="app-surface section-stack">
@@ -129,7 +195,7 @@ function sessionLabel(
                                     </p>
                                 </div>
                                 <p class="body-copy">
-                                    Ranking ofensivo de la jornada actual con
+                                    Ranking ofensivo de la jornada visible con
                                     desglose por tipo de tiro.
                                 </p>
                             </div>
@@ -144,7 +210,7 @@ function sessionLabel(
                             v-else-if="(payload?.stats.points_leaders.length ?? 0) === 0"
                             class="body-copy empty-state"
                         >
-                            Sin datos todavia.
+                            Sin datos todavía.
                         </p>
                         <article
                             v-for="(row, index) in payload?.stats
@@ -182,7 +248,7 @@ function sessionLabel(
                                     </p>
                                 </div>
                                 <p class="body-copy">
-                                    Lideres de participacion y balance de
+                                    Líderes de participacion y balance de
                                     victorias en la jornada seleccionada.
                                 </p>
                             </div>
@@ -194,7 +260,7 @@ function sessionLabel(
                             v-if="(payload?.stats.games_leaders.length ?? 0) === 0"
                             class="body-copy empty-state"
                         >
-                            Sin datos todavia.
+                            Sin datos todavía.
                         </p>
                         <article
                             v-for="(row, index) in payload?.stats
@@ -217,6 +283,29 @@ function sessionLabel(
                     </section>
                 </div>
             </div>
+
+            <IonAlert
+                :is-open="showDeleteAlert"
+                header="Eliminar jornada"
+                :message="`Se eliminará la jornada ${selectedSession?.session_date ?? 'seleccionada'} junto con sus juegos, stats y cola.`"
+                :buttons="[
+                    {
+                        text: 'Cancelar',
+                        role: 'cancel',
+                        handler: () => {
+                            showDeleteAlert = false;
+                        },
+                    },
+                    {
+                        text: 'Eliminar',
+                        role: 'destructive',
+                        handler: () => {
+                            void confirmDeleteSession();
+                        },
+                    },
+                ]"
+                @didDismiss="showDeleteAlert = false"
+            />
         </IonContent>
     </IonPage>
 </template>
@@ -224,7 +313,8 @@ function sessionLabel(
 <style scoped>
 .section-stack,
 .section-header,
-.section-banner {
+.section-banner,
+.selector-stack {
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -259,7 +349,7 @@ function sessionLabel(
 }
 
 .section-header__icon--success {
-    border-color: rgba(74, 222, 128, 0.24);
+    border-color: rgba(74, 222, 128, 0.28);
     background: rgba(74, 222, 128, 0.12);
     color: #4ade80;
 }
@@ -268,86 +358,30 @@ function sessionLabel(
     color: #e5b849;
 }
 
-.data-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
-    background: #0e1628;
-    padding: 14px;
-}
-
-.body-copy,
-.data-row__name {
-    margin: 0;
-}
-
-.body-copy {
-    font-size: 13px;
-    line-height: 1.6;
-    color: #94a3b8;
-}
-
-.data-row__name {
-    font-size: 15px;
-    font-weight: 700;
-    color: #f8fafc;
-}
-
-.empty-state {
-    border: 1px dashed rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    background: #0e1628;
-    padding: 14px;
-}
-
-.sheet-input {
-    width: 100%;
-    min-height: 48px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: #0e1628;
-    padding: 0 14px;
-    color: #f8fafc;
-}
-
-.member-chip {
+.danger-button {
     display: inline-flex;
+    min-height: 48px;
     align-items: center;
     justify-content: center;
-    min-height: 42px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 0 12px;
-    font-size: 12px;
+    gap: 8px;
+    border: 1px solid rgba(248, 113, 113, 0.24);
+    border-radius: 16px;
+    background: rgba(248, 113, 113, 0.08);
+    color: #fca5a5;
+    font-size: 13px;
     font-weight: 700;
-    white-space: nowrap;
+    transition:
+        transform 0.1s ease-out,
+        opacity 0.1s ease-out,
+        background-color 0.2s ease-out;
 }
 
-.member-chip--neutral {
-    background: #131b2f;
-    color: #f8fafc;
+.danger-button:active {
+    opacity: 0.8;
+    transform: scale(0.97);
 }
 
-.member-chip--positive {
-    background: rgba(74, 222, 128, 0.12);
-    border-color: rgba(74, 222, 128, 0.28);
-    color: #4ade80;
-}
-
-.member-chip--warning {
-    background: rgba(229, 184, 73, 0.12);
-    border-color: rgba(229, 184, 73, 0.28);
-    color: #f8fafc;
-}
-
-@media (min-width: 420px) {
-    .section-banner {
-        flex-direction: row;
-        align-items: flex-start;
-        justify-content: space-between;
-    }
+.danger-button:disabled {
+    opacity: 0.55;
 }
 </style>

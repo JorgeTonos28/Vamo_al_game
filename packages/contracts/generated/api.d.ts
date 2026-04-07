@@ -1067,6 +1067,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/league/modules/game/abandoned/{game}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resuelve un juego abandonado con ganador manual */
+        post: operations["resolveLeagueAbandonedGame"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/league/modules/scout/players/{player}": {
         parameters: {
             query?: never;
@@ -1082,6 +1099,23 @@ export interface paths {
         head?: never;
         /** Actualiza el perfil de scout de un jugador */
         patch: operations["updateLeagueScoutPlayer"];
+        trace?: never;
+    };
+    "/league/modules/stats/sessions/{session}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Elimina una jornada desde Stats */
+        delete: operations["deleteLeagueStatsSession"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
 }
@@ -1737,17 +1771,17 @@ export interface components {
             session: components["schemas"]["LeagueCompetitionSession"];
         };
         LeagueCompetitionSession: {
-            id: number;
+            id: number | null;
             status: string;
             session_date: string | null;
-            current_game_number: number;
+            current_game_number: number | null;
             streak: components["schemas"]["LeagueCompetitionStreak"];
             participants_count: number;
             pending_pool_count: number;
             queue_count: number;
         };
         LeagueCompetitionSessionSelector: {
-            selected_session_id: number;
+            selected_session_id: number | null;
             sessions: components["schemas"]["LeagueCompetitionSessionSelectorItem"][];
         };
         LeagueCompetitionSessionSelectorItem: {
@@ -1795,10 +1829,12 @@ export interface components {
         };
         LeagueGameModule: {
             /** @enum {string} */
-            state: "idle" | "draft" | "live" | "completed";
+            state: "idle" | "draft" | "live" | "completed" | "review";
             draft: components["schemas"]["LeagueGameDraft"];
             clock: components["schemas"]["LeagueGameClock"];
             rotation_notice: components["schemas"]["LeagueGameRotationNotice"] | null;
+            review: components["schemas"]["LeagueGameReview"];
+            abandoned_games: components["schemas"]["LeagueGameAbandonedGame"][];
             current: components["schemas"]["LeagueGameCurrent"] | null;
             history: components["schemas"]["LeagueGameHistoryItem"][];
             summary: components["schemas"]["LeagueCompetitionSummary"];
@@ -1824,6 +1860,23 @@ export interface components {
             body: string[];
             tone: string;
             icon: string;
+        };
+        LeagueGameReview: {
+            is_active: boolean;
+            selected_abandoned_game_id: number | null;
+            session_date: string | null;
+            title: string | null;
+            description: string | null;
+        };
+        LeagueGameAbandonedGame: {
+            id: number;
+            session_id: number;
+            session_date: string | null;
+            game_number: number;
+            score: string;
+            team_a_label: string;
+            team_b_label: string;
+            selected: boolean;
         };
         LeagueGameCurrent: {
             id: number;
@@ -1934,7 +1987,7 @@ export interface components {
             profiles: components["schemas"]["LeagueSeasonProfile"][];
         };
         LeagueSeasonMeta: {
-            id: number;
+            id: number | null;
             label: string;
             starts_on: string | null;
             sessions_count: number;
@@ -2086,6 +2139,10 @@ export interface components {
         };
         LeagueGameFinishRequest: {
             winner_side?: ("A" | "B") | null;
+        };
+        LeagueGameResolveAbandonedRequest: {
+            /** @enum {string} */
+            winner_side: "A" | "B";
         };
         LeagueScoutUpdateRequest: {
             position?: string | null;
@@ -2468,7 +2525,9 @@ export interface operations {
     };
     logout: {
         parameters: {
-            query?: never;
+            query?: {
+                abandoned_game_id?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4685,7 +4744,9 @@ export interface operations {
     };
     leagueTable: {
         parameters: {
-            query?: never;
+            query?: {
+                session_id?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5465,6 +5526,59 @@ export interface operations {
             };
         };
     };
+    resolveLeagueAbandonedGame: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                game: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeagueGameResolveAbandonedRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueGameResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     updateLeagueScoutPlayer: {
         parameters: {
             query?: never;
@@ -5487,6 +5601,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LeagueScoutResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteLeagueStatsSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueStatsResponse"];
                 };
             };
             /** @description No autenticado */

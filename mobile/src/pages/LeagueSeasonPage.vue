@@ -14,6 +14,7 @@ import {
 } from 'lucide-vue-next';
 import { ref } from 'vue';
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue';
+import { handleMobileRefresher } from '@/services/app-refresh';
 import { fetchLeagueSeason } from '@/services/league';
 import type { LeagueSeasonPayload } from '@/services/league';
 
@@ -51,11 +52,7 @@ async function loadPage(): Promise<void> {
 }
 
 async function handleRefresh(event: CustomEvent): Promise<void> {
-    try {
-        await loadPage();
-    } finally {
-        await (event.target as HTMLIonRefresherElement).complete();
-    }
+    await handleMobileRefresher(event, loadPage);
 }
 
 onIonViewWillEnter(loadPage);
@@ -64,14 +61,16 @@ onIonViewWillEnter(loadPage);
 <template>
     <IonPage>
         <IonContent :fullscreen="true">
-            <template #fixed>
-                <IonRefresher @ionRefresh="handleRefresh">
-                    <IonRefresherContent
-                        pulling-text="Desliza para refrescar"
-                        refreshing-spinner="crescent"
-                    />
-                </IonRefresher>
-            </template>
+            <template v-slot:fixed>
+<IonRefresher  @ionRefresh="handleRefresh">
+                <IonRefresherContent
+                    pulling-icon="refresh-circle"
+                    pulling-text="Desliza para refrescar"
+                    refreshing-spinner="crescent"
+                    refreshing-text="Actualizando..."
+                />
+            </IonRefresher>
+</template>
 
             <div class="mobile-shell">
                 <div class="mobile-stack">

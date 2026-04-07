@@ -24,13 +24,12 @@ import {
 } from '@/components/ui/dialog';
 import { formatMoney } from '@/lib/league';
 import type { BreadcrumbItem } from '@/types';
-import {
-    buildDraftPreview
-    
-    
-    
+import { buildDraftPreview } from '../../../../packages/shared/leagueDraftPreview';
+import type {
+    CaptainMode,
+    DraftMode,
+    DraftPreviewPlayer,
 } from '../../../../packages/shared/leagueDraftPreview';
-import type {CaptainMode, DraftMode, DraftPreviewPlayer} from '../../../../packages/shared/leagueDraftPreview';
 
 type PlayerCard = {
     id: number;
@@ -74,14 +73,15 @@ type DraftAlert = {
     title: string;
     body: string[];
 };
+const DEFAULT_CLOCK_DURATION_SECONDS = 20 * 60;
 
 const props = defineProps<{
     league: { id: number; name: string; emoji: string | null; slug: string };
     role: { value: string; label: string; can_manage: boolean };
     session: {
-        id: number;
+        id: number | null;
         status: string;
-        current_game_number: number;
+        current_game_number: number | null;
         streak: {
             team: 'A' | 'B' | null;
             count: number;
@@ -90,7 +90,7 @@ const props = defineProps<{
         };
     };
     game: {
-        state: 'idle' | 'draft' | 'live' | 'completed';
+        state: 'idle' | 'draft' | 'live' | 'completed' | 'review';
         draft: { entries: DraftEntry[]; can_start: boolean };
         clock: {
             duration_seconds: number | null;
@@ -99,6 +99,23 @@ const props = defineProps<{
             started_at: string | null;
         };
         rotation_notice: RotationNotice | null;
+        review: {
+            is_active: boolean;
+            selected_abandoned_game_id: number | null;
+            session_date: string | null;
+            title: string | null;
+            description: string | null;
+        };
+        abandoned_games: Array<{
+            id: number;
+            session_id: number;
+            session_date: string | null;
+            game_number: number;
+            score: string;
+            team_a_label: string;
+            team_b_label: string;
+            selected: boolean;
+        }>;
         current: null | {
             id: number;
             game_number: number;
@@ -153,14 +170,35 @@ const scoreBumpSide = ref<TeamSide | null>(null);
 const gameActionError = ref('');
 const rotationNotice = ref<RotationNotice | null>(props.game.rotation_notice);
 const draftAlert = ref<DraftAlert | null>(null);
-const clockForm = reactive({
-    minutes: '20',
-    seconds: '00',
-});
-const clockDisplaySeconds = ref<number | null>(props.game.clock.remaining_seconds);
+const clockEditorOpen = ref(false);
+const clockMinutes = ref('20');
+const clockSeconds = ref('00');
+const clockDisplaySeconds = ref<number | null>(
+    props.game.clock.remaining_seconds,
+);
+const abandonedGamesOpen = ref(false);
 let lastRotationNoticeKey = props.game.rotation_notice?.key ?? null;
 
 const canManage = computed(() => props.role.can_manage);
+const isAbandonedReview = computed(() => props.game.review.is_active);
+const canManageLiveGame = computed(
+    () => canManage.value && !isAbandonedReview.value,
+);
+const canResolveAbandonedGame = computed(
+    () => canManage.value && isAbandonedReview.value,
+);
+const showAbandonedGamesButton = computed(
+    () => props.game.abandoned_games.length > 0,
+);
+const pageKicker = computed(() =>
+    isAbandonedReview.value ? 'Juego abandonado' : 'Juego actual',
+);
+const pageDescription = computed(() =>
+    isAbandonedReview.value
+        ? (props.game.review.description ??
+          'Vista de solo lectura de una jornada historica.')
+        : 'Draft, marcador, historial y cierre operativo de la jornada.',
+);
 const teamACount = computed(
     () =>
         draftPreview.value?.counts.A ??
@@ -187,6 +225,51 @@ const draftErrorContext = computed(() =>
 );
 const clockState = computed(() => props.game.clock.state);
 const clockDurationSeconds = computed(() => props.game.clock.duration_seconds);
+const canEditClock = computed(() => {
+    if (!canManageLiveGame.value || clockState.value === 'running') {
+        return false;
+    }
+
+    if (
+        clockDurationSeconds.value === null ||
+        clockDisplaySeconds.value === null
+    ) {
+        return true;
+    }
+
+    return clockDisplaySeconds.value === clockDurationSeconds.value;
+});
+const clockMinuteOptions = computed(() =>
+    Array.from({ length: 120 }, (_, index) => index + 1).map((value) => ({
+        value: value.toString(),
+        label: value.toString().padStart(2, '0'),
+    })),
+);
+const clockSecondOptions = computed(() =>
+    Array.from({ length: 60 }, (_, index) => ({
+        value: index.toString(),
+        label: index.toString().padStart(2, '0'),
+    })),
+);
+const clockStatusLabel = computed(() => {
+    if (clockState.value === 'running') {
+        return 'Corriendo';
+    }
+
+    if (clockState.value === 'finished') {
+        return 'Tiempo agotado. Reinicia para volver a editarlo.';
+    }
+
+    if (clockState.value === 'unconfigured') {
+        return canManage.value
+            ? 'Haz clic en el marcador para cargar minutos y segundos.'
+            : 'Sin configurar';
+    }
+
+    return canEditClock.value
+        ? 'Haz clic en el marcador para cargar minutos y segundos.'
+        : 'Reinicia el cronómetro para volver a editarlo.';
+});
 const formattedClock = computed(() => {
     if (clockDisplaySeconds.value === null) {
         return '--:--';
@@ -207,16 +290,21 @@ const clockActionLabel = computed(() => {
     }
 
     if (
-        clockDurationSeconds.value !== null
-        && clockDisplaySeconds.value !== null
-        && clockDisplaySeconds.value < clockDurationSeconds.value
-        && clockDisplaySeconds.value > 0
+        clockDurationSeconds.value !== null &&
+        clockDisplaySeconds.value !== null &&
+        clockDisplaySeconds.value < clockDurationSeconds.value &&
+        clockDisplaySeconds.value > 0
     ) {
         return 'Reanudar';
     }
 
     return 'Iniciar';
 });
+const scoreboardContextLabel = computed(() =>
+    isAbandonedReview.value
+        ? (props.game.review.session_date ?? 'Jornada histórica')
+        : streakLabel.value,
+);
 let scoreFeedbackNonce = 0;
 let scoreFlashTimer: ReturnType<typeof setTimeout> | null = null;
 let scoreBumpTimer: ReturnType<typeof setTimeout> | null = null;
@@ -274,7 +362,19 @@ watch(
         () => props.session.current_game_number,
     ],
     async () => {
-        if (props.game.state !== 'draft' || draftReadyEntries.value.length === 0) {
+        if (
+            props.game.state !== 'draft' ||
+            draftReadyEntries.value.length === 0
+        ) {
+            draftPreview.value = null;
+
+            return;
+        }
+
+        if (
+            props.session.id === null ||
+            props.session.current_game_number === null
+        ) {
             draftPreview.value = null;
 
             return;
@@ -316,9 +416,6 @@ watch(
 watch(
     () => props.game.clock,
     (clock) => {
-        const durationSeconds = clock.duration_seconds ?? 1200;
-        clockForm.minutes = String(Math.floor(durationSeconds / 60)).padStart(2, '0');
-        clockForm.seconds = String(durationSeconds % 60).padStart(2, '0');
         clockDisplaySeconds.value = clock.remaining_seconds;
 
         if (clockTicker !== null) {
@@ -328,7 +425,10 @@ watch(
 
         if (clock.state === 'running' && clock.remaining_seconds !== null) {
             clockTicker = setInterval(() => {
-                if (clockDisplaySeconds.value === null || clockDisplaySeconds.value <= 0) {
+                if (
+                    clockDisplaySeconds.value === null ||
+                    clockDisplaySeconds.value <= 0
+                ) {
                     if (clockTicker !== null) {
                         clearInterval(clockTicker);
                         clockTicker = null;
@@ -345,6 +445,21 @@ watch(
     },
     { deep: true, immediate: true },
 );
+
+function syncClockEditor(totalSeconds: number | null): void {
+    const safeTotalSeconds = Math.min(
+        7200,
+        Math.max(
+            60,
+            Math.floor(totalSeconds ?? DEFAULT_CLOCK_DURATION_SECONDS),
+        ),
+    );
+    const minutes = Math.floor(safeTotalSeconds / 60);
+    const seconds = safeTotalSeconds % 60;
+
+    clockMinutes.value = minutes.toString();
+    clockSeconds.value = seconds.toString();
+}
 
 onBeforeUnmount(() => {
     if (scoreFlashTimer !== null) {
@@ -409,27 +524,29 @@ function setAssignment(entryId: number, team: 'A' | 'B') {
         return;
     }
 
-    const nextCount = props.game.draft.entries.reduce((count, entry) => {
-        if (entry.id === entryId) {
-            return count;
-        }
+    const nextCount =
+        props.game.draft.entries.reduce((count, entry) => {
+            if (entry.id === entryId) {
+                return count;
+            }
 
-        return manualAssignments[entry.id] === team ? count + 1 : count;
-    }, 0) + 1;
+            return manualAssignments[entry.id] === team ? count + 1 : count;
+        }, 0) + 1;
 
     if (nextCount > 5) {
-        openDraftAlert(
-            `Equipo ${team} completo`,
-            [
-                `El Equipo ${team} ya tiene 5 integrantes asignados.`,
-                'Mueve a otro jugador antes de intentar agregar uno más.',
-            ],
-        );
+        openDraftAlert(`Equipo ${team} completo`, [
+            `El Equipo ${team} ya tiene 5 integrantes asignados.`,
+            'Mueve a otro jugador antes de intentar agregar uno más.',
+        ]);
 
         return;
     }
 
-    if (currentTeam && currentTeam !== team && manualCaptains[currentTeam] === entryId) {
+    if (
+        currentTeam &&
+        currentTeam !== team &&
+        manualCaptains[currentTeam] === entryId
+    ) {
         manualCaptains[currentTeam] = null;
     }
 
@@ -457,25 +574,19 @@ function submitDraft() {
         );
 
         if (unassignedEntries.length > 0) {
-            openDraftAlert(
-                'Draft manual incompleto',
-                [
-                    'Todos los integrantes deben quedar asignados antes de confirmar el draft.',
-                    `Faltan ${unassignedEntries.length} integrante(s) por ubicar en un equipo.`,
-                ],
-            );
+            openDraftAlert('Draft manual incompleto', [
+                'Todos los integrantes deben quedar asignados antes de confirmar el draft.',
+                `Faltan ${unassignedEntries.length} integrante(s) por ubicar en un equipo.`,
+            ]);
 
             return;
         }
 
         if (teamACount.value !== 5 || teamBCount.value !== 5) {
-            openDraftAlert(
-                'Equipos incompletos',
-                [
-                    'Cada equipo debe tener exactamente 5 integrantes.',
-                    `Equipo A: ${teamACount.value}/5. Equipo B: ${teamBCount.value}/5.`,
-                ],
-            );
+            openDraftAlert('Equipos incompletos', [
+                'Cada equipo debe tener exactamente 5 integrantes.',
+                `Equipo A: ${teamACount.value}/5. Equipo B: ${teamBCount.value}/5.`,
+            ]);
 
             return;
         }
@@ -488,13 +599,10 @@ function submitDraft() {
             manualCaptains.A === null ||
             manualCaptains.B === null)
     ) {
-        openDraftAlert(
-            'Capitanes pendientes',
-            [
-                'Para usar capitán manual debes tener ambos equipos completos y seleccionar un capitán por lado.',
-                `Equipo A: ${manualCaptains.A ? 'listo' : 'falta capitán'}. Equipo B: ${manualCaptains.B ? 'listo' : 'falta capitán'}.`,
-            ],
-        );
+        openDraftAlert('Capitanes pendientes', [
+            'Para usar capitán manual debes tener ambos equipos completos y seleccionar un capitán por lado.',
+            `Equipo A: ${manualCaptains.A ? 'listo' : 'falta capitán'}. Equipo B: ${manualCaptains.B ? 'listo' : 'falta capitán'}.`,
+        ]);
 
         return;
     }
@@ -529,7 +637,10 @@ function submitDraft() {
 
             gameActionError.value = message;
 
-            if (draftMode.value === 'manual' || captainMode.value === 'manual') {
+            if (
+                draftMode.value === 'manual' ||
+                captainMode.value === 'manual'
+            ) {
                 openDraftAlert('No se pudo confirmar el draft', [message]);
             }
         },
@@ -537,26 +648,32 @@ function submitDraft() {
 }
 
 function addTeamPoint(teamSide: 'A' | 'B') {
-    if (!canManage.value) {
-return;
-}
+    if (!canManageLiveGame.value) {
+        return;
+    }
 
     gameActionError.value = '';
-    router.post('/liga/modulos/juego/team-point', { team_side: teamSide }, {
-        preserveScroll: true,
-        onSuccess: () => {
-            triggerScoreFeedback(teamSide, 1);
+    router.post(
+        '/liga/modulos/juego/team-point',
+        { team_side: teamSide },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                triggerScoreFeedback(teamSide, 1);
+            },
+            onError: (errors) => {
+                gameActionError.value = String(
+                    errors.session ?? 'No se pudo sumar el punto.',
+                );
+            },
         },
-        onError: (errors) => {
-            gameActionError.value = String(errors.session ?? 'No se pudo sumar el punto.');
-        },
-    });
+    );
 }
 
 function addPlayerPoint(points: 1 | 2 | 3) {
-    if (!selectedPlayer.value || !canManage.value) {
-return;
-}
+    if (!selectedPlayer.value || !canManageLiveGame.value) {
+        return;
+    }
 
     const teamSide = teamSideForPlayer(selectedPlayer.value.id);
     gameActionError.value = '';
@@ -574,16 +691,20 @@ return;
                 selectedPlayer.value = null;
             },
             onError: (errors) => {
-                gameActionError.value = String(errors.points ?? errors.session ?? 'No se pudo registrar la jugada.');
+                gameActionError.value = String(
+                    errors.points ??
+                        errors.session ??
+                        'No se pudo registrar la jugada.',
+                );
             },
         },
     );
 }
 
 function revertPlayerPoint(points: 1 | 2 | 3) {
-    if (!revertPlayer.value || !canManage.value) {
-return;
-}
+    if (!revertPlayer.value || !canManageLiveGame.value) {
+        return;
+    }
 
     gameActionError.value = '';
 
@@ -596,169 +717,265 @@ return;
                 revertPlayer.value = null;
             },
             onError: (errors) => {
-                gameActionError.value = String(errors.points ?? errors.session ?? 'No se pudo revertir la jugada.');
+                gameActionError.value = String(
+                    errors.points ??
+                        errors.session ??
+                        'No se pudo revertir la jugada.',
+                );
             },
         },
     );
 }
 
 function openRemovePlayerModal(player: TeamPlayer) {
-    if (!canManage.value) {
-return;
-}
+    if (!canManageLiveGame.value) {
+        return;
+    }
 
     playerToRemove.value = player;
 }
 
 function confirmRemovePlayer() {
-    if (!playerToRemove.value || !canManage.value) {
-return;
-}
+    if (!playerToRemove.value || !canManageLiveGame.value) {
+        return;
+    }
 
     gameActionError.value = '';
 
-    router.post(`/liga/modulos/juego/players/${playerToRemove.value.id}/remove`, {}, {
-        preserveScroll: true,
-        onSuccess: () => {
-            playerToRemove.value = null;
+    router.post(
+        `/liga/modulos/juego/players/${playerToRemove.value.id}/remove`,
+        {},
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                playerToRemove.value = null;
+            },
+            onError: (errors) => {
+                gameActionError.value = String(
+                    errors.session ??
+                        'No se pudo registrar la salida del jugador.',
+                );
+            },
         },
-        onError: (errors) => {
-            gameActionError.value = String(errors.session ?? 'No se pudo registrar la salida del jugador.');
-        },
-    });
+    );
 }
 
 function undoLastAction() {
-    if (!canManage.value) {
-return;
-}
+    if (!canManageLiveGame.value) {
+        return;
+    }
 
     gameActionError.value = '';
-    router.post('/liga/modulos/juego/undo', {}, {
-        preserveScroll: true,
-        onError: (errors) => {
-            gameActionError.value = String(errors.session ?? 'No hay una accion valida para deshacer.');
+    router.post(
+        '/liga/modulos/juego/undo',
+        {},
+        {
+            preserveScroll: true,
+            onError: (errors) => {
+                gameActionError.value = String(
+                    errors.session ?? 'No hay una accion valida para deshacer.',
+                );
+            },
         },
-    });
+    );
 }
 
 function finishGame() {
-    if (!canManage.value) {
-return;
-}
+    if (!canManageLiveGame.value) {
+        return;
+    }
 
     gameActionError.value = '';
-    router.post('/liga/modulos/juego/finish', {}, {
-        preserveScroll: true,
-        onError: (errors) => {
-            gameActionError.value = String(errors.winner_side ?? errors.session ?? 'No se pudo cerrar el juego.');
+    router.post(
+        '/liga/modulos/juego/finish',
+        {},
+        {
+            preserveScroll: true,
+            onError: (errors) => {
+                gameActionError.value = String(
+                    errors.winner_side ??
+                        errors.session ??
+                        'No se pudo cerrar el juego.',
+                );
+            },
         },
-    });
+    );
 }
 
 function endSession() {
-    if (!canManage.value || !window.confirm('Cerrar la jornada del día?')) {
-return;
-}
+    if (
+        !canManageLiveGame.value ||
+        !window.confirm('Cerrar la jornada del dia?')
+    ) {
+        return;
+    }
 
     gameActionError.value = '';
-    router.post('/liga/modulos/juego/end-session', {}, {
-        preserveScroll: true,
-        onError: (errors) => {
-            gameActionError.value = String(errors.session ?? 'No se pudo cerrar la jornada.');
+    router.post(
+        '/liga/modulos/juego/end-session',
+        {},
+        {
+            preserveScroll: true,
+            onError: (errors) => {
+                gameActionError.value = String(
+                    errors.session ?? 'No se pudo cerrar la jornada.',
+                );
+            },
         },
-    });
+    );
 }
 
 function resetCurrentGame() {
-    if (!canManage.value || !window.confirm('Limpiar por completo el juego actual?')) {
-return;
-}
-
-    gameActionError.value = '';
-    router.post('/liga/modulos/juego/reset', {}, {
-        preserveScroll: true,
-        onError: (errors) => {
-            gameActionError.value = String(errors.session ?? 'No se pudo reiniciar el juego actual.');
-        },
-    });
-}
-
-function parsedClockDuration(): number | null {
-    const minutes = Number(clockForm.minutes || 0);
-    const seconds = Number(clockForm.seconds || 0);
-
-    if (!Number.isFinite(minutes) || !Number.isFinite(seconds)) {
-        return null;
-    }
-
-    const total = (Math.max(0, Math.floor(minutes)) * 60) + Math.max(0, Math.floor(seconds));
-
-    return total > 0 ? total : null;
-}
-
-function saveClockDuration(): void {
-    if (!canManage.value) {
+    if (
+        !canManageLiveGame.value ||
+        !window.confirm('Limpiar por completo el juego actual?')
+    ) {
         return;
     }
 
-    const total = parsedClockDuration();
+    gameActionError.value = '';
+    router.post(
+        '/liga/modulos/juego/reset',
+        {},
+        {
+            preserveScroll: true,
+            onError: (errors) => {
+                gameActionError.value = String(
+                    errors.session ?? 'No se pudo reiniciar el juego actual.',
+                );
+            },
+        },
+    );
+}
+
+function configureClockDuration(total: number | null): void {
+    if (!canEditClock.value) {
+        return;
+    }
 
     if (total === null) {
-        gameActionError.value = 'Configura un tiempo válido para el cronómetro.';
+        gameActionError.value =
+            'Configura un tiempo válido para el cronómetro.';
 
         return;
     }
 
     gameActionError.value = '';
-    router.post('/liga/modulos/juego/clock', {
-        duration_seconds: total,
-    }, {
-        preserveScroll: true,
-        onError: (errors) => {
-            gameActionError.value = String(errors.duration_seconds ?? errors.clock ?? 'No se pudo actualizar el cronómetro.');
+    router.post(
+        '/liga/modulos/juego/clock',
+        {
+            duration_seconds: total,
         },
-    });
+        {
+            preserveScroll: true,
+            onError: (errors) => {
+                gameActionError.value = String(
+                    errors.duration_seconds ??
+                        errors.clock ??
+                        'No se pudo actualizar el cronómetro.',
+                );
+            },
+        },
+    );
+}
+
+function openClockPicker(): void {
+    if (!canEditClock.value) {
+        return;
+    }
+
+    syncClockEditor(clockDurationSeconds.value ?? clockDisplaySeconds.value);
+    clockEditorOpen.value = true;
+}
+
+function saveClockEditor(): void {
+    if (!canEditClock.value) {
+        return;
+    }
+
+    const minutes = Number(clockMinutes.value);
+    const seconds = Number(clockSeconds.value);
+
+    if (
+        !Number.isInteger(minutes) ||
+        !Number.isInteger(seconds) ||
+        minutes < 1 ||
+        minutes > 120 ||
+        seconds < 0 ||
+        seconds > 59
+    ) {
+        gameActionError.value =
+            'Configura un tiempo válido para el cronómetro.';
+
+        return;
+    }
+
+    configureClockDuration(minutes * 60 + seconds);
+    clockEditorOpen.value = false;
 }
 
 function toggleClock(): void {
-    if (!canManage.value) {
+    if (!canManageLiveGame.value) {
         return;
     }
 
     if (clockState.value === 'running') {
         gameActionError.value = '';
-        router.post('/liga/modulos/juego/clock/pause', {}, {
-            preserveScroll: true,
-            onError: (errors) => {
-                gameActionError.value = String(errors.clock ?? errors.session ?? 'No se pudo pausar el cronómetro.');
+        router.post(
+            '/liga/modulos/juego/clock/pause',
+            {},
+            {
+                preserveScroll: true,
+                onError: (errors) => {
+                    gameActionError.value = String(
+                        errors.clock ??
+                            errors.session ??
+                            'No se pudo pausar el cronómetro.',
+                    );
+                },
             },
-        });
+        );
 
         return;
     }
 
     gameActionError.value = '';
-    router.post('/liga/modulos/juego/clock/start', {}, {
-        preserveScroll: true,
-        onError: (errors) => {
-            gameActionError.value = String(errors.clock ?? errors.session ?? 'No se pudo iniciar el cronómetro.');
+    router.post(
+        '/liga/modulos/juego/clock/start',
+        {},
+        {
+            preserveScroll: true,
+            onError: (errors) => {
+                gameActionError.value = String(
+                    errors.clock ??
+                        errors.session ??
+                        'No se pudo iniciar el cronómetro.',
+                );
+            },
         },
-    });
+    );
 }
 
 function resetClock(): void {
-    if (!canManage.value) {
+    if (!canManageLiveGame.value) {
         return;
     }
 
     gameActionError.value = '';
-    router.post('/liga/modulos/juego/clock/reset', {}, {
-        preserveScroll: true,
-        onError: (errors) => {
-            gameActionError.value = String(errors.clock ?? errors.session ?? 'No se pudo reiniciar el cronómetro.');
+    router.post(
+        '/liga/modulos/juego/clock/reset',
+        {},
+        {
+            preserveScroll: true,
+            onError: (errors) => {
+                gameActionError.value = String(
+                    errors.clock ??
+                        errors.session ??
+                        'No se pudo reiniciar el cronómetro.',
+                );
+            },
         },
-    });
+    );
 }
 
 function rotationNoticeIcon(icon: string) {
@@ -784,6 +1001,68 @@ function rotationNoticeToneClasses(tone: string): string {
 
     return 'border-[rgba(229,184,73,0.24)] bg-[rgba(229,184,73,0.08)] text-[#E5B849]';
 }
+
+function openAbandonedGames(): void {
+    if (!showAbandonedGamesButton.value) {
+        return;
+    }
+
+    abandonedGamesOpen.value = true;
+}
+
+function selectAbandonedGame(gameId: number): void {
+    abandonedGamesOpen.value = false;
+    router.get(
+        '/liga/modulos/juego',
+        {
+            abandoned_game_id: gameId,
+        },
+        {
+            preserveScroll: true,
+            replace: true,
+        },
+    );
+}
+
+function clearAbandonedReview(): void {
+    if (!isAbandonedReview.value) {
+        return;
+    }
+
+    router.get(
+        '/liga/modulos/juego',
+        {},
+        {
+            preserveScroll: true,
+            replace: true,
+        },
+    );
+}
+
+function resolveAbandonedGame(winnerSide: 'A' | 'B'): void {
+    if (!canResolveAbandonedGame.value || props.game.current === null) {
+        return;
+    }
+
+    gameActionError.value = '';
+    router.post(
+        `/liga/modulos/juego/abandoned/${props.game.current.id}/resolve`,
+        {
+            winner_side: winnerSide,
+        },
+        {
+            preserveScroll: true,
+            onError: (errors) => {
+                gameActionError.value = String(
+                    errors.winner_side ??
+                        errors.game_id ??
+                        errors.session ??
+                        'No se pudo resolver el juego abandonado.',
+                );
+            },
+        },
+    );
+}
 </script>
 
 <template>
@@ -798,29 +1077,75 @@ function rotationNoticeToneClasses(tone: string): string {
         :can-manage-league="props.role.can_manage"
     >
         <section class="app-surface space-y-5">
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div
+                class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"
+            >
                 <div class="space-y-3">
-                    <p class="app-kicker text-[#E5B849]">Juego actual</p>
+                    <p class="app-kicker text-[#E5B849]">{{ pageKicker }}</p>
                     <h1 class="app-display app-module-title text-[#F8FAFC]">
-                        Jornada en cancha
+                        {{
+                            isAbandonedReview
+                                ? 'Resolucion historica'
+                                : 'Jornada en cancha'
+                        }}
                     </h1>
                     <p class="text-[14px] leading-7 text-[#94A3B8]">
-                        Administra el draft inicial, la anotación, las salidas de jugadores y el cierre de cada juego de la jornada.
+                        {{ pageDescription }}
                     </p>
                 </div>
 
-                <div class="grid gap-2 rounded-[18px] border border-white/6 bg-[#0E1628] p-4 text-[12px] text-[#94A3B8]">
+                <div
+                    class="grid gap-3 rounded-[18px] border border-white/6 bg-[#0E1628] p-4 text-[12px] text-[#94A3B8]"
+                >
                     <div class="flex items-center gap-2">
                         <Trophy class="size-4 text-[#E5B849]" />
-                        <span>{{ props.game.summary.games }} juegos terminados</span>
+                        <span
+                            >{{ props.game.summary.games }} juegos
+                            terminados</span
+                        >
                     </div>
                     <div class="flex items-center gap-2">
                         <Waves class="size-4 text-[#4ADE80]" />
                         <span>{{ props.game.summary.streak_label }}</span>
                     </div>
-                    <div v-if="canManage && props.game.summary.cash_collected_cents !== null" class="flex items-center gap-2">
+                    <div
+                        v-if="
+                            canManage &&
+                            props.game.summary.cash_collected_cents !== null
+                        "
+                        class="flex items-center gap-2"
+                    >
                         <CheckCircle2 class="size-4 text-[#E5B849]" />
-                        <span>{{ formatMoney(props.game.summary.cash_collected_cents) }} cobrados</span>
+                        <span
+                            >{{
+                                formatMoney(
+                                    props.game.summary.cash_collected_cents,
+                                )
+                            }}
+                            cobrados</span
+                        >
+                    </div>
+                    <div class="flex flex-wrap gap-2 pt-1">
+                        <Button
+                            v-if="showAbandonedGamesButton"
+                            type="button"
+                            variant="secondary"
+                            class="min-h-11 rounded-[12px] border border-white/8 bg-[#131B2F] text-[#F8FAFC]"
+                            @click="openAbandonedGames"
+                        >
+                            Abandonados ({{
+                                props.game.abandoned_games.length
+                            }})
+                        </Button>
+                        <Button
+                            v-if="isAbandonedReview"
+                            type="button"
+                            variant="secondary"
+                            class="min-h-11 rounded-[12px] border border-[rgba(229,184,73,0.24)] bg-[rgba(229,184,73,0.08)] text-[#F8FAFC]"
+                            @click="clearAbandonedReview"
+                        >
+                            Volver a hoy
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -835,10 +1160,13 @@ function rotationNoticeToneClasses(tone: string): string {
                     <div>
                         <p class="app-kicker text-[#E5B849]">Draft pendiente</p>
                         <p class="mt-2 text-[13px] leading-6 text-[#94A3B8]">
-                            Selecciona como quieres repartir los 10 jugadores disponibles antes de abrir el juego.
+                            Selecciona como quieres repartir los 10 jugadores
+                            disponibles antes de abrir el juego.
                         </p>
                     </div>
-                    <span class="rounded-full border border-white/6 bg-[#0E1628] px-3 py-1 text-[12px] text-[#94A3B8]">
+                    <span
+                        class="rounded-full border border-white/6 bg-[#0E1628] px-3 py-1 text-[12px] text-[#94A3B8]"
+                    >
                         {{ props.game.draft.entries.length }} listos
                     </span>
                 </div>
@@ -847,7 +1175,11 @@ function rotationNoticeToneClasses(tone: string): string {
                     <button
                         type="button"
                         class="min-h-12 rounded-[14px] border px-4 text-sm font-semibold"
-                        :class="draftMode === 'auto' ? 'border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] text-[#F8FAFC]' : 'border-white/6 bg-[#0E1628] text-[#94A3B8]'"
+                        :class="
+                            draftMode === 'auto'
+                                ? 'border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] text-[#F8FAFC]'
+                                : 'border-white/6 bg-[#0E1628] text-[#94A3B8]'
+                        "
                         @click="draftMode = 'auto'"
                     >
                         Auto por scout
@@ -855,7 +1187,11 @@ function rotationNoticeToneClasses(tone: string): string {
                     <button
                         type="button"
                         class="min-h-12 rounded-[14px] border px-4 text-sm font-semibold"
-                        :class="draftMode === 'arrival' ? 'border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] text-[#F8FAFC]' : 'border-white/6 bg-[#0E1628] text-[#94A3B8]'"
+                        :class="
+                            draftMode === 'arrival'
+                                ? 'border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] text-[#F8FAFC]'
+                                : 'border-white/6 bg-[#0E1628] text-[#94A3B8]'
+                        "
                         @click="draftMode = 'arrival'"
                     >
                         Por llegada
@@ -863,7 +1199,11 @@ function rotationNoticeToneClasses(tone: string): string {
                     <button
                         type="button"
                         class="min-h-12 rounded-[14px] border px-4 text-sm font-semibold"
-                        :class="draftMode === 'random' ? 'border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] text-[#F8FAFC]' : 'border-white/6 bg-[#0E1628] text-[#94A3B8]'"
+                        :class="
+                            draftMode === 'random'
+                                ? 'border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] text-[#F8FAFC]'
+                                : 'border-white/6 bg-[#0E1628] text-[#94A3B8]'
+                        "
                         @click="draftMode = 'random'"
                     >
                         Aleatorio
@@ -871,14 +1211,20 @@ function rotationNoticeToneClasses(tone: string): string {
                     <button
                         type="button"
                         class="min-h-12 rounded-[14px] border px-4 text-sm font-semibold"
-                        :class="draftMode === 'manual' ? 'border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] text-[#F8FAFC]' : 'border-white/6 bg-[#0E1628] text-[#94A3B8]'"
+                        :class="
+                            draftMode === 'manual'
+                                ? 'border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] text-[#F8FAFC]'
+                                : 'border-white/6 bg-[#0E1628] text-[#94A3B8]'
+                        "
                         @click="draftMode = 'manual'"
                     >
                         Manual
                     </button>
                 </div>
 
-                <div class="rounded-[16px] border border-white/6 bg-[#0E1628] p-4">
+                <div
+                    class="rounded-[16px] border border-white/6 bg-[#0E1628] p-4"
+                >
                     <p class="app-kicker text-[#E5B849]">
                         Selección de capitán
                     </p>
@@ -890,7 +1236,11 @@ function rotationNoticeToneClasses(tone: string): string {
                         <button
                             type="button"
                             class="min-h-12 rounded-[14px] border px-4 text-sm font-semibold"
-                            :class="captainMode === 'arrival' ? 'border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] text-[#F8FAFC]' : 'border-white/6 bg-[#131B2F] text-[#94A3B8]'"
+                            :class="
+                                captainMode === 'arrival'
+                                    ? 'border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] text-[#F8FAFC]'
+                                    : 'border-white/6 bg-[#131B2F] text-[#94A3B8]'
+                            "
                             @click="captainMode = 'arrival'"
                         >
                             Primero en cola
@@ -898,7 +1248,11 @@ function rotationNoticeToneClasses(tone: string): string {
                         <button
                             type="button"
                             class="min-h-12 rounded-[14px] border px-4 text-sm font-semibold"
-                            :class="captainMode === 'random' ? 'border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] text-[#F8FAFC]' : 'border-white/6 bg-[#131B2F] text-[#94A3B8]'"
+                            :class="
+                                captainMode === 'random'
+                                    ? 'border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] text-[#F8FAFC]'
+                                    : 'border-white/6 bg-[#131B2F] text-[#94A3B8]'
+                            "
                             @click="captainMode = 'random'"
                         >
                             Aleatorio
@@ -906,7 +1260,11 @@ function rotationNoticeToneClasses(tone: string): string {
                         <button
                             type="button"
                             class="min-h-12 rounded-[14px] border px-4 text-sm font-semibold"
-                            :class="captainMode === 'manual' ? 'border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] text-[#F8FAFC]' : 'border-white/6 bg-[#131B2F] text-[#94A3B8]'"
+                            :class="
+                                captainMode === 'manual'
+                                    ? 'border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] text-[#F8FAFC]'
+                                    : 'border-white/6 bg-[#131B2F] text-[#94A3B8]'
+                            "
                             @click="captainMode = 'manual'"
                         >
                             Manual
@@ -922,11 +1280,18 @@ function rotationNoticeToneClasses(tone: string): string {
                     >
                         <div class="flex items-center justify-between gap-3">
                             <div class="min-w-0">
-                                <p class="text-[15px] font-semibold text-[#F8FAFC]">
+                                <p
+                                    class="text-[15px] font-semibold text-[#F8FAFC]"
+                                >
                                     {{ entry.name }}
                                 </p>
                                 <p class="mt-1 text-[12px] text-[#94A3B8]">
-                                    Llegada #{{ entry.arrival_order }}{{ entry.jersey_number ? ` · #${entry.jersey_number}` : '' }}
+                                    Llegada #{{ entry.arrival_order
+                                    }}{{
+                                        entry.jersey_number
+                                            ? ` · #${entry.jersey_number}`
+                                            : ''
+                                    }}
                                 </p>
                                 <p
                                     v-if="entry.preferred_position"
@@ -943,7 +1308,11 @@ function rotationNoticeToneClasses(tone: string): string {
                                 <button
                                     type="button"
                                     class="size-10 rounded-full border text-sm font-semibold"
-                                    :class="manualAssignments[entry.id] === 'A' ? 'border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] text-[#4ADE80]' : 'border-white/6 bg-[#131B2F] text-[#94A3B8]'"
+                                    :class="
+                                        manualAssignments[entry.id] === 'A'
+                                            ? 'border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] text-[#4ADE80]'
+                                            : 'border-white/6 bg-[#131B2F] text-[#94A3B8]'
+                                    "
                                     @click="setAssignment(entry.id, 'A')"
                                 >
                                     A
@@ -951,7 +1320,11 @@ function rotationNoticeToneClasses(tone: string): string {
                                 <button
                                     type="button"
                                     class="size-10 rounded-full border text-sm font-semibold"
-                                    :class="manualAssignments[entry.id] === 'B' ? 'border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] text-[#E5B849]' : 'border-white/6 bg-[#131B2F] text-[#94A3B8]'"
+                                    :class="
+                                        manualAssignments[entry.id] === 'B'
+                                            ? 'border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] text-[#E5B849]'
+                                            : 'border-white/6 bg-[#131B2F] text-[#94A3B8]'
+                                    "
                                     @click="setAssignment(entry.id, 'B')"
                                 >
                                     B
@@ -968,12 +1341,14 @@ function rotationNoticeToneClasses(tone: string): string {
                     El juego se abre al confirmar el reparto. Luego podrás
                     agregar puntos, corregir jugadas y cerrar el marcador.
                 </p>
-                <div class="rounded-[14px] border border-white/6 bg-[#0E1628] p-4 text-[13px] text-[#94A3B8]">
+                <div
+                    class="rounded-[14px] border border-white/6 bg-[#0E1628] p-4 text-[13px] text-[#94A3B8]"
+                >
                     Equipo A: {{ teamACount }} / 5
-                    <br>
+                    <br />
                     Equipo B: {{ teamBCount }} / 5
                     <template v-if="draftMode === 'manual'">
-                        <br>
+                        <br />
                         Sin asignar: {{ draftUnassignedCount }}
                     </template>
                 </div>
@@ -995,23 +1370,31 @@ function rotationNoticeToneClasses(tone: string): string {
                                 Equipo {{ teamSide }}
                             </p>
                             <span class="text-[12px] text-[#94A3B8]">
-                                {{ draftPreview?.teams[teamSide].length ?? 0 }}/5
+                                {{
+                                    draftPreview?.teams[teamSide].length ?? 0
+                                }}/5
                             </span>
                         </div>
                         <div class="mt-3 grid gap-2">
                             <div
-                                v-for="player in draftPreview?.teams[teamSide] ?? []"
+                                v-for="player in draftPreview?.teams[
+                                    teamSide
+                                ] ?? []"
                                 :key="player.id"
                                 class="rounded-[14px] border border-white/6 bg-[#131B2F] px-3 py-3"
                             >
-                                <div class="flex items-start justify-between gap-3">
+                                <div
+                                    class="flex items-start justify-between gap-3"
+                                >
                                     <div class="min-w-0">
                                         <div class="flex items-center gap-2">
                                             <Crown
                                                 v-if="player.is_captain"
                                                 class="size-4 shrink-0 text-[#E5B849]"
                                             />
-                                            <p class="text-[14px] font-semibold text-[#F8FAFC]">
+                                            <p
+                                                class="text-[14px] font-semibold text-[#F8FAFC]"
+                                            >
                                                 {{ player.name }}
                                             </p>
                                         </div>
@@ -1027,18 +1410,27 @@ function rotationNoticeToneClasses(tone: string): string {
                                         type="button"
                                         class="inline-flex min-h-9 items-center justify-center rounded-[10px] border px-3 text-[11px] font-semibold"
                                         :class="
-                                            manualCaptains[teamSide] === player.id
+                                            manualCaptains[teamSide] ===
+                                            player.id
                                                 ? 'border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] text-[#F8FAFC]'
                                                 : 'border-white/6 bg-[#0E1628] text-[#94A3B8]'
                                         "
                                         @click="setCaptain(teamSide, player.id)"
                                     >
-                                        {{ manualCaptains[teamSide] === player.id ? 'Capitán' : 'Elegir' }}
+                                        {{
+                                            manualCaptains[teamSide] ===
+                                            player.id
+                                                ? 'Capitán'
+                                                : 'Elegir'
+                                        }}
                                     </button>
                                 </div>
                             </div>
                             <div
-                                v-if="(draftPreview?.teams[teamSide].length ?? 0) === 0"
+                                v-if="
+                                    (draftPreview?.teams[teamSide].length ??
+                                        0) === 0
+                                "
                                 class="rounded-[14px] border border-dashed border-white/8 bg-[#131B2F] px-3 py-4 text-[12px] text-[#94A3B8]"
                             >
                                 {{
@@ -1072,64 +1464,61 @@ function rotationNoticeToneClasses(tone: string): string {
                     {{ gameActionError }}
                 </div>
 
-                <div class="relative overflow-hidden rounded-[24px] border border-white/6 bg-[radial-gradient(circle_at_top,_rgba(229,184,73,0.14),_rgba(14,22,40,0.98)_48%),linear-gradient(180deg,_rgba(19,27,47,0.98),_rgba(10,15,29,1))] p-5">
-                    <div class="mb-5 grid gap-4 rounded-[18px] border border-white/6 bg-[#131B2F]/85 p-4">
-                        <div class="rounded-[16px] border border-white/6 bg-[#10192d] px-4 py-4 text-center">
-                            <p class="app-kicker text-[#E5B849]">Cronómetro</p>
-                            <p class="mt-2 font-['Bebas_Neue'] text-[clamp(3.25rem,9vw,4.75rem)] leading-none text-[#F8FAFC]">
-                                {{ formattedClock }}
-                            </p>
-                            <p class="mt-2 text-[12px] uppercase tracking-[0.22em] text-[#94A3B8]">
-                                {{
-                                    clockState === 'running'
-                                        ? 'Corriendo'
-                                        : clockState === 'finished'
-                                          ? 'Tiempo agotado'
-                                          : clockState === 'unconfigured'
-                                            ? 'Sin configurar'
-                                            : 'Listo'
-                                }}
-                            </p>
-                        </div>
-
+                <div
+                    class="relative overflow-hidden rounded-[24px] border border-white/6 bg-[radial-gradient(circle_at_top,_rgba(229,184,73,0.14),_rgba(14,22,40,0.98)_48%),linear-gradient(180deg,_rgba(19,27,47,0.98),_rgba(10,15,29,1))] p-5"
+                >
+                    <div
+                        class="mb-5 grid gap-4 rounded-[18px] border border-white/6 bg-[#131B2F]/85 p-4"
+                    >
                         <div
-                            v-if="canManage"
-                            class="grid gap-3 rounded-[16px] border border-white/6 bg-[#10192d] p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
+                            class="rounded-[16px] border border-white/6 bg-[#10192d] px-4 py-4 text-center"
                         >
-                            <label class="grid gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">
-                                <span>Minutos</span>
-                                <input
-                                    v-model="clockForm.minutes"
-                                    type="number"
-                                    min="0"
-                                    max="120"
-                                    class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-lg font-semibold text-[#F8FAFC] outline-none"
-                                    placeholder="20"
+                            <template v-if="!isAbandonedReview">
+                                <p class="app-kicker text-[#E5B849]">
+                                    Cronómetro
+                                </p>
+                                <div class="relative mt-2">
+                                    <p
+                                        class="font-['Bebas_Neue'] text-[clamp(3.25rem,9vw,4.75rem)] leading-none text-[#F8FAFC]"
+                                        :class="{
+                                            'clock-display-editable':
+                                                canEditClock,
+                                        }"
+                                        role="button"
+                                        tabindex="0"
+                                        @click="openClockPicker"
+                                        @keydown.enter.prevent="openClockPicker"
+                                        @keydown.space.prevent="openClockPicker"
+                                    >
+                                        {{ formattedClock }}
+                                    </p>
+                                </div>
+                                <p
+                                    class="mt-2 text-[12px] tracking-[0.22em] text-[#94A3B8] uppercase"
                                 >
-                            </label>
-                            <label class="grid gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94A3B8]">
-                                <span>Segundos</span>
-                                <input
-                                    v-model="clockForm.seconds"
-                                    type="number"
-                                    min="0"
-                                    max="59"
-                                    class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-lg font-semibold text-[#F8FAFC] outline-none"
-                                    placeholder="00"
+                                    {{ clockStatusLabel }}
+                                </p>
+                            </template>
+                            <template v-else>
+                                <p class="app-kicker text-[#E5B849]">
+                                    Juego abandonado
+                                </p>
+                                <p
+                                    class="mt-3 text-[13px] font-semibold tracking-[0.22em] text-[#F8FAFC] uppercase"
                                 >
-                            </label>
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 hover:bg-[#22304f]"
-                                @click="saveClockDuration"
-                            >
-                                Cargar
-                            </Button>
+                                    {{ props.game.review.session_date }} · Juego
+                                    #{{ props.game.current.game_number }}
+                                </p>
+                                <p
+                                    class="mt-3 text-[13px] leading-6 text-[#94A3B8]"
+                                >
+                                    {{ props.game.review.description }}
+                                </p>
+                            </template>
                         </div>
 
                         <div
-                            v-if="canManage"
+                            v-if="canManageLiveGame"
                             class="grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
                         >
                             <Button
@@ -1150,30 +1539,51 @@ function rotationNoticeToneClasses(tone: string): string {
                         </div>
                     </div>
 
-                    <div class="grid gap-5 md:grid-cols-[1fr_auto_1fr] md:items-center">
+                    <div
+                        class="grid gap-5 md:grid-cols-[1fr_auto_1fr] md:items-center"
+                    >
                         <div class="text-center md:text-left">
                             <p class="app-kicker text-[#4ADE80]">Equipo A</p>
                             <p
                                 class="scoreboard-value scoreboard-value--a"
-                                :class="{ 'scoreboard-value--bump': scoreBumpSide === 'A' }"
+                                :class="{
+                                    'scoreboard-value--bump':
+                                        scoreBumpSide === 'A',
+                                }"
                             >
                                 {{ props.game.current.score.team_a }}
                             </p>
                         </div>
-                        <div class="flex flex-col items-center justify-center gap-3 text-center">
-                            <span class="rounded-full border border-white/8 bg-[#131B2F]/90 px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.28em] text-[#94A3B8]">
+                        <div
+                            class="flex flex-col items-center justify-center gap-3 text-center"
+                        >
+                            <span
+                                class="rounded-full border border-white/8 bg-[#131B2F]/90 px-4 py-2 text-[12px] font-semibold tracking-[0.28em] text-[#94A3B8] uppercase"
+                            >
                                 Juego #{{ props.game.current.game_number }}
                             </span>
-                            <div class="flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full border border-white/8 bg-[#131B2F]/90">
-                                <span class="app-display text-[28px] text-[#94A3B8]">Vs</span>
+                            <div
+                                class="flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full border border-white/8 bg-[#131B2F]/90"
+                            >
+                                <span
+                                    class="app-display text-[28px] text-[#94A3B8]"
+                                    >Vs</span
+                                >
                             </div>
-                            <p class="text-[12px] uppercase tracking-[0.28em] text-[#94A3B8]">{{ streakLabel }}</p>
+                            <p
+                                class="text-[12px] tracking-[0.28em] text-[#94A3B8] uppercase"
+                            >
+                                {{ scoreboardContextLabel }}
+                            </p>
                         </div>
                         <div class="text-center md:text-right">
                             <p class="app-kicker text-[#E5B849]">Equipo B</p>
                             <p
                                 class="scoreboard-value scoreboard-value--b"
-                                :class="{ 'scoreboard-value--bump': scoreBumpSide === 'B' }"
+                                :class="{
+                                    'scoreboard-value--bump':
+                                        scoreBumpSide === 'B',
+                                }"
                             >
                                 {{ props.game.current.score.team_b }}
                             </p>
@@ -1185,17 +1595,23 @@ function rotationNoticeToneClasses(tone: string): string {
                     v-if="scoreFlash"
                     :key="scoreFlash.key"
                     class="score-flash"
-                    :class="scoreFlash.side === 'A' ? 'score-flash--a' : 'score-flash--b'"
+                    :class="
+                        scoreFlash.side === 'A'
+                            ? 'score-flash--a'
+                            : 'score-flash--b'
+                    "
                 >
                     {{ scoreFlash.label }}
                 </div>
 
                 <div class="grid gap-4 lg:grid-cols-2">
-                    <article class="rounded-[18px] border border-white/6 bg-[#0E1628] p-4">
+                    <article
+                        class="rounded-[18px] border border-white/6 bg-[#0E1628] p-4"
+                    >
                         <div class="flex items-center justify-between gap-3">
                             <p class="app-kicker text-[#4ADE80]">Equipo A</p>
                             <button
-                                v-if="canManage"
+                                v-if="canManageLiveGame"
                                 type="button"
                                 class="min-h-10 rounded-[10px] border border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] px-3 text-xs font-semibold text-[#4ADE80]"
                                 @click="addTeamPoint('A')"
@@ -1209,17 +1625,28 @@ function rotationNoticeToneClasses(tone: string): string {
                                 :key="player.id"
                                 class="rounded-[14px] border border-white/6 bg-[#131B2F] p-4"
                             >
-                                <div class="flex items-center justify-between gap-3">
+                                <div
+                                    class="flex items-center justify-between gap-3"
+                                >
                                     <div class="min-w-0">
                                         <div class="flex items-center gap-2">
                                             <Crown
                                                 v-if="player.is_captain"
                                                 class="size-4 shrink-0 text-[#E5B849]"
                                             />
-                                            <p class="text-[15px] font-semibold text-[#F8FAFC]">{{ player.name }}</p>
+                                            <p
+                                                class="text-[15px] font-semibold text-[#F8FAFC]"
+                                            >
+                                                {{ player.name }}
+                                            </p>
                                         </div>
-                                        <p class="mt-1 text-[12px] text-[#94A3B8]">
-                                            {{ player.points }} pts · 1P: {{ player.shots[1] }} · 2P: {{ player.shots[2] }} · 3P: {{ player.shots[3] }}
+                                        <p
+                                            class="mt-1 text-[12px] text-[#94A3B8]"
+                                        >
+                                            {{ player.points }} pts · 1P:
+                                            {{ player.shots[1] }} · 2P:
+                                            {{ player.shots[2] }} · 3P:
+                                            {{ player.shots[3] }}
                                         </p>
                                         <p
                                             v-if="player.preferred_position"
@@ -1230,7 +1657,7 @@ function rotationNoticeToneClasses(tone: string): string {
                                     </div>
                                     <div class="flex gap-2">
                                         <button
-                                            v-if="canManage"
+                                            v-if="canManageLiveGame"
                                             type="button"
                                             class="size-10 rounded-full border border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] text-[#4ADE80]"
                                             @click="selectedPlayer = player"
@@ -1238,7 +1665,10 @@ function rotationNoticeToneClasses(tone: string): string {
                                             +
                                         </button>
                                         <button
-                                            v-if="canManage && player.points > 0"
+                                            v-if="
+                                                canManageLiveGame &&
+                                                player.points > 0
+                                            "
                                             type="button"
                                             class="size-10 rounded-full border border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] text-[#E5B849]"
                                             @click="revertPlayer = player"
@@ -1246,10 +1676,12 @@ function rotationNoticeToneClasses(tone: string): string {
                                             <RotateCcw class="mx-auto size-4" />
                                         </button>
                                         <button
-                                            v-if="canManage"
+                                            v-if="canManageLiveGame"
                                             type="button"
                                             class="size-10 rounded-full border border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] text-[#F87171]"
-                                            @click="openRemovePlayerModal(player)"
+                                            @click="
+                                                openRemovePlayerModal(player)
+                                            "
                                         >
                                             <UserMinus class="mx-auto size-4" />
                                         </button>
@@ -1259,11 +1691,13 @@ function rotationNoticeToneClasses(tone: string): string {
                         </div>
                     </article>
 
-                    <article class="rounded-[18px] border border-white/6 bg-[#0E1628] p-4">
+                    <article
+                        class="rounded-[18px] border border-white/6 bg-[#0E1628] p-4"
+                    >
                         <div class="flex items-center justify-between gap-3">
                             <p class="app-kicker text-[#E5B849]">Equipo B</p>
                             <button
-                                v-if="canManage"
+                                v-if="canManageLiveGame"
                                 type="button"
                                 class="min-h-10 rounded-[10px] border border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] px-3 text-xs font-semibold text-[#E5B849]"
                                 @click="addTeamPoint('B')"
@@ -1277,17 +1711,28 @@ function rotationNoticeToneClasses(tone: string): string {
                                 :key="player.id"
                                 class="rounded-[14px] border border-white/6 bg-[#131B2F] p-4"
                             >
-                                <div class="flex items-center justify-between gap-3">
+                                <div
+                                    class="flex items-center justify-between gap-3"
+                                >
                                     <div class="min-w-0">
                                         <div class="flex items-center gap-2">
                                             <Crown
                                                 v-if="player.is_captain"
                                                 class="size-4 shrink-0 text-[#E5B849]"
                                             />
-                                            <p class="text-[15px] font-semibold text-[#F8FAFC]">{{ player.name }}</p>
+                                            <p
+                                                class="text-[15px] font-semibold text-[#F8FAFC]"
+                                            >
+                                                {{ player.name }}
+                                            </p>
                                         </div>
-                                        <p class="mt-1 text-[12px] text-[#94A3B8]">
-                                            {{ player.points }} pts · 1P: {{ player.shots[1] }} · 2P: {{ player.shots[2] }} · 3P: {{ player.shots[3] }}
+                                        <p
+                                            class="mt-1 text-[12px] text-[#94A3B8]"
+                                        >
+                                            {{ player.points }} pts · 1P:
+                                            {{ player.shots[1] }} · 2P:
+                                            {{ player.shots[2] }} · 3P:
+                                            {{ player.shots[3] }}
                                         </p>
                                         <p
                                             v-if="player.preferred_position"
@@ -1298,7 +1743,7 @@ function rotationNoticeToneClasses(tone: string): string {
                                     </div>
                                     <div class="flex gap-2">
                                         <button
-                                            v-if="canManage"
+                                            v-if="canManageLiveGame"
                                             type="button"
                                             class="size-10 rounded-full border border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] text-[#E5B849]"
                                             @click="selectedPlayer = player"
@@ -1306,7 +1751,10 @@ function rotationNoticeToneClasses(tone: string): string {
                                             +
                                         </button>
                                         <button
-                                            v-if="canManage && player.points > 0"
+                                            v-if="
+                                                canManageLiveGame &&
+                                                player.points > 0
+                                            "
                                             type="button"
                                             class="size-10 rounded-full border border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] text-[#E5B849]"
                                             @click="revertPlayer = player"
@@ -1314,10 +1762,12 @@ function rotationNoticeToneClasses(tone: string): string {
                                             <RotateCcw class="mx-auto size-4" />
                                         </button>
                                         <button
-                                            v-if="canManage"
+                                            v-if="canManageLiveGame"
                                             type="button"
                                             class="size-10 rounded-full border border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] text-[#F87171]"
-                                            @click="openRemovePlayerModal(player)"
+                                            @click="
+                                                openRemovePlayerModal(player)
+                                            "
                                         >
                                             <UserMinus class="mx-auto size-4" />
                                         </button>
@@ -1332,41 +1782,72 @@ function rotationNoticeToneClasses(tone: string): string {
             <div class="grid gap-4">
                 <article class="app-surface space-y-3">
                     <p class="app-kicker text-[#E5B849]">Acciones</p>
-                    <Button
-                        v-if="canManage"
-                        type="button"
-                        class="min-h-12 rounded-[12px] bg-[#E5B849] text-[#0A0F1D] hover:bg-[#e8c25d]"
-                        @click="finishGame"
-                    >
-                        Marcar fin de juego
-                    </Button>
-                    <button
-                        v-if="canManage"
-                        type="button"
-                        class="inline-flex min-h-12 items-center justify-center gap-2 rounded-[12px] border border-white/6 bg-[#131B2F] px-4 text-sm font-semibold text-[#F8FAFC]"
-                        @click="undoLastAction"
-                    >
-                        <RotateCcw class="size-4" />
-                        Deshacer ultima accion
-                    </button>
-                    <button
-                        v-if="canManage"
-                        type="button"
-                        class="inline-flex min-h-12 items-center justify-center gap-2 rounded-[12px] border border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] px-4 text-sm font-semibold text-[#FCA5A5]"
-                        @click="resetCurrentGame"
-                    >
-                        <SearchSlash class="size-4" />
-                        Limpiar juego actual
-                    </button>
-                    <button
-                        v-if="canManage"
-                        type="button"
-                        class="inline-flex min-h-12 items-center justify-center gap-2 rounded-[12px] border border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] px-4 text-sm font-semibold text-[#F8FAFC]"
-                        @click="endSession"
-                    >
-                        <Trophy class="size-4 text-[#E5B849]" />
-                        Dar fin a la jornada
-                    </button>
+                    <template v-if="isAbandonedReview">
+                        <div
+                            class="rounded-[14px] border border-[rgba(229,184,73,0.18)] bg-[rgba(229,184,73,0.08)] px-4 py-3 text-[13px] leading-6 text-[#CBD5E1]"
+                        >
+                            Si este juego no debe contar, dejalo abandonado.
+                            Solo resuelvelo cuando la liga defina un ganador
+                            oficial.
+                        </div>
+                        <div v-if="canResolveAbandonedGame" class="grid gap-2">
+                            <Button
+                                type="button"
+                                class="min-h-12 rounded-[12px] bg-[#4ADE80] text-[#0A0F1D] hover:bg-[#67e38f]"
+                                @click="resolveAbandonedGame('A')"
+                            >
+                                Dar victoria al Equipo A
+                            </Button>
+                            <Button
+                                type="button"
+                                class="min-h-12 rounded-[12px] bg-[#E5B849] text-[#0A0F1D] hover:bg-[#e8c25d]"
+                                @click="resolveAbandonedGame('B')"
+                            >
+                                Dar victoria al Equipo B
+                            </Button>
+                        </div>
+                        <p v-else class="text-[13px] leading-6 text-[#94A3B8]">
+                            Solo el administrador de liga puede resolver este
+                            juego abandonado.
+                        </p>
+                    </template>
+                    <template v-else>
+                        <Button
+                            v-if="canManageLiveGame"
+                            type="button"
+                            class="min-h-12 rounded-[12px] bg-[#E5B849] text-[#0A0F1D] hover:bg-[#e8c25d]"
+                            @click="finishGame"
+                        >
+                            Marcar fin de juego
+                        </Button>
+                        <button
+                            v-if="canManageLiveGame"
+                            type="button"
+                            class="inline-flex min-h-12 items-center justify-center gap-2 rounded-[12px] border border-white/6 bg-[#131B2F] px-4 text-sm font-semibold text-[#F8FAFC]"
+                            @click="undoLastAction"
+                        >
+                            <RotateCcw class="size-4" />
+                            Deshacer ultima accion
+                        </button>
+                        <button
+                            v-if="canManageLiveGame"
+                            type="button"
+                            class="inline-flex min-h-12 items-center justify-center gap-2 rounded-[12px] border border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] px-4 text-sm font-semibold text-[#FCA5A5]"
+                            @click="resetCurrentGame"
+                        >
+                            <SearchSlash class="size-4" />
+                            Limpiar juego actual
+                        </button>
+                        <button
+                            v-if="canManageLiveGame"
+                            type="button"
+                            class="inline-flex min-h-12 items-center justify-center gap-2 rounded-[12px] border border-[rgba(229,184,73,0.28)] bg-[rgba(229,184,73,0.12)] px-4 text-sm font-semibold text-[#F8FAFC]"
+                            @click="endSession"
+                        >
+                            <Trophy class="size-4 text-[#E5B849]" />
+                            Dar fin a la jornada
+                        </button>
+                    </template>
                 </article>
 
                 <article class="app-surface space-y-3">
@@ -1383,13 +1864,23 @@ function rotationNoticeToneClasses(tone: string): string {
                             :key="row.id"
                             class="rounded-[14px] border border-white/6 bg-[#0E1628] p-4"
                         >
-                            <div class="flex items-center justify-between gap-3">
-                                <p class="text-sm font-semibold text-[#F8FAFC]">Juego #{{ row.game_number }}</p>
-                                <span class="rounded-full border border-white/6 bg-[#131B2F] px-3 py-1 text-[11px] text-[#94A3B8]">
+                            <div
+                                class="flex items-center justify-between gap-3"
+                            >
+                                <p class="text-sm font-semibold text-[#F8FAFC]">
+                                    Juego #{{ row.game_number }}
+                                </p>
+                                <span
+                                    class="rounded-full border border-white/6 bg-[#131B2F] px-3 py-1 text-[11px] text-[#94A3B8]"
+                                >
                                     {{ row.score }}
                                 </span>
                             </div>
-                            <p class="mt-2 text-[12px] leading-6 text-[#94A3B8]">{{ row.summary }}</p>
+                            <p
+                                class="mt-2 text-[12px] leading-6 text-[#94A3B8]"
+                            >
+                                {{ row.summary }}
+                            </p>
                         </div>
                     </div>
                 </article>
@@ -1400,22 +1891,97 @@ function rotationNoticeToneClasses(tone: string): string {
             v-else
             class="app-surface flex min-h-[320px] flex-col items-center justify-center gap-4 text-center"
         >
-            <div class="flex size-16 items-center justify-center rounded-full border border-white/6 bg-[#0E1628]">
+            <div
+                class="flex size-16 items-center justify-center rounded-full border border-white/6 bg-[#0E1628]"
+            >
                 <Swords class="size-7 text-[#E5B849]" />
             </div>
             <div class="space-y-2">
                 <p class="app-kicker text-[#E5B849]">Sin juego activo</p>
                 <p class="text-[14px] leading-7 text-[#94A3B8]">
-                    Prepara la jornada desde Llegada o confirma el draft pendiente para empezar el primer juego.
+                    Prepara la jornada desde Llegada o confirma el draft
+                    pendiente para empezar el primer juego.
                 </p>
             </div>
         </section>
 
-        <Dialog :open="draftAlert !== null" @update:open="draftAlert = null">
-            <DialogContent class="border-white/8 bg-[#1A243A] text-[#F8FAFC] sm:max-w-[460px]">
+        <Dialog
+            :open="abandonedGamesOpen"
+            @update:open="abandonedGamesOpen = $event"
+        >
+            <DialogContent
+                class="border-white/8 bg-[#1A243A] text-[#F8FAFC] sm:max-w-[520px]"
+            >
                 <DialogHeader>
-                    <DialogTitle class="app-display text-[28px]">{{ draftAlert?.title }}</DialogTitle>
-                    <DialogDescription class="text-[13px] leading-6 text-[#94A3B8]">
+                    <DialogTitle class="app-display text-[28px]"
+                        >Juegos abandonados</DialogTitle
+                    >
+                    <DialogDescription
+                        class="text-[13px] leading-6 text-[#94A3B8]"
+                    >
+                        Selecciona un juego para revisarlo en modo de solo
+                        lectura y, si aplica, definir su ganador.
+                    </DialogDescription>
+                </DialogHeader>
+                <div class="abandoned-games-list">
+                    <button
+                        v-for="game in props.game.abandoned_games"
+                        :key="game.id"
+                        type="button"
+                        class="w-full rounded-[16px] border p-4 text-left transition"
+                        :class="
+                            game.selected
+                                ? 'border-[rgba(229,184,73,0.32)] bg-[rgba(229,184,73,0.12)]'
+                                : 'border-white/6 bg-[#0E1628] hover:border-[rgba(229,184,73,0.24)]'
+                        "
+                        @click="selectAbandonedGame(game.id)"
+                    >
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-[#F8FAFC]">
+                                    Jornada
+                                    {{ game.session_date ?? 'sin fecha' }} ·
+                                    Juego #{{ game.game_number }}
+                                </p>
+                                <p
+                                    class="mt-1 text-[12px] leading-6 text-[#94A3B8]"
+                                >
+                                    {{ game.team_a_label }} vs
+                                    {{ game.team_b_label }}
+                                </p>
+                            </div>
+                            <span
+                                class="rounded-full border border-white/6 bg-[#131B2F] px-3 py-1 text-[11px] text-[#CBD5E1]"
+                            >
+                                {{ game.score }}
+                            </span>
+                        </div>
+                    </button>
+                </div>
+                <DialogFooter>
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F]"
+                        @click="abandonedGamesOpen = false"
+                    >
+                        Cerrar
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog :open="draftAlert !== null" @update:open="draftAlert = null">
+            <DialogContent
+                class="border-white/8 bg-[#1A243A] text-[#F8FAFC] sm:max-w-[460px]"
+            >
+                <DialogHeader>
+                    <DialogTitle class="app-display text-[28px]">{{
+                        draftAlert?.title
+                    }}</DialogTitle>
+                    <DialogDescription
+                        class="text-[13px] leading-6 text-[#94A3B8]"
+                    >
                         {{ draftErrorContext }}
                     </DialogDescription>
                 </DialogHeader>
@@ -1429,75 +1995,233 @@ function rotationNoticeToneClasses(tone: string): string {
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button type="button" variant="secondary" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F]" @click="draftAlert = null">
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F]"
+                        @click="draftAlert = null"
+                    >
                         Entendido
                     </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
 
-        <Dialog :open="selectedPlayer !== null" @update:open="selectedPlayer = null">
-            <DialogContent class="border-white/8 bg-[#1A243A] text-[#F8FAFC]">
+        <Dialog :open="clockEditorOpen" @update:open="clockEditorOpen = $event">
+            <DialogContent
+                class="border-white/8 bg-[#1A243A] text-[#F8FAFC] sm:max-w-[420px]"
+            >
                 <DialogHeader>
-                    <DialogTitle class="app-display text-[30px]">{{ selectedPlayer?.name }}</DialogTitle>
-                    <DialogDescription class="text-[13px] leading-6 text-[#94A3B8]">
-                        Selecciona cuantos puntos quieres agregarle a este jugador.
+                    <DialogTitle class="app-display text-[28px]"
+                        >Cronómetro</DialogTitle
+                    >
+                    <DialogDescription
+                        class="text-[13px] leading-6 text-[#94A3B8]"
+                    >
+                        Configura una duración en minutos y segundos.
                     </DialogDescription>
                 </DialogHeader>
-                <div class="grid gap-3 sm:grid-cols-3">
-                    <Button type="button" class="min-h-16 rounded-[14px] bg-[#4ADE80] text-[#0A0F1D] hover:bg-[#67e38f]" @click="addPlayerPoint(1)">+1</Button>
-                    <Button type="button" class="min-h-16 rounded-[14px] bg-[#E5B849] text-[#0A0F1D] hover:bg-[#e8c25d]" @click="addPlayerPoint(2)">+2</Button>
-                    <Button type="button" class="min-h-16 rounded-[14px] bg-[#F97316] text-[#0A0F1D] hover:bg-[#fb8b3a]" @click="addPlayerPoint(3)">+3</Button>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <label
+                        class="grid gap-2 text-[11px] font-semibold tracking-[0.18em] text-[#94A3B8] uppercase"
+                    >
+                        <span>Minutos</span>
+                        <select
+                            v-model="clockMinutes"
+                            class="clock-editor-select"
+                        >
+                            <option
+                                v-for="option in clockMinuteOptions"
+                                :key="`clock-minute-${option.value}`"
+                                :value="option.value"
+                            >
+                                {{ option.label }}
+                            </option>
+                        </select>
+                    </label>
+                    <label
+                        class="grid gap-2 text-[11px] font-semibold tracking-[0.18em] text-[#94A3B8] uppercase"
+                    >
+                        <span>Segundos</span>
+                        <select
+                            v-model="clockSeconds"
+                            class="clock-editor-select"
+                        >
+                            <option
+                                v-for="option in clockSecondOptions"
+                                :key="`clock-second-${option.value}`"
+                                :value="option.value"
+                            >
+                                {{ option.label }}
+                            </option>
+                        </select>
+                    </label>
                 </div>
-            </DialogContent>
-        </Dialog>
-
-        <Dialog :open="revertPlayer !== null" @update:open="revertPlayer = null">
-            <DialogContent class="border-white/8 bg-[#1A243A] text-[#F8FAFC]">
-                <DialogHeader>
-                    <DialogTitle class="app-display text-[30px]">{{ revertPlayer?.name }}</DialogTitle>
-                    <DialogDescription class="text-[13px] leading-6 text-[#94A3B8]">
-                        Revierte una jugada registrada en el juego actual.
-                    </DialogDescription>
-                </DialogHeader>
-                <div class="grid gap-3 sm:grid-cols-3">
-                    <Button type="button" variant="secondary" class="min-h-14 rounded-[14px] border border-white/8 bg-[#131B2F]" :disabled="!revertPlayer || revertPlayer.shots[1] < 1" @click="revertPlayerPoint(1)">-1</Button>
-                    <Button type="button" variant="secondary" class="min-h-14 rounded-[14px] border border-white/8 bg-[#131B2F]" :disabled="!revertPlayer || revertPlayer.shots[2] < 1" @click="revertPlayerPoint(2)">-2</Button>
-                    <Button type="button" variant="secondary" class="min-h-14 rounded-[14px] border border-white/8 bg-[#131B2F]" :disabled="!revertPlayer || revertPlayer.shots[3] < 1" @click="revertPlayerPoint(3)">-3</Button>
-                </div>
-            </DialogContent>
-        </Dialog>
-
-        <Dialog :open="playerToRemove !== null" @update:open="playerToRemove = null">
-            <DialogContent class="border-white/8 bg-[#1A243A] text-[#F8FAFC]">
-                <DialogHeader>
-                    <DialogTitle class="flex items-center gap-3 app-display text-[30px]">
-                        <UserMinus class="size-5 text-[#F87171]" />
-                        <span>Jugador se va</span>
-                    </DialogTitle>
-                    <DialogDescription class="text-[13px] leading-6 text-[#94A3B8]">
-                        Confirma la salida de {{ playerToRemove?.name }}. Si hay cola activa, el siguiente jugador entrara segun la prioridad de la jornada.
-                    </DialogDescription>
-                </DialogHeader>
                 <DialogFooter class="grid gap-2 sm:grid-cols-2">
-                    <Button type="button" class="min-h-12 rounded-[12px] bg-[#F87171] text-[#0A0F1D] hover:bg-[#fb8b8b]" @click="confirmRemovePlayer">Si, se fue</Button>
-                    <Button type="button" variant="secondary" class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F]" @click="playerToRemove = null">Cancelar</Button>
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F]"
+                        @click="clockEditorOpen = false"
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        type="button"
+                        class="min-h-12 rounded-[12px] bg-[#E5B849] text-[#0A0F1D] hover:bg-[#e8c25d]"
+                        @click="saveClockEditor"
+                    >
+                        Guardar
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
 
-        <Dialog :open="rotationNotice !== null" @update:open="rotationNotice = null">
-            <DialogContent class="border-white/8 bg-[#1A243A] text-[#F8FAFC] sm:max-w-[460px]">
+        <Dialog
+            :open="selectedPlayer !== null"
+            @update:open="selectedPlayer = null"
+        >
+            <DialogContent class="border-white/8 bg-[#1A243A] text-[#F8FAFC]">
+                <DialogHeader>
+                    <DialogTitle class="app-display text-[30px]">{{
+                        selectedPlayer?.name
+                    }}</DialogTitle>
+                    <DialogDescription
+                        class="text-[13px] leading-6 text-[#94A3B8]"
+                    >
+                        Selecciona cuantos puntos quieres agregarle a este
+                        jugador.
+                    </DialogDescription>
+                </DialogHeader>
+                <div class="grid gap-3 sm:grid-cols-3">
+                    <Button
+                        type="button"
+                        class="min-h-16 rounded-[14px] bg-[#4ADE80] text-[#0A0F1D] hover:bg-[#67e38f]"
+                        @click="addPlayerPoint(1)"
+                        >+1</Button
+                    >
+                    <Button
+                        type="button"
+                        class="min-h-16 rounded-[14px] bg-[#E5B849] text-[#0A0F1D] hover:bg-[#e8c25d]"
+                        @click="addPlayerPoint(2)"
+                        >+2</Button
+                    >
+                    <Button
+                        type="button"
+                        class="min-h-16 rounded-[14px] bg-[#F97316] text-[#0A0F1D] hover:bg-[#fb8b3a]"
+                        @click="addPlayerPoint(3)"
+                        >+3</Button
+                    >
+                </div>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog
+            :open="revertPlayer !== null"
+            @update:open="revertPlayer = null"
+        >
+            <DialogContent class="border-white/8 bg-[#1A243A] text-[#F8FAFC]">
+                <DialogHeader>
+                    <DialogTitle class="app-display text-[30px]">{{
+                        revertPlayer?.name
+                    }}</DialogTitle>
+                    <DialogDescription
+                        class="text-[13px] leading-6 text-[#94A3B8]"
+                    >
+                        Revierte una jugada registrada en el juego actual.
+                    </DialogDescription>
+                </DialogHeader>
+                <div class="grid gap-3 sm:grid-cols-3">
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        class="min-h-14 rounded-[14px] border border-white/8 bg-[#131B2F]"
+                        :disabled="!revertPlayer || revertPlayer.shots[1] < 1"
+                        @click="revertPlayerPoint(1)"
+                        >-1</Button
+                    >
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        class="min-h-14 rounded-[14px] border border-white/8 bg-[#131B2F]"
+                        :disabled="!revertPlayer || revertPlayer.shots[2] < 1"
+                        @click="revertPlayerPoint(2)"
+                        >-2</Button
+                    >
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        class="min-h-14 rounded-[14px] border border-white/8 bg-[#131B2F]"
+                        :disabled="!revertPlayer || revertPlayer.shots[3] < 1"
+                        @click="revertPlayerPoint(3)"
+                        >-3</Button
+                    >
+                </div>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog
+            :open="playerToRemove !== null"
+            @update:open="playerToRemove = null"
+        >
+            <DialogContent class="border-white/8 bg-[#1A243A] text-[#F8FAFC]">
+                <DialogHeader>
+                    <DialogTitle
+                        class="app-display flex items-center gap-3 text-[30px]"
+                    >
+                        <UserMinus class="size-5 text-[#F87171]" />
+                        <span>Jugador se va</span>
+                    </DialogTitle>
+                    <DialogDescription
+                        class="text-[13px] leading-6 text-[#94A3B8]"
+                    >
+                        Confirma la salida de {{ playerToRemove?.name }}. Si hay
+                        cola activa, el siguiente jugador entrara segun la
+                        prioridad de la jornada.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter class="grid gap-2 sm:grid-cols-2">
+                    <Button
+                        type="button"
+                        class="min-h-12 rounded-[12px] bg-[#F87171] text-[#0A0F1D] hover:bg-[#fb8b8b]"
+                        @click="confirmRemovePlayer"
+                        >Si, se fue</Button
+                    >
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F]"
+                        @click="playerToRemove = null"
+                        >Cancelar</Button
+                    >
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        <Dialog
+            :open="rotationNotice !== null"
+            @update:open="rotationNotice = null"
+        >
+            <DialogContent
+                class="border-white/8 bg-[#1A243A] text-[#F8FAFC] sm:max-w-[460px]"
+            >
                 <DialogHeader>
                     <div
                         v-if="rotationNotice"
                         class="inline-flex size-12 items-center justify-center rounded-full border"
                         :class="rotationNoticeToneClasses(rotationNotice.tone)"
                     >
-                        <component :is="rotationNoticeIcon(rotationNotice.icon)" class="size-6" />
+                        <component
+                            :is="rotationNoticeIcon(rotationNotice.icon)"
+                            class="size-6"
+                        />
                     </div>
-                    <DialogTitle class="mt-3 app-display text-[28px]">{{ rotationNotice?.title }}</DialogTitle>
-                    <DialogDescription class="text-[13px] leading-6 text-[#94A3B8]">
+                    <DialogTitle class="app-display mt-3 text-[28px]">{{
+                        rotationNotice?.title
+                    }}</DialogTitle>
+                    <DialogDescription
+                        class="text-[13px] leading-6 text-[#94A3B8]"
+                    >
                         Aviso operativo de la rotación actual.
                     </DialogDescription>
                 </DialogHeader>
@@ -1511,7 +2235,12 @@ function rotationNoticeToneClasses(tone: string): string {
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button type="button" class="min-h-12 rounded-[12px]" @click="rotationNotice = null">Entendido</Button>
+                    <Button
+                        type="button"
+                        class="min-h-12 rounded-[12px]"
+                        @click="rotationNotice = null"
+                        >Entendido</Button
+                    >
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -1535,6 +2264,44 @@ function rotationNoticeToneClasses(tone: string): string {
 
 .scoreboard-value--bump {
     animation: scoreboard-bump 0.18s ease-out;
+}
+
+.clock-display-editable {
+    text-decoration: underline;
+    text-decoration-color: rgba(229, 184, 73, 0.42);
+    text-underline-offset: 8px;
+}
+
+.abandoned-games-list {
+    display: grid;
+    gap: 12px;
+    max-height: 420px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.abandoned-games-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.abandoned-games-list::-webkit-scrollbar-track {
+    background: rgba(148, 163, 184, 0.08);
+    border-radius: 999px;
+}
+
+.abandoned-games-list::-webkit-scrollbar-thumb {
+    background: rgba(229, 184, 73, 0.34);
+    border-radius: 999px;
+}
+
+.clock-editor-select {
+    min-height: 48px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #0e1628;
+    padding: 0 14px;
+    color: #f8fafc;
+    outline: none;
 }
 
 .score-flash {

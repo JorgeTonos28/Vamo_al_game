@@ -3,6 +3,7 @@ import { IonButton, IonContent, IonInput, IonItem, IonLabel, IonPage, IonRefresh
 import type { AxiosError } from 'axios'
 import { computed, reactive, ref, watch } from 'vue'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
+import { handleMobileRefresher } from '@/services/app-refresh'
 import { assignCommandCenterUserLeague, fetchCommandCenterUsers, inviteCommandCenterUser } from '@/services/command-center'
 import type { CommandCenterInviteUserPayload, ErrorResponse } from '@/types/api'
 
@@ -120,11 +121,7 @@ async function assignLeague(user: CommandCenterUserRow): Promise<void> {
 }
 
 async function handleRefresh(event: CustomEvent): Promise<void> {
-  try {
-    await loadUsers()
-  } finally {
-    await (event.target as HTMLIonRefresherElement).complete()
-  }
+  await handleMobileRefresher(event, loadUsers)
 }
 
 onIonViewWillEnter(loadUsers)

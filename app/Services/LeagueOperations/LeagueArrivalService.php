@@ -28,7 +28,7 @@ class LeagueArrivalService
         $league = $context['league'];
         $cut = $this->operations->activeCutForLeague($league);
         $session = $this->pruneNonOperationalEntries(
-            $this->operations->currentSessionForLeague($league, $cut),
+            $this->operations->currentSessionForLeague($league, $cut, false),
             $league,
         );
         $attendanceCounts = $this->operations->attendanceCounts($league);

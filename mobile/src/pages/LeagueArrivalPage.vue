@@ -13,6 +13,7 @@ import { useRouter } from 'vue-router';
 import LeagueRosterSheet from '@/components/LeagueRosterSheet.vue';
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue';
 import { extractApiErrors } from '@/services/api';
+import { handleMobileRefresher } from '@/services/app-refresh';
 import {
     addLeagueArrivalGuest,
     deleteLeagueArrivalGuest,
@@ -87,7 +88,7 @@ function queuePreviewMeta(
         labels.push(entry.preferred_position);
     }
 
-    return labels.join(' Ã‚Â· ');
+    return labels.join(' · ');
 }
 
 async function loadPage(): Promise<void> {
@@ -104,11 +105,7 @@ async function loadPage(): Promise<void> {
 }
 
 async function handleRefresh(event: CustomEvent): Promise<void> {
-    try {
-        await loadPage();
-    } finally {
-        await (event.target as HTMLIonRefresherElement).complete();
-    }
+    await handleMobileRefresher(event, loadPage);
 }
 
 onIonViewWillEnter(loadPage);
@@ -261,11 +258,13 @@ async function reorderQueuePreview(
 <template>
     <IonPage>
         <IonContent :fullscreen="true">
-            <template #fixed>
-<IonRefresher @ionRefresh="handleRefresh">
+            <template v-slot:fixed>
+<IonRefresher  @ionRefresh="handleRefresh">
                 <IonRefresherContent
+                    pulling-icon="refresh-circle"
                     pulling-text="Desliza para refrescar"
                     refreshing-spinner="crescent"
+                    refreshing-text="Actualizando..."
                 />
             </IonRefresher>
 </template>
@@ -276,7 +275,7 @@ async function reorderQueuePreview(
                         :title="payload?.league.name ?? 'Llegada'"
                         :description="
                             payload?.cut.is_past_due
-                                ? 'Solo mantienen prioridad quienes estÃƒÂ¡n al dÃƒÂ­a.'
+                                ? 'Solo mantienen prioridad quienes están al día.'
                                 : 'Todos los miembros siguen con prioridad dentro del corte.'
                         "
                     />
@@ -433,10 +432,13 @@ async function reorderQueuePreview(
                             <span
                                 :class="[
                                     'member-chip',
+                                    !player.has_arrived && !player.current_cut_paid
+                                        ? 'member-chip--status'
+                                        : '',
                                     player.has_arrived && !liveArrivalLocked
                                         ? 'member-chip--negative'
                                         : player.has_arrived
-                                          ? 'member-chip--neutral'
+                                          ? 'member-chip--registered'
                                           : player.current_cut_paid
                                             ? 'member-chip--positive'
                                             : 'member-chip--warning',
@@ -444,10 +446,10 @@ async function reorderQueuePreview(
                                 >{{
                                     player.has_arrived
                                         ? liveArrivalLocked
-                                            ? 'Registrado'
+                                            ? 'Ya registrado'
                                             : `#${player.arrival_order}`
                                         : player.current_cut_paid
-                                          ? 'Al dÃƒÂ­a'
+                                          ? 'Al día'
                                           : canManageArrival
                                             ? 'Pendiente'
                                             : 'Ver'
@@ -556,21 +558,21 @@ async function reorderQueuePreview(
                         <p class="body-copy">
                             Las primeras 10 posiciones alimentan el primer
                             draft. Los miembros empujan a los invitados solo
-                            dentro de esa ventana; despuÃƒÂ©s, la cola conserva el
+                            dentro de esa ventana; después, la cola conserva el
                             orden ya establecido.
                         </p>
                         <p
                             v-if="canReorderQueuePreview"
                             class="body-copy body-copy--accent"
                         >
-                            MantÃƒÂ©n presionado y arrastra con el dedo para mover
+                            Mantén presionado y arrastra con el dedo para mover
                             posiciones antes del primer juego.
                         </p>
                         <p
                             v-if="queuePreviewEntries.length === 0"
                             class="queue-empty"
                         >
-                            La cola inicial se llenarÃƒÂ¡ con miembros llegados e
+                            La cola inicial se llenará con miembros llegados e
                             invitados pagados.
                         </p>
                         <IonReorderGroup
@@ -630,7 +632,7 @@ async function reorderQueuePreview(
                 <section class="overlay__panel">
                     <p class="app-kicker overlay__kicker">Registrar llegada</p>
                     <p class="body-copy">
-                        Si este miembro pagÃƒÂ³ ahora, conserva prioridad.
+                        Si este miembro pagó ahora, conserva prioridad.
                     </p>
                     <div class="overlay__actions">
                         <button
@@ -638,14 +640,14 @@ async function reorderQueuePreview(
                             type="button"
                             @click="togglePlayer(selectedPlayerId, false)"
                         >
-                            LlegÃƒÂ³ sin pagar
+                            Llegó sin pagar
                         </button>
                         <button
                             class="action-button action-button--primary"
                             type="button"
                             @click="togglePlayer(selectedPlayerId, true)"
                         >
-                            PagÃƒÂ³ y llegÃƒÂ³
+                            Pagó y llegó
                         </button>
                     </div>
                 </section>
@@ -689,7 +691,7 @@ async function reorderQueuePreview(
                 <section class="overlay__panel">
                     <p class="app-kicker overlay__kicker">Iniciar jornada</p>
                     <p class="body-copy">
-                        Confirma el cobro de invitados. Solo los pagos quedarÃƒÂ¡n
+                        Confirma el cobro de invitados. Solo los pagos quedarán
                         habilitados y necesitas 10 integrantes listos para
                         iniciar.
                     </p>
@@ -768,7 +770,7 @@ async function reorderQueuePreview(
 }
 .summary-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .summary-card,
 .member-row,
@@ -780,6 +782,11 @@ async function reorderQueuePreview(
 }
 .summary-card {
     padding: 14px;
+    min-width: 0;
+}
+.summary-card .app-kicker {
+    line-height: 1.25;
+    word-break: keep-all;
 }
 .summary-card__value,
 .member-row__name,
@@ -790,8 +797,8 @@ async function reorderQueuePreview(
 }
 .summary-card__value {
     margin-top: 10px;
-    font-size: 22px;
-    line-height: 1;
+    font-size: clamp(1.5rem, 6vw, 1.75rem);
+    line-height: 1.05;
     font-weight: 700;
     color: #f8fafc;
 }
@@ -834,6 +841,9 @@ async function reorderQueuePreview(
 .section-head__actions {
     justify-content: flex-end;
     flex-wrap: wrap;
+}
+.section-head__actions .action-button {
+    flex: 0 1 auto;
 }
 .section-head__kicker,
 .overlay__kicker {
@@ -894,6 +904,10 @@ async function reorderQueuePreview(
     padding: 0 14px;
     text-align: center;
 }
+.member-chip--status {
+    padding-inline: 16px;
+    min-width: 96px;
+}
 .guest-row__actions {
     display: flex;
     align-items: center;
@@ -906,6 +920,11 @@ async function reorderQueuePreview(
     background: rgba(74, 222, 128, 0.12);
     border-color: rgba(74, 222, 128, 0.28);
     color: #4ade80;
+}
+.member-chip--registered {
+    background: rgba(229, 184, 73, 0.18);
+    border-color: rgba(229, 184, 73, 0.38);
+    color: #fef3c7;
 }
 .member-chip--warning {
     background: rgba(229, 184, 73, 0.12);
@@ -996,6 +1015,14 @@ async function reorderQueuePreview(
 }
 
 @media (max-width: 420px) {
+    .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .summary-grid > :last-child {
+        grid-column: 1 / -1;
+    }
+
     .section-head,
     .guest-form {
         align-items: stretch;
@@ -1012,6 +1039,15 @@ async function reorderQueuePreview(
         justify-content: flex-start;
     }
 
+    .section-head__actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .section-head__actions .action-button:last-child {
+        grid-column: 1 / -1;
+    }
+
     .guest-row {
         display: grid;
         grid-template-columns: 1fr;
@@ -1025,6 +1061,17 @@ async function reorderQueuePreview(
     .member-chip,
     .action-button {
         min-width: 0;
+        width: 100%;
+    }
+
+    .member-chip--status {
+        min-width: 88px;
+    }
+}
+
+@media (min-width: 421px) {
+    .summary-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
 </style>

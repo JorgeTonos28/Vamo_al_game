@@ -1,11 +1,22 @@
 <script setup lang="ts">
-import { IonContent, IonPage } from '@ionic/vue'
+import { IonContent, IonPage, IonRefresher, IonRefresherContent } from '@ionic/vue'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
+import { handleMobileRefresher } from '@/services/app-refresh'
+
+async function handleRefresh(event: CustomEvent): Promise<void> {
+  await handleMobileRefresher(event)
+}
 </script>
 
 <template>
   <IonPage>
     <IonContent :fullscreen="true">
+      <template #fixed>
+        <IonRefresher @ionRefresh="handleRefresh">
+          <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
+        </IonRefresher>
+      </template>
+
       <div class="mobile-shell">
         <div class="mobile-stack">
           <MobileAppTopbar

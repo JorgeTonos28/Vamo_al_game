@@ -3,6 +3,7 @@ import { IonContent, IonPage, IonRefresher, IonRefresherContent, onIonViewWillEn
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
+import { handleMobileRefresher } from '@/services/app-refresh'
 import { fetchLeagueHome  } from '@/services/league'
 import type {LeagueHomePayload} from '@/services/league';
 
@@ -26,11 +27,7 @@ async function loadPage(): Promise<void> {
 }
 
 async function handleRefresh(event: CustomEvent): Promise<void> {
-  try {
-    await loadPage()
-  } finally {
-    await (event.target as HTMLIonRefresherElement).complete()
-  }
+  await handleMobileRefresher(event, loadPage)
 }
 
 onIonViewWillEnter(loadPage)
@@ -39,9 +36,14 @@ onIonViewWillEnter(loadPage)
 <template>
   <IonPage>
     <IonContent :fullscreen="true">
-      <template #fixed>
-<IonRefresher @ionRefresh="handleRefresh">
-        <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
+      <template v-slot:fixed>
+<IonRefresher  @ionRefresh="handleRefresh">
+        <IonRefresherContent
+          pulling-icon="refresh-circle"
+          pulling-text="Desliza para refrescar"
+          refreshing-spinner="crescent"
+          refreshing-text="Actualizando..."
+        />
       </IonRefresher>
 </template>
 

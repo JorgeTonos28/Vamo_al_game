@@ -9,6 +9,7 @@ import {
 import { ref, watch } from 'vue';
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue';
 import { extractApiErrors } from '@/services/api';
+import { handleMobileRefresher } from '@/services/app-refresh';
 import { fetchLeagueQueue  } from '@/services/league';
 import type {LeagueQueuePayload} from '@/services/league';
 
@@ -39,11 +40,10 @@ async function loadPage(sessionId?: number): Promise<void> {
 }
 
 async function handleRefresh(event: CustomEvent): Promise<void> {
-    try {
-        await loadPage(payload.value?.session_selector.selected_session_id);
-    } finally {
-        await (event.target as HTMLIonRefresherElement).complete();
-    }
+    await handleMobileRefresher(
+        event,
+        () => loadPage(payload.value?.session_selector.selected_session_id ?? undefined),
+    );
 }
 
 onIonViewWillEnter(() => loadPage());
@@ -53,6 +53,8 @@ async function changeSession(event: Event): Promise<void> {
     const sessionId = Number(target.value);
 
     if (!Number.isFinite(sessionId) || sessionId <= 0) {
+        await loadPage();
+
         return;
     }
 
@@ -76,14 +78,16 @@ function sessionLabel(
 <template>
     <IonPage>
         <IonContent :fullscreen="true">
-            <template #fixed>
-                <IonRefresher @ionRefresh="handleRefresh">
-                    <IonRefresherContent
-                        pulling-text="Desliza para refrescar"
-                        refreshing-spinner="crescent"
-                    />
-                </IonRefresher>
-            </template>
+            <template v-slot:fixed>
+<IonRefresher  @ionRefresh="handleRefresh">
+                <IonRefresherContent
+                    pulling-icon="refresh-circle"
+                    pulling-text="Desliza para refrescar"
+                    refreshing-spinner="crescent"
+                    refreshing-text="Actualizando..."
+                />
+            </IonRefresher>
+</template>
 
             <div class="mobile-shell">
                 <div class="mobile-stack">
@@ -100,9 +104,15 @@ function sessionLabel(
                         </p>
                         <select
                             class="sheet-input"
-                            :value="payload?.session_selector.selected_session_id"
+                            :value="
+                                payload?.session_selector.selected_session_id ??
+                                ''
+                            "
                             @change="changeSession"
                         >
+                            <option value="">
+                                Sin jornada activa · vista vacía de hoy
+                            </option>
                             <option
                                 v-for="session in payload?.session_selector
                                     .sessions ?? []"

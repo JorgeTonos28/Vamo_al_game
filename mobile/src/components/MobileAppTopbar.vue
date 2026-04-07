@@ -18,12 +18,14 @@ const props = defineProps<{
 
 const isMenuOpen = ref(false)
 const moduleNavRef = ref<HTMLElement | null>(null)
+const swipeSurfaceRef = ref<HTMLElement | null>(null)
 const route = useRoute()
 const router = useRouter()
 const ionRouter = useIonRouter()
 let touchStartX = 0
 let touchStartY = 0
 let touchActive = false
+let navigationLocked = false
 
 const initials = computed(() => {
   const name = sessionState.user?.name ?? 'VG'
@@ -82,6 +84,11 @@ function saveModuleNavScroll(): void {
 }
 
 async function goToModule(href: string, event?: Event): Promise<void> {
+  if (href === route.path) {
+    return
+  }
+
+  navigationLocked = true
   const button = event?.currentTarget as HTMLElement | null
   const container = (button?.closest('.topbar__module-nav') as HTMLElement | null) ?? moduleNavRef.value
 
@@ -90,20 +97,51 @@ async function goToModule(href: string, event?: Event): Promise<void> {
   await router.push(href)
 }
 
+function resolveSwipeSurface(): HTMLElement | null {
+  return moduleNavRef.value?.closest('.mobile-shell') as HTMLElement | null
+}
+
+function bindSwipeSurface(): void {
+  const nextSurface = resolveSwipeSurface()
+
+  if (swipeSurfaceRef.value === nextSurface) {
+    return
+  }
+
+  if (swipeSurfaceRef.value) {
+    swipeSurfaceRef.value.removeEventListener('touchstart', onTouchStart)
+    swipeSurfaceRef.value.removeEventListener('touchend', onTouchEnd)
+    swipeSurfaceRef.value.removeEventListener('touchcancel', onTouchCancel)
+  }
+
+  swipeSurfaceRef.value = nextSurface
+
+  if (swipeSurfaceRef.value) {
+    swipeSurfaceRef.value.addEventListener('touchstart', onTouchStart, { passive: true })
+    swipeSurfaceRef.value.addEventListener('touchend', onTouchEnd, { passive: true })
+    swipeSurfaceRef.value.addEventListener('touchcancel', onTouchCancel, { passive: true })
+  }
+}
+
+function onTouchCancel(): void {
+  touchActive = false
+}
+
 function onTouchStart(event: TouchEvent): void {
   const target = event.target as HTMLElement | null
 
   if (
     props.commandCenter ||
+    navigationLocked ||
     moduleItems.value.length < 2 ||
-    target?.closest('input, textarea, button, a, ion-input, ion-textarea, .sheet-backdrop, .sheet-panel, [data-no-module-swipe]')
+    target?.closest('input, select, textarea, button, a, ion-input, ion-select, ion-textarea, .sheet-backdrop, .sheet-panel, .overlay, [data-no-module-swipe]')
   ) {
     touchActive = false
 
     return
   }
 
-  const touch = event.changedTouches[0]
+  const touch = event.touches[0] ?? event.changedTouches[0]
   touchStartX = touch.clientX
   touchStartY = touch.clientY
   touchActive = true
@@ -137,28 +175,37 @@ function onTouchEnd(event: TouchEvent): void {
     return
   }
 
+  navigationLocked = true
   persistModuleNavScroll()
   ionRouter.navigate(nextItem.href, deltaX < 0 ? 'forward' : 'back')
 }
 
 onMounted(() => {
-  window.addEventListener('touchstart', onTouchStart, { passive: true })
-  window.addEventListener('touchend', onTouchEnd, { passive: true })
+  void nextTick(() => {
+    bindSwipeSurface()
+  })
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('touchstart', onTouchStart)
-  window.removeEventListener('touchend', onTouchEnd)
+  if (swipeSurfaceRef.value) {
+    swipeSurfaceRef.value.removeEventListener('touchstart', onTouchStart)
+    swipeSurfaceRef.value.removeEventListener('touchend', onTouchEnd)
+    swipeSurfaceRef.value.removeEventListener('touchcancel', onTouchCancel)
+  }
 })
 
 watch(
   () => route.fullPath,
   async () => {
+    navigationLocked = false
+    touchActive = false
     await nextTick()
 
     if (moduleNavRef.value) {
       moduleNavRef.value.scrollLeft = readSavedModuleNavScroll()
     }
+
+    bindSwipeSurface()
   },
   { immediate: true },
 )

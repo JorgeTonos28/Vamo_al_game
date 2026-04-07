@@ -51,7 +51,7 @@ class LeagueHomeService
         }
 
         $cut = $this->operations->activeCutForLeague($league);
-        $session = $this->operations->currentSessionForLeague($league, $cut);
+        $session = $this->operations->currentSessionForLeague($league, $cut, false);
         $players = $league->activePlayers()->orderBy('display_name')->get();
         $paidCount = $players
             ->filter(fn (LeaguePlayer $player): bool => $this->operations->balanceForPlayer($cut, $player)->status === 'paid')
@@ -79,7 +79,7 @@ class LeagueHomeService
                 'pending_players_count' => max(0, $players->count() - $paidCount),
                 'today_arrivals_count' => $session?->entries()->where('entry_type', 'player')->count() ?? 0,
                 'today_guests_count' => $session?->entries()->where('entry_type', 'guest')->count() ?? 0,
-                'session_status' => $session?->status ?? 'arrival_open',
+                'session_status' => $session?->status ?? 'idle',
             ],
         ];
     }

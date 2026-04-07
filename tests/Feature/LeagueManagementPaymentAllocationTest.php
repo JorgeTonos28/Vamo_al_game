@@ -18,6 +18,9 @@ class LeagueManagementPaymentAllocationTest extends TestCase
 
     public function test_payment_for_current_cut_settles_previous_debt_before_creating_credit(): void
     {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-20 10:00:00'));
+
+        try {
         $league = League::factory()->create();
         $admin = User::factory()->leagueAdmin()->create([
             'active_league_id' => $league->id,
@@ -40,11 +43,11 @@ class LeagueManagementPaymentAllocationTest extends TestCase
             'sessions_limit' => 4,
             'game_days' => ['Sabado'],
             'cut_day' => 15,
-            'effective_from' => now()->startOfMonth()->toDateString(),
+            'effective_from' => CarbonImmutable::now()->subMonth()->startOfMonth()->toDateString(),
             'created_by_user_id' => $admin->id,
         ]);
 
-        $previousCut = $operations->activeCutForLeague($league, CarbonImmutable::now()->subDays(20));
+        $previousCut = $operations->activeCutForLeague($league, CarbonImmutable::parse('2026-03-20 10:00:00'));
         $currentCut = $operations->activeCutForLeague($league);
 
         $management->recordPayment($admin, $player, 120000, false, $currentCut->id);
@@ -59,5 +62,8 @@ class LeagueManagementPaymentAllocationTest extends TestCase
         $this->assertSame(0, $currentBalance->extra_credit_cents);
         $this->assertSame(0, $operations->previousDebtAmount($player, $currentCut));
         $this->assertSame(120000, $operations->cashIncomeForCut($currentCut));
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
     }
 }

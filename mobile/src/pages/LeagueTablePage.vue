@@ -1,46 +1,117 @@
 <script setup lang="ts">
-import { IonContent, IonPage, IonRefresher, IonRefresherContent, onIonViewWillEnter } from '@ionic/vue'
+import {
+  IonContent,
+  IonPage,
+  IonRefresher,
+  IonRefresherContent,
+  onIonViewWillEnter,
+} from '@ionic/vue'
 import { ref } from 'vue'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
-import { fetchLeagueTable  } from '@/services/league'
-import type {LeagueTablePayload} from '@/services/league';
+import { handleMobileRefresher } from '@/services/app-refresh'
+import { fetchLeagueTableForSession } from '@/services/league'
+import type { LeagueTablePayload } from '@/services/league'
 
 const payload = ref<LeagueTablePayload | null>(null)
 const isLoading = ref(false)
 
-async function loadPage(): Promise<void> {
+async function loadPage(sessionId?: number): Promise<void> {
   isLoading.value = true
 
   try {
-    payload.value = await fetchLeagueTable()
+    payload.value = await fetchLeagueTableForSession(sessionId)
   } finally {
     isLoading.value = false
   }
 }
 
 async function handleRefresh(event: CustomEvent): Promise<void> {
-  try {
-    await loadPage()
-  } finally {
-    await (event.target as HTMLIonRefresherElement).complete()
-  }
+  await handleMobileRefresher(
+    event,
+    () => loadPage(payload.value?.session_selector.selected_session_id ?? undefined),
+  )
 }
 
-onIonViewWillEnter(loadPage)
+async function changeSession(event: Event): Promise<void> {
+  const target = event.target as HTMLSelectElement
+  const sessionId = Number(target.value)
+
+  if (!Number.isFinite(sessionId) || sessionId <= 0) {
+    await loadPage()
+
+    return
+  }
+
+  await loadPage(sessionId)
+}
+
+function sessionLabel(
+  session: LeagueTablePayload['session_selector']['sessions'][number],
+): string {
+  const base = session.session_date ?? 'Sin fecha'
+  const suffix = session.is_current
+    ? 'actual'
+    : session.status === 'completed'
+      ? 'cerrada'
+      : 'abierta'
+
+  return `${base} · ${suffix} · ${session.completed_games_count} juegos`
+}
+
+onIonViewWillEnter(() => loadPage())
 </script>
 
 <template>
   <IonPage>
     <IonContent :fullscreen="true">
-      <template #fixed>
-<IonRefresher @ionRefresh="handleRefresh">
-        <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
+      <template v-slot:fixed>
+<IonRefresher  @ionRefresh="handleRefresh">
+        <IonRefresherContent
+          pulling-icon="refresh-circle"
+          pulling-text="Desliza para refrescar"
+          refreshing-spinner="crescent"
+          refreshing-text="Actualizando..."
+        />
       </IonRefresher>
 </template>
 
       <div class="mobile-shell">
         <div class="mobile-stack">
           <MobileAppTopbar :title="payload?.league.name ?? 'Tabla'" description="Líderes de la jornada por victorias, puntos y volumen de juego." />
+
+          <section class="app-surface section-stack">
+            <p class="app-kicker section-kicker">Jornada visible</p>
+            <p class="body-copy">Consulta la tabla actual o una jornada anterior desde el selector.</p>
+            <select
+              class="sheet-input"
+              :value="payload?.session_selector.selected_session_id ?? ''"
+              :disabled="(payload?.session_selector.sessions.length ?? 0) === 0"
+              @change="changeSession"
+            >
+              <option
+                v-if="
+                  (payload?.session_selector.selected_session_id ?? null) === null &&
+                  (payload?.session_selector.sessions.length ?? 0) > 0
+                "
+                value=""
+              >
+                Sin jornada activa · vista vacía de hoy
+              </option>
+              <option
+                v-if="(payload?.session_selector.sessions.length ?? 0) === 0"
+                value=""
+              >
+                Sin jornadas registradas
+              </option>
+              <option
+                v-for="session in payload?.session_selector.sessions ?? []"
+                :key="session.id"
+                :value="session.id"
+              >
+                {{ sessionLabel(session) }}
+              </option>
+            </select>
+          </section>
 
           <section class="summary-grid">
             <article class="app-surface summary-card">
@@ -100,11 +171,13 @@ onIonViewWillEnter(loadPage)
 <style scoped>
 .section-stack,.summary-card{display:flex;flex-direction:column}
 .section-stack{gap:12px}
-.summary-grid{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.summary-grid{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
 .summary-card,.data-row{border:1px solid rgba(255,255,255,.06);border-radius:16px;background:#0e1628;padding:14px}
 .data-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .summary-card__value,.body-copy,.data-row__name{margin:0}
-.summary-card__value,.data-row__name{font-size:22px;line-height:1;font-weight:700;color:#f8fafc}
+.summary-card{min-width:0}
+.summary-card .app-kicker{line-height:1.25;word-break:keep-all}
+.summary-card__value,.data-row__name{font-size:clamp(1.5rem,6vw,1.75rem);line-height:1.05;font-weight:700;color:#f8fafc}
 .data-row__name{font-size:15px}
 .summary-card__value--warning{color:#e5b849}
 .body-copy{font-size:13px;line-height:1.6;color:#94a3b8}
@@ -113,4 +186,6 @@ onIonViewWillEnter(loadPage)
 .member-chip--neutral{background:#131b2f;color:#f8fafc}
 .member-chip--positive{background:rgba(74,222,128,.12);border-color:rgba(74,222,128,.28);color:#4ade80}
 .member-chip--warning{background:rgba(229,184,73,.12);border-color:rgba(229,184,73,.28);color:#f8fafc}
+@media (max-width:420px){.summary-grid>:last-child{grid-column:1/-1}}
+@media (min-width:421px){.summary-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 </style>

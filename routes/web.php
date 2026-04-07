@@ -19,6 +19,7 @@ use App\Http\Controllers\Web\League\ModulePlaceholderController as LeagueModuleP
 use App\Http\Controllers\Web\League\PanelController as LeaguePanelController;
 use App\Http\Controllers\Web\League\QueueController as LeagueQueueController;
 use App\Http\Controllers\Web\League\ScoutController as LeagueScoutController;
+use App\Http\Controllers\Web\League\SessionController as LeagueSessionController;
 use App\Http\Middleware\EnsureGeneralAdmin;
 use App\Http\Middleware\EnsureRegularAppAccess;
 use Illuminate\Support\Facades\Route;
@@ -163,8 +164,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     ->name('modules.game.end-session');
                 Route::post('modulos/juego/reset', [LeagueGameController::class, 'reset'])
                     ->name('modules.game.reset');
+                Route::post('modulos/juego/abandoned/{game}/resolve', [LeagueGameController::class, 'resolveAbandoned'])
+                    ->name('modules.game.abandoned.resolve');
                 Route::post('modulos/cola/reorder', [LeagueQueueController::class, 'reorder'])
                     ->name('modules.queue.reorder');
+                Route::delete('modulos/stats/sessions/{session}', [LeagueSessionController::class, 'destroy'])
+                    ->name('modules.stats.sessions.destroy');
                 Route::patch('modulos/scout/players/{player}', [LeagueScoutController::class, 'update'])
                     ->name('modules.scout.players.update');
             });

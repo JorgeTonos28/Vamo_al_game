@@ -470,10 +470,10 @@ export async function downloadLeagueManagementReport(
 }
 
 export type LeagueCompetitionSession = {
-    id: number;
+    id: number | null;
     status: string;
     session_date: string | null;
-    current_game_number: number;
+    current_game_number: number | null;
     streak: {
         team: 'A' | 'B' | null;
         count: number;
@@ -486,7 +486,7 @@ export type LeagueCompetitionSession = {
 };
 
 export type LeagueCompetitionSessionSelector = {
-    selected_session_id: number;
+    selected_session_id: number | null;
     sessions: Array<{
         id: number;
         session_date: string | null;
@@ -521,7 +521,7 @@ export type LeagueTeamPlayer = LeagueEntryCard & {
 
 export type LeagueGamePayload = LeagueCompetitionBase & {
     game: {
-        state: 'idle' | 'draft' | 'live' | 'completed';
+        state: 'idle' | 'draft' | 'live' | 'completed' | 'review';
         draft: {
             entries: Array<
                 LeagueEntryCard & {
@@ -544,6 +544,23 @@ export type LeagueGamePayload = LeagueCompetitionBase & {
             tone: string;
             icon: string;
         };
+        review: {
+            is_active: boolean;
+            selected_abandoned_game_id: number | null;
+            session_date: string | null;
+            title: string | null;
+            description: string | null;
+        };
+        abandoned_games: Array<{
+            id: number;
+            session_id: number;
+            session_date: string | null;
+            game_number: number;
+            score: string;
+            team_a_label: string;
+            team_b_label: string;
+            selected: boolean;
+        }>;
         current: null | {
             id: number;
             game_number: number;
@@ -658,7 +675,7 @@ export type LeagueSeasonProfile = {
 export type LeagueSeasonPayload = LeagueCompetitionBase & {
     season: {
         season: {
-            id: number;
+            id: number | null;
             label: string;
             starts_on: string | null;
             sessions_count: number;
@@ -782,9 +799,17 @@ export type LeagueScoutPayload = LeagueCompetitionBase & {
     };
 };
 
-export async function fetchLeagueGame(): Promise<LeagueGamePayload> {
+export async function fetchLeagueGame(
+    abandonedGameId?: number,
+): Promise<LeagueGamePayload> {
     const { data } = await api.get<ApiSuccess<LeagueGamePayload>>(
         '/league/modules/game',
+        {
+            params:
+                abandonedGameId === undefined
+                    ? undefined
+                    : { abandoned_game_id: abandonedGameId },
+        },
     );
 
     return data.data;
@@ -817,8 +842,27 @@ export async function fetchLeagueStats(
 }
 
 export async function fetchLeagueTable(): Promise<LeagueTablePayload> {
+    return fetchLeagueTableForSession();
+}
+
+export async function fetchLeagueTableForSession(
+    sessionId?: number,
+): Promise<LeagueTablePayload> {
     const { data } = await api.get<ApiSuccess<LeagueTablePayload>>(
         '/league/modules/table',
+        {
+            params: sessionId ? { session_id: sessionId } : undefined,
+        },
+    );
+
+    return data.data;
+}
+
+export async function destroyLeagueSession(
+    sessionId: number,
+): Promise<LeagueStatsPayload> {
+    const { data } = await api.delete<ApiSuccess<LeagueStatsPayload>>(
+        `/league/modules/stats/sessions/${sessionId}`,
     );
 
     return data.data;
@@ -987,6 +1031,20 @@ export async function endLeagueSession(): Promise<LeagueGamePayload> {
 export async function resetLeagueGame(): Promise<LeagueGamePayload> {
     const { data } = await api.post<ApiSuccess<LeagueGamePayload>>(
         '/league/modules/game/reset',
+    );
+
+    return data.data;
+}
+
+export async function resolveLeagueAbandonedGame(
+    gameId: number,
+    winnerSide: 'A' | 'B',
+): Promise<LeagueGamePayload> {
+    const { data } = await api.post<ApiSuccess<LeagueGamePayload>>(
+        `/league/modules/game/abandoned/${gameId}/resolve`,
+        {
+            winner_side: winnerSide,
+        },
     );
 
     return data.data;

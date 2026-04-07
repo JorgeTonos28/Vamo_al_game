@@ -40,17 +40,60 @@ class LeagueCompetitionService
     /**
      * @return array<string, mixed>
      */
-    public function gamePageData(User $user): array
+    public function gamePageData(User $user, ?int $abandonedGameId = null): array
     {
-        $context = $this->operationalContext($user);
+        $context = $this->operationalContext($user, null, false);
+        $currentSessionForSelector = $this->operations->currentSessionForLeague(
+            $context['league'],
+            $context['cut'],
+            false,
+        );
+        $selectedAbandonedGame = null;
+
+        if ($abandonedGameId !== null) {
+            try {
+                $abandonedContext = $this->loadAbandonedGameContext(
+                    $context['league'],
+                    $context['cut'],
+                    $abandonedGameId,
+                    $user,
+                );
+            } catch (ValidationException $exception) {
+                if (! array_key_exists('abandoned_game_id', $exception->errors())) {
+                    throw $exception;
+                }
+
+                $abandonedContext = null;
+            }
+
+            if ($abandonedContext !== null) {
+                $context['session'] = $abandonedContext['session'];
+                $context['cut'] = $abandonedContext['session']->cut ?? $context['cut'];
+                $context['season'] = $this->contextSeasonForLeague(
+                    $context['league'],
+                    $abandonedContext['session'],
+                    $user,
+                );
+                $context['session_selector'] = $this->sessionSelectorPayload(
+                    $context['league'],
+                    $abandonedContext['session'],
+                    $currentSessionForSelector,
+                );
+                $selectedAbandonedGame = $abandonedContext['game'];
+            }
+        }
+
+        $session = $context['session'] ?? $this->emptyCompetitionSession($context['cut']);
+        $context['session'] = $session;
         $session = $context['session'];
         $openGame = $this->openGame($session);
-        $seasonStats = $this->seasonStats($context['season']->sessions)->keyBy('season_key');
+        $displayGame = $selectedAbandonedGame ?? $openGame;
+        $isReviewingAbandoned = $selectedAbandonedGame !== null;
+        $seasonStats = $context['season'] === null
+            ? collect()
+            : $this->seasonStats($context['season']->sessions)->keyBy('season_key');
         $scoutStatBaseline = $this->scoutStatBaseline($seasonStats);
-        $completedGames = $session->games
-            ->where('status', 'completed')
-            ->sortByDesc('game_number')
-            ->values();
+        $completedGames = $this->gameHistoryForDisplay($session, $selectedAbandonedGame);
         $summary = $this->queueSummary($session, $context['cut']);
 
         if (! $context['role']->canManageLeague()) {
@@ -59,26 +102,36 @@ class LeagueCompetitionService
 
         return array_merge($this->basePayload($context), [
             'game' => [
-                'state' => $this->gameState($session, $openGame),
+                'state' => $this->gameState($session, $openGame, $isReviewingAbandoned),
                 'draft' => [
-                    'entries' => $this->pendingPoolEntries($session)
-                        ->map(fn (LeagueSessionEntry $entry): array => $this->draftEntryCard($entry, $seasonStats, $scoutStatBaseline))
-                        ->values()
-                        ->all(),
-                    'can_start' => $openGame === null && $this->pendingPoolEntries($session)->count() === 10,
+                    'entries' => $isReviewingAbandoned
+                        ? []
+                        : $this->pendingPoolEntries($session)
+                            ->map(fn (LeagueSessionEntry $entry): array => $this->draftEntryCard($entry, $seasonStats, $scoutStatBaseline))
+                            ->values()
+                            ->all(),
+                    'can_start' => ! $isReviewingAbandoned
+                        && $openGame === null
+                        && $this->pendingPoolEntries($session)->count() === 10,
                 ],
                 'clock' => $this->clockPayload($session),
-                'rotation_notice' => $this->rotationNoticePayload($session),
-                'current' => $openGame === null ? null : [
-                    'id' => $openGame->id,
-                    'game_number' => $openGame->game_number,
+                'rotation_notice' => $isReviewingAbandoned ? null : $this->rotationNoticePayload($session),
+                'review' => $this->gameReviewPayload($selectedAbandonedGame),
+                'abandoned_games' => $this->abandonedGamesPayload($context['league'], $selectedAbandonedGame?->id),
+                'current' => $displayGame === null ? null : [
+                    'id' => $displayGame->id,
+                    'game_number' => $displayGame->game_number,
                     'score' => [
-                        'team_a' => $openGame->team_a_score,
-                        'team_b' => $openGame->team_b_score,
+                        'team_a' => $displayGame->team_a_score,
+                        'team_b' => $displayGame->team_b_score,
                     ],
                     'streak' => $this->streakPayload($session),
-                    'team_a' => $this->currentTeamPayload($session, $openGame, 'A'),
-                    'team_b' => $this->currentTeamPayload($session, $openGame, 'B'),
+                    'team_a' => $isReviewingAbandoned
+                        ? $this->teamPayloadFromSnapshot($displayGame, 'A')
+                        : $this->currentTeamPayload($session, $displayGame, 'A'),
+                    'team_b' => $isReviewingAbandoned
+                        ? $this->teamPayloadFromSnapshot($displayGame, 'B')
+                        : $this->currentTeamPayload($session, $displayGame, 'B'),
                 ],
                 'history' => $completedGames->map(fn (LeagueSessionGame $game): array => [
                     'id' => $game->id,
@@ -102,7 +155,8 @@ class LeagueCompetitionService
      */
     public function queuePageData(User $user, ?int $selectedSessionId = null): array
     {
-        $context = $this->operationalContext($user, $selectedSessionId);
+        $context = $this->operationalContext($user, $selectedSessionId, false);
+        $context['session'] = $context['session'] ?? $this->emptyCompetitionSession($context['cut']);
         $session = $context['session'];
         $openGame = $this->openGame($session);
 
@@ -154,11 +208,11 @@ class LeagueCompetitionService
     {
         $context = $this->operationalContext($user, $selectedSessionId);
         $session = $context['session'];
-        $stats = $this->sessionStats($session);
+        $stats = $session === null ? collect() : $this->sessionStats($session);
 
         return array_merge($this->basePayload($context), [
             'stats' => [
-                'games_count' => $session->games->where('status', 'completed')->count(),
+                'games_count' => $session === null ? 0 : $this->resolvedCompletedGames($session->games)->count(),
                 'points_leaders' => $stats
                     ->filter(fn (array $row): bool => $row['points'] > 0 || $row['games'] > 0)
                     ->sortByDesc('points')
@@ -186,20 +240,22 @@ class LeagueCompetitionService
     /**
      * @return array<string, mixed>
      */
-    public function tablePageData(User $user): array
+    public function tablePageData(User $user, ?int $selectedSessionId = null): array
     {
-        $context = $this->operationalContext($user);
+        $context = $this->operationalContext($user, $selectedSessionId);
         $session = $context['session'];
-        $stats = $this->sessionStats($session)
-            ->filter(fn (array $row): bool => $row['games'] > 0 || $row['points'] > 0)
-            ->values();
+        $stats = $session === null
+            ? collect()
+            : $this->sessionStats($session)
+                ->filter(fn (array $row): bool => $row['games'] > 0 || $row['points'] > 0)
+                ->values();
 
         return array_merge($this->basePayload($context), [
             'table' => [
                 'banner' => [
-                    'games' => $session->games->where('status', 'completed')->count(),
+                    'games' => $session === null ? 0 : $this->resolvedCompletedGames($session->games)->count(),
                     'points' => $stats->sum('points'),
-                    'players' => $session->entries->count(),
+                    'players' => $session?->entries->count() ?? 0,
                 ],
                 'standings' => $stats
                     ->sortBy([
@@ -248,12 +304,39 @@ class LeagueCompetitionService
     {
         $context = $this->operationalContext($user);
         $season = $context['season'];
+
+        if ($season === null) {
+            return array_merge($this->basePayload($context), [
+                'season' => [
+                    'season' => [
+                        'id' => null,
+                        'label' => 'Sin temporada activa',
+                        'starts_on' => null,
+                        'sessions_count' => 0,
+                        'totals' => [
+                            'games' => 0,
+                            'points' => 0,
+                            'revenue_cents' => 0,
+                            'show_revenue' => $context['role']->canManageLeague(),
+                        ],
+                    ],
+                    'leaders' => [
+                        'points' => [],
+                        'wins' => [],
+                        'games' => [],
+                    ],
+                    'sessions' => [],
+                    'profiles' => [],
+                ],
+            ]);
+        }
+
         $stats = $this->seasonStats($season->sessions);
         $sessions = $season->sessions
             ->sortByDesc('session_date')
             ->values();
         $sessionsData = $sessions->map(function (LeagueSession $session): array {
-            $completed = $session->games->where('status', 'completed')->values();
+            $completed = $this->resolvedCompletedGames($session->games);
             $topScorer = $this->sessionStats($session)
                 ->sortByDesc('points')
                 ->first();
@@ -305,7 +388,9 @@ class LeagueCompetitionService
         $context = $this->operationalContext($user);
         $league = $context['league'];
         $session = $context['session'];
-        $seasonStats = $this->seasonStats($context['season']->sessions)->keyBy('season_key');
+        $seasonStats = $context['season'] === null
+            ? collect()
+            : $this->seasonStats($context['season']->sessions)->keyBy('season_key');
         $scoutStatBaseline = $this->scoutStatBaseline($seasonStats);
         $players = $this->operations->activePlayablePlayersQuery($league)
             ->with('scoutProfile')
@@ -351,7 +436,9 @@ class LeagueCompetitionService
         $profiledPlayers = $players
             ->filter(fn (LeaguePlayer $player): bool => $player->scoutProfile !== null)
             ->count();
-        $autoPreviewPool = $this->pendingPoolEntries($session);
+        $autoPreviewPool = $session === null
+            ? collect()
+            : $this->pendingPoolEntries($session);
         $autoPreview = $autoPreviewPool->count() === 10
             ? $this->scoutAutoPreview($autoPreviewPool, $seasonStats, $scoutStatBaseline)
             : null;
@@ -385,14 +472,33 @@ class LeagueCompetitionService
         ]);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function destroySession(User $user, LeagueSession $session): array
+    {
+        $context = $this->operations->requireAdminContext($user);
+
+        if ($session->league_id !== $context['league']->id) {
+            throw ValidationException::withMessages([
+                'session_id' => 'La jornada seleccionada no existe dentro de la liga activa.',
+            ]);
+        }
+
+        DB::transaction(function () use ($session): void {
+            $session->delete();
+        });
+
+        return $this->statsPageData($user);
+    }
+
     public function confirmDraft(
         User $user,
         string $mode,
         array $assignments = [],
         string $captainMode = 'arrival',
         array $captains = [],
-    ): void
-    {
+    ): void {
         $context = $this->adminContext($user);
         $session = $context['session'];
 
@@ -633,11 +739,42 @@ class LeagueCompetitionService
         });
     }
 
+    public function resolveAbandonedGame(User $user, int $gameId, string $winnerSide): void
+    {
+        if (! in_array($winnerSide, ['A', 'B'], true)) {
+            throw ValidationException::withMessages([
+                'winner_side' => 'Equipo ganador invalido.',
+            ]);
+        }
+
+        $context = $this->operations->requireAdminContext($user);
+        $game = LeagueSessionGame::query()
+            ->whereKey($gameId)
+            ->where('status', 'abandoned')
+            ->whereHas('session', fn ($query) => $query->where('league_id', $context['league']->id))
+            ->first();
+
+        if ($game === null) {
+            throw ValidationException::withMessages([
+                'game_id' => 'Ese juego abandonado no existe dentro de la liga activa.',
+            ]);
+        }
+
+        $game->forceFill([
+            'status' => 'completed',
+            'winner_side' => $winnerSide,
+            'ended_at' => $game->ended_at
+                ?? $game->session?->session_date?->toImmutable()?->endOfDay()
+                ?? now(),
+            'finished_by_user_id' => $user->id,
+        ])->save();
+    }
+
     public function endSession(User $user): void
     {
         $context = $this->adminContext($user);
         $session = $context['session'];
-        $completedGames = $session->games->where('status', 'completed');
+        $completedGames = $this->resolvedCompletedGames($session->games);
 
         if ($completedGames->isEmpty()) {
             throw ValidationException::withMessages([
@@ -698,6 +835,12 @@ class LeagueCompetitionService
         if ($durationSeconds < 60 || $durationSeconds > 7200) {
             throw ValidationException::withMessages([
                 'duration_seconds' => 'El cronómetro debe estar entre 1 y 120 minutos.',
+            ]);
+        }
+
+        if (! $this->canConfigureClock($session)) {
+            throw ValidationException::withMessages([
+                'clock' => 'Solo puedes cambiar el cronómetro cuando está reiniciado.',
             ]);
         }
 
@@ -774,7 +917,7 @@ class LeagueCompetitionService
     /**
      * @return array<string, mixed>
      */
-    private function operationalContext(User $user, ?int $selectedSessionId = null): array
+    private function operationalContext(User $user, ?int $selectedSessionId = null, bool $requireSession = false): array
     {
         $context = $this->operations->requireOperationalContext($user);
         $activeCut = $this->operations->activeCutForLeague($context['league']);
@@ -783,18 +926,20 @@ class LeagueCompetitionService
             $activeCut,
             $selectedSessionId,
             $user,
+            false,
+            $requireSession,
         );
-        $currentSession = $this->operations->currentSessionForLeague($context['league'], $activeCut);
+        $currentSession = $this->operations->currentSessionForLeague($context['league'], $activeCut, false);
 
         return [
             ...$context,
-            'cut' => $session->cut ?? $activeCut,
+            'cut' => $session?->cut ?? $activeCut,
             'session' => $session,
-            'season' => $session->season,
+            'season' => $this->contextSeasonForLeague($context['league'], $session, $user),
             'session_selector' => $this->sessionSelectorPayload(
                 $context['league'],
                 $session,
-                $currentSession ?? $session,
+                $currentSession,
             ),
         ];
     }
@@ -812,14 +957,15 @@ class LeagueCompetitionService
             null,
             $user,
             true,
+            true,
         );
-        $currentSession = $this->operations->currentSessionForLeague($context['league'], $activeCut);
+        $currentSession = $this->operations->currentSessionForLeague($context['league'], $activeCut, false);
 
         return [
             ...$context,
             'cut' => $session->cut ?? $activeCut,
             'session' => $session,
-            'season' => $session->season,
+            'season' => $this->contextSeasonForLeague($context['league'], $session, $user),
             'session_selector' => $this->sessionSelectorPayload(
                 $context['league'],
                 $session,
@@ -834,15 +980,26 @@ class LeagueCompetitionService
         ?int $selectedSessionId,
         User $user,
         bool $withActionLogs = false,
-    ): LeagueSession {
+        bool $requireSession = false,
+    ): ?LeagueSession {
         $session = $selectedSessionId === null
-            ? $this->operations->currentSessionForLeague($league, $activeCut)
+            ? $this->operations->currentSessionForLeague($league, $activeCut, false)
             : $this->operations->findSessionForLeague($league, $selectedSessionId);
 
-        if ($session === null) {
+        if ($session === null && $selectedSessionId !== null) {
             throw ValidationException::withMessages([
                 'session_id' => 'La jornada seleccionada no existe dentro de la liga activa.',
             ]);
+        }
+
+        if ($session === null) {
+            if ($requireSession) {
+                throw ValidationException::withMessages([
+                    'session' => 'No existe una jornada activa para la liga seleccionada.',
+                ]);
+            }
+
+            return null;
         }
 
         $session = $this->seasons->attachSessionToActiveSeason($session, $league, $user);
@@ -863,6 +1020,46 @@ class LeagueCompetitionService
         $session = $this->ensurePreparedEntryState($session);
 
         return $this->filterOperationalEntries($session, $league);
+    }
+
+    /**
+     * @return array{session: LeagueSession, game: LeagueSessionGame}
+     */
+    private function loadAbandonedGameContext($league, $activeCut, int $abandonedGameId, User $user): array
+    {
+        $sessionId = LeagueSessionGame::query()
+            ->whereKey($abandonedGameId)
+            ->where('status', 'abandoned')
+            ->whereHas('session', fn ($query) => $query->where('league_id', $league->id))
+            ->value('league_session_id');
+
+        if ($sessionId === null) {
+            throw ValidationException::withMessages([
+                'abandoned_game_id' => 'Ese juego abandonado no existe dentro de la liga activa.',
+            ]);
+        }
+
+        $session = $this->loadCompetitionSession(
+            $league,
+            $activeCut,
+            (int) $sessionId,
+            $user,
+            false,
+            true,
+        );
+
+        $game = $session->games->firstWhere('id', $abandonedGameId);
+
+        if (! $game instanceof LeagueSessionGame || $game->status !== 'abandoned') {
+            throw ValidationException::withMessages([
+                'abandoned_game_id' => 'Ese juego ya no esta disponible para resolucion.',
+            ]);
+        }
+
+        return [
+            'session' => $session,
+            'game' => $game,
+        ];
     }
 
     private function ensurePreparedEntryState(LeagueSession $session): LeagueSession
@@ -953,14 +1150,19 @@ class LeagueCompetitionService
             ],
             'session_selector' => $context['session_selector'],
             'session' => [
-                'id' => $session->id,
-                'status' => $session->status,
-                'session_date' => $session->session_date?->toDateString(),
-                'current_game_number' => $session->current_game_number,
-                'streak' => $this->streakPayload($session),
-                'participants_count' => $session->entries->count(),
-                'pending_pool_count' => $this->pendingPoolEntries($session)->count(),
-                'queue_count' => $this->queueEntries($session)->count(),
+                'id' => $session?->id,
+                'status' => $session?->status ?? 'idle',
+                'session_date' => $session?->session_date?->toDateString(),
+                'current_game_number' => $session?->current_game_number,
+                'streak' => $session === null ? [
+                    'team' => null,
+                    'count' => 0,
+                    'double_rotation_mode' => false,
+                    'waiting_champion_team' => null,
+                ] : $this->streakPayload($session),
+                'participants_count' => $session?->entries->count() ?? 0,
+                'pending_pool_count' => $session === null ? 0 : $this->pendingPoolEntries($session)->count(),
+                'queue_count' => $session === null ? 0 : $this->queueEntries($session)->count(),
             ],
         ];
     }
@@ -968,10 +1170,10 @@ class LeagueCompetitionService
     /**
      * @return array<string, mixed>
      */
-    private function sessionSelectorPayload($league, LeagueSession $selectedSession, LeagueSession $currentSession): array
+    private function sessionSelectorPayload($league, ?LeagueSession $selectedSession, ?LeagueSession $currentSession): array
     {
         return [
-            'selected_session_id' => $selectedSession->id,
+            'selected_session_id' => $selectedSession?->id,
             'sessions' => $this->operations->sessionHistoryForLeague($league)
                 ->map(fn (LeagueSession $session): array => [
                     'id' => $session->id,
@@ -979,14 +1181,83 @@ class LeagueCompetitionService
                     'status' => $session->status,
                     'entries_count' => (int) ($session->entries_count ?? 0),
                     'completed_games_count' => (int) ($session->completed_games_count ?? 0),
-                    'is_current' => $session->is($currentSession),
+                    'is_current' => $currentSession !== null && $session->is($currentSession),
                 ])
                 ->all(),
         ];
     }
 
-    private function gameState(LeagueSession $session, ?LeagueSessionGame $game): string
+    private function latestSessionForLeague($league): ?LeagueSession
     {
+        $sessionId = $this->operations->sessionHistoryForLeague($league, 1)
+            ->first()?->id;
+
+        if ($sessionId === null) {
+            return null;
+        }
+
+        return $this->operations->findSessionForLeague($league, (int) $sessionId);
+    }
+
+    private function contextSeasonForLeague($league, ?LeagueSession $session, User $user)
+    {
+        $season = $session?->season;
+
+        if ($season === null) {
+            $latestSession = $this->latestSessionForLeague($league);
+
+            if ($latestSession !== null) {
+                $latestSession = $this->seasons->attachSessionToActiveSeason($latestSession, $league, $user);
+                $season = $latestSession->season;
+            }
+        }
+
+        if ($season === null) {
+            $season = $league->seasons()
+                ->orderByDesc('starts_on')
+                ->orderByDesc('id')
+                ->first();
+        }
+
+        if ($season !== null) {
+            $season->loadMissing([
+                'sessions.games',
+                'sessions.entries.player',
+            ]);
+        }
+
+        return $season;
+    }
+
+    private function emptyCompetitionSession($cut): LeagueSession
+    {
+        $duration = LeagueOperationsService::DEFAULT_GAME_CLOCK_SECONDS;
+        $session = new LeagueSession([
+            'league_cut_id' => $cut->id,
+            'session_date' => $this->operations->today()->toDateString(),
+            'status' => 'idle',
+            'current_game_number' => 0,
+            'clock_duration_seconds' => $duration,
+            'clock_remaining_seconds' => $duration,
+            'clock_state' => 'paused',
+            'initial_pool' => [],
+            'initial_queue' => [],
+            'rotation_state' => [],
+        ]);
+
+        $session->setRelation('cut', $cut);
+        $session->setRelation('entries', collect());
+        $session->setRelation('games', collect());
+
+        return $session;
+    }
+
+    private function gameState(LeagueSession $session, ?LeagueSessionGame $game, bool $isReviewingAbandoned = false): string
+    {
+        if ($isReviewingAbandoned) {
+            return 'review';
+        }
+
         if ($game !== null) {
             return 'live';
         }
@@ -996,6 +1267,97 @@ class LeagueCompetitionService
         }
 
         return $session->status === 'completed' ? 'completed' : 'idle';
+    }
+
+    /**
+     * @return Collection<int, LeagueSessionGame>
+     */
+    private function gameHistoryForDisplay(LeagueSession $session, ?LeagueSessionGame $selectedAbandonedGame = null): Collection
+    {
+        $games = $this->resolvedCompletedGames($session->games);
+
+        if ($selectedAbandonedGame !== null) {
+            $games = $games->filter(
+                fn (LeagueSessionGame $game): bool => $game->game_number < $selectedAbandonedGame->game_number
+            );
+        }
+
+        return $games
+            ->sortByDesc('game_number')
+            ->values();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function gameReviewPayload(?LeagueSessionGame $selectedAbandonedGame): array
+    {
+        return [
+            'is_active' => $selectedAbandonedGame !== null,
+            'selected_abandoned_game_id' => $selectedAbandonedGame?->id,
+            'session_date' => $selectedAbandonedGame?->session?->session_date?->toDateString(),
+            'title' => $selectedAbandonedGame === null
+                ? null
+                : sprintf(
+                    'Resolviendo juego abandonado de %s',
+                    $selectedAbandonedGame->session?->session_date?->format('d M Y') ?? 'la jornada',
+                ),
+            'description' => $selectedAbandonedGame === null
+                ? null
+                : 'Vista de solo lectura. Si este juego no debe contar, dejalo abandonado; solo resuelvelo cuando la liga defina un ganador.',
+        ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function abandonedGamesPayload($league, ?int $selectedAbandonedGameId = null): array
+    {
+        return LeagueSessionGame::query()
+            ->where('status', 'abandoned')
+            ->whereHas('session', fn ($query) => $query->where('league_id', $league->id))
+            ->with('session')
+            ->get()
+            ->sortByDesc(function (LeagueSessionGame $game): string {
+                return sprintf(
+                    '%s-%08d-%08d',
+                    $game->session?->session_date?->format('Ymd') ?? '00000000',
+                    (int) $game->league_session_id,
+                    (int) $game->game_number,
+                );
+            })
+            ->values()
+            ->map(function (LeagueSessionGame $game) use ($selectedAbandonedGameId): array {
+                return [
+                    'id' => $game->id,
+                    'session_id' => $game->league_session_id,
+                    'session_date' => $game->session?->session_date?->toDateString(),
+                    'game_number' => $game->game_number,
+                    'score' => "{$game->team_a_score} - {$game->team_b_score}",
+                    'team_a_label' => $this->abandonedTeamLabel($game, 'A'),
+                    'team_b_label' => $this->abandonedTeamLabel($game, 'B'),
+                    'selected' => $selectedAbandonedGameId !== null && $game->id === $selectedAbandonedGameId,
+                ];
+            })
+            ->all();
+    }
+
+    private function abandonedTeamLabel(LeagueSessionGame $game, string $teamSide): string
+    {
+        $participants = collect($teamSide === 'A' ? ($game->team_a_snapshot ?? []) : ($game->team_b_snapshot ?? []))
+            ->pluck('name')
+            ->filter(fn ($name): bool => filled($name))
+            ->values();
+        $visible = $participants->take(2)->implode(', ');
+        $remaining = max(0, $participants->count() - 2);
+
+        if ($visible === '') {
+            return "Equipo {$teamSide}";
+        }
+
+        return $remaining > 0
+            ? "{$visible} +{$remaining}"
+            : $visible;
     }
 
     /**
@@ -1095,12 +1457,22 @@ class LeagueCompetitionService
         ])->save();
     }
 
+    private function canConfigureClock(LeagueSession $session): bool
+    {
+        if ($session->clock_duration_seconds === null || $session->clock_remaining_seconds === null) {
+            return true;
+        }
+
+        return $session->clock_state !== 'running'
+            && $this->clockRemainingSeconds($session) === $session->clock_duration_seconds;
+    }
+
     /**
      * @return array<string, mixed>
      */
     private function queueSummary(LeagueSession $session, $cut): array
     {
-        $completedGames = $session->games->where('status', 'completed');
+        $completedGames = $this->resolvedCompletedGames($session->games);
         $totalRevenueCents = $session->entries->sum(function (LeagueSessionEntry $entry) use ($cut): int {
             if ($entry->entry_type === 'guest') {
                 return $entry->guest_fee_paid ? (int) $cut->guest_fee_amount_cents : 0;
@@ -1227,6 +1599,34 @@ class LeagueCompetitionService
                 return [
                     ...$this->entryCard($entry),
                     'is_captain' => (bool) ($meta['is_captain'] ?? false),
+                    'points' => (int) ($points[$entryKey] ?? 0),
+                    'shots' => $shots[$entryKey] ?? ['1' => 0, '2' => 0, '3' => 0],
+                ];
+            })
+            ->all();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function teamPayloadFromSnapshot(LeagueSessionGame $game, string $teamSide): array
+    {
+        $points = $game->player_points ?? [];
+        $shots = $game->player_shots ?? [];
+
+        return collect($teamSide === 'A' ? ($game->team_a_snapshot ?? []) : ($game->team_b_snapshot ?? []))
+            ->values()
+            ->map(function (array $participant) use ($points, $shots): array {
+                $entryKey = (string) ($participant['entry_id'] ?? '');
+
+                return [
+                    'id' => (int) ($participant['entry_id'] ?? 0),
+                    'name' => (string) ($participant['name'] ?? 'Jugador'),
+                    'is_guest' => (bool) ($participant['is_guest'] ?? false),
+                    'jersey_number' => $participant['jersey_number'] ?? null,
+                    'arrival_order' => $participant['arrival_order'] ?? null,
+                    'preferred_position' => $participant['preferred_position'] ?? null,
+                    'is_captain' => (bool) ($participant['is_captain'] ?? false),
                     'points' => (int) ($points[$entryKey] ?? 0),
                     'shots' => $shots[$entryKey] ?? ['1' => 0, '2' => 0, '3' => 0],
                 ];
@@ -1597,8 +1997,7 @@ class LeagueCompetitionService
         Collection $teamA,
         Collection $teamB,
         array $captainIds = [],
-    ): LeagueSessionGame
-    {
+    ): LeagueSessionGame {
         return $session->games()->create([
             'game_number' => $session->current_game_number,
             'draft_mode' => $draftMode,
@@ -2225,7 +2624,7 @@ class LeagueCompetitionService
      */
     private function sessionStats(LeagueSession $session): Collection
     {
-        return $this->metricsFromGames($session->games->where('status', 'completed')->values())
+        return $this->metricsFromGames($this->resolvedCompletedGames($session->games))
             ->sortByDesc('points')
             ->values();
     }
@@ -2239,7 +2638,7 @@ class LeagueCompetitionService
         $metrics = collect();
 
         foreach ($sessions as $session) {
-            $sessionMetrics = $this->metricsFromGames($session->games->where('status', 'completed')->values());
+            $sessionMetrics = $this->metricsFromGames($this->resolvedCompletedGames($session->games));
 
             foreach ($sessionMetrics as $row) {
                 $seasonKey = $row['season_key'];
@@ -2322,6 +2721,10 @@ class LeagueCompetitionService
         $stats = collect();
 
         foreach ($games as $game) {
+            if (! $this->hasResolvedWinner($game)) {
+                continue;
+            }
+
             $teamA = collect($game->team_a_snapshot ?? []);
             $teamB = collect($game->team_b_snapshot ?? []);
             $points = $game->player_points ?? [];
@@ -2629,8 +3032,7 @@ class LeagueCompetitionService
 
     private function completedGamesForEntry(LeagueSession $session, LeagueSessionEntry $entry): int
     {
-        return $session->games
-            ->where('status', 'completed')
+        return $this->resolvedCompletedGames($session->games)
             ->sum(function (LeagueSessionGame $game) use ($entry): int {
                 return collect(array_merge($game->team_a_snapshot ?? [], $game->team_b_snapshot ?? []))
                     ->contains(fn (array $participant): bool => (int) ($participant['entry_id'] ?? 0) === $entry->id)
@@ -2641,8 +3043,7 @@ class LeagueCompetitionService
 
     private function entryPointsToday(LeagueSession $session, LeagueSessionEntry $entry, bool $includeLive): int
     {
-        $points = $session->games
-            ->where('status', 'completed')
+        $points = $this->resolvedCompletedGames($session->games)
             ->sum(fn (LeagueSessionGame $game): int => (int) (($game->player_points ?? [])[(string) $entry->id] ?? 0));
 
         if (! $includeLive) {
@@ -2656,6 +3057,22 @@ class LeagueCompetitionService
         }
 
         return $points + (int) (($openGame->player_points ?? [])[(string) $entry->id] ?? 0);
+    }
+
+    /**
+     * @param  Collection<int, LeagueSessionGame>  $games
+     * @return Collection<int, LeagueSessionGame>
+     */
+    private function resolvedCompletedGames(Collection $games): Collection
+    {
+        return $games
+            ->filter(fn (LeagueSessionGame $game): bool => $game->status === 'completed' && $this->hasResolvedWinner($game))
+            ->values();
+    }
+
+    private function hasResolvedWinner(LeagueSessionGame $game): bool
+    {
+        return in_array($game->winner_side, ['A', 'B'], true);
     }
 
     /**

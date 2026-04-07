@@ -17,6 +17,7 @@ import {
 import { reactive, ref } from 'vue';
 import LeagueRosterSheet from '@/components/LeagueRosterSheet.vue';
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue';
+import { handleMobileRefresher } from '@/services/app-refresh';
 import {
     addLeagueExpense,
     addLeagueReferral,
@@ -99,11 +100,10 @@ async function loadPage(cutId?: number): Promise<void> {
 }
 
 async function handleRefresh(event: CustomEvent): Promise<void> {
-    try {
-        await loadPage(payload.value?.cut_selector.selected_cut_id);
-    } finally {
-        await (event.target as HTMLIonRefresherElement).complete();
-    }
+    await handleMobileRefresher(
+        event,
+        () => loadPage(payload.value?.cut_selector.selected_cut_id),
+    );
 }
 
 onIonViewWillEnter(() => loadPage());
@@ -234,14 +234,16 @@ async function openReport(): Promise<void> {
 <template>
     <IonPage>
         <IonContent :fullscreen="true">
-            <template #fixed>
-                <IonRefresher @ionRefresh="handleRefresh">
-                    <IonRefresherContent
-                        pulling-text="Desliza para refrescar"
-                        refreshing-spinner="crescent"
-                    />
-                </IonRefresher>
-            </template>
+            <template v-slot:fixed>
+<IonRefresher  @ionRefresh="handleRefresh">
+                <IonRefresherContent
+                    pulling-icon="refresh-circle"
+                    pulling-text="Desliza para refrescar"
+                    refreshing-spinner="crescent"
+                    refreshing-text="Actualizando..."
+                />
+            </IonRefresher>
+</template>
 
             <div class="mobile-shell">
                 <div class="mobile-stack">
@@ -707,4 +709,3 @@ async function openReport(): Promise<void> {
     }
 }
 </style>
-

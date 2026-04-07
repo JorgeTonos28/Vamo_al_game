@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\League;
 
 use App\Http\Controllers\Controller;
 use App\Models\LeagueSessionEntry;
+use App\Models\LeagueSessionGame;
 use App\Services\LeagueOperations\LeagueCompetitionService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -139,5 +140,24 @@ class GameController extends Controller
         $this->competition->resetCurrentGame($request->user());
 
         return ApiResponse::success($request, $this->competition->gamePageData($request->user()), 'Juego actual limpiado.');
+    }
+
+    public function resolveAbandoned(Request $request, LeagueSessionGame $game): JsonResponse
+    {
+        $validated = $request->validate([
+            'winner_side' => ['required', 'string', 'in:A,B'],
+        ]);
+
+        $this->competition->resolveAbandonedGame(
+            $request->user(),
+            $game->id,
+            $validated['winner_side'],
+        );
+
+        return ApiResponse::success(
+            $request,
+            $this->competition->gamePageData($request->user()),
+            'Juego abandonado resuelto.',
+        );
     }
 }

@@ -14,6 +14,7 @@ import {
 import type { AxiosError } from 'axios';
 import { reactive, ref } from 'vue';
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue';
+import { handleMobileRefresher } from '@/services/app-refresh';
 import {
     createCommandCenterLeague,
     fetchCommandCenterLeagues,
@@ -157,11 +158,7 @@ async function submitRename(): Promise<void> {
 }
 
 async function handleRefresh(event: CustomEvent): Promise<void> {
-    try {
-        await loadLeagues();
-    } finally {
-        await (event.target as HTMLIonRefresherElement).complete();
-    }
+    await handleMobileRefresher(event, loadLeagues);
 }
 
 onIonViewWillEnter(loadLeagues);

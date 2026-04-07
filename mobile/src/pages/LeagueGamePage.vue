@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import {
     IonContent,
     IonPage,
@@ -9,7 +9,8 @@ import {
 import { Crown, Flame, RotateCcw, Trophy } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue';
-import { extractApiError } from '@/services/api';
+import { extractApiError, extractApiFieldErrors } from '@/services/api';
+import { handleMobileRefresher } from '@/services/app-refresh';
 import {
     addLeaguePlayerPoint,
     addLeagueTeamPoint,
@@ -22,18 +23,18 @@ import {
     removeLeagueGamePlayer,
     resetLeagueGame,
     resetLeagueGameClock,
+    resolveLeagueAbandonedGame,
     revertLeaguePlayerPoint,
     startLeagueGameClock,
     undoLeagueGameAction,
 } from '@/services/league';
 import type { LeagueGamePayload, LeagueTeamPlayer } from '@/services/league';
-import {
-    buildDraftPreview
-    
-    
-    
+import { buildDraftPreview } from '../../../packages/shared/leagueDraftPreview';
+import type {
+    CaptainMode,
+    DraftMode,
+    DraftPreviewPlayer,
 } from '../../../packages/shared/leagueDraftPreview';
-import type {CaptainMode, DraftMode, DraftPreviewPlayer} from '../../../packages/shared/leagueDraftPreview';
 
 type TeamSide = 'A' | 'B';
 
@@ -47,6 +48,7 @@ type RotationNotice = NonNullable<LeagueGamePayload['game']['rotation_notice']>;
 type DraftAlert = { title: string; body: string[] };
 type DraftEntry = LeagueGamePayload['game']['draft']['entries'][number];
 type DraftPreviewTeamPlayer = DraftPreviewPlayer<DraftEntry>;
+const DEFAULT_CLOCK_DURATION_SECONDS = 20 * 60;
 
 const payload = ref<LeagueGamePayload | null>(null);
 const isLoading = ref(false);
@@ -70,11 +72,41 @@ const scoreBumpSide = ref<TeamSide | null>(null);
 const actionError = ref('');
 const rotationNotice = ref<RotationNotice | null>(null);
 const draftAlert = ref<DraftAlert | null>(null);
-const clockForm = reactive({ minutes: '20', seconds: '00' });
+const clockEditorOpen = ref(false);
+const clockMinutes = ref('20');
+const clockSeconds = ref('00');
 const clockDisplaySeconds = ref<number | null>(null);
+const abandonedGamesOpen = ref(false);
 let lastRotationNoticeKey: string | null = null;
 
 const canManage = computed(() => payload.value?.role.can_manage ?? false);
+const selectedAbandonedGameId = computed(
+    () => payload.value?.game.review.selected_abandoned_game_id ?? undefined,
+);
+const isAbandonedReview = computed(
+    () => payload.value?.game.review.is_active ?? false,
+);
+const canManageLiveGame = computed(
+    () => canManage.value && !isAbandonedReview.value,
+);
+const canResolveAbandonedGame = computed(
+    () => canManage.value && isAbandonedReview.value,
+);
+const showAbandonedGamesButton = computed(
+    () => (payload.value?.game.abandoned_games.length ?? 0) > 0,
+);
+const pageKicker = computed(() =>
+    isAbandonedReview.value ? 'Juego abandonado' : 'Juego actual',
+);
+const pageTitle = computed(() =>
+    isAbandonedReview.value ? 'Resolución histórica' : 'Jornada en cancha',
+);
+const pageDescription = computed(() =>
+    isAbandonedReview.value
+        ? (payload.value?.game.review.description ??
+          'Vista de solo lectura de una jornada histórica.')
+        : 'Draft, marcador, historial y cierre de la jornada.',
+);
 const draftEntries = computed(() => payload.value?.game.draft.entries ?? []);
 const teamACount = computed(
     () =>
@@ -100,10 +132,55 @@ const clockState = computed(
 const clockDurationSeconds = computed(
     () => payload.value?.game.clock.duration_seconds ?? null,
 );
+const canEditClock = computed(() => {
+    if (!canManageLiveGame.value || clockState.value === 'running') {
+        return false;
+    }
+
+    if (
+        clockDurationSeconds.value === null ||
+        clockDisplaySeconds.value === null
+    ) {
+        return true;
+    }
+
+    return clockDisplaySeconds.value === clockDurationSeconds.value;
+});
+const clockMinuteOptions = computed(() =>
+    Array.from({ length: 120 }, (_, index) => index + 1).map((value) => ({
+        value: value.toString(),
+        label: value.toString().padStart(2, '0'),
+    })),
+);
+const clockSecondOptions = computed(() =>
+    Array.from({ length: 60 }, (_, index) => ({
+        value: index.toString(),
+        label: index.toString().padStart(2, '0'),
+    })),
+);
+const clockStatusLabel = computed(() => {
+    if (clockState.value === 'running') {
+        return 'Corriendo';
+    }
+
+    if (clockState.value === 'finished') {
+        return 'Tiempo agotado. Reinicia para volver a editarlo.';
+    }
+
+    if (clockState.value === 'unconfigured') {
+        return canManageLiveGame.value
+            ? 'Toca el marcador para cargar minutos y segundos.'
+            : 'Sin configurar';
+    }
+
+    return canEditClock.value
+        ? 'Toca el marcador para cargar minutos y segundos.'
+        : 'Reinicia el cronómetro para volver a editarlo.';
+});
 const formattedClock = computed(() => {
     if (clockDisplaySeconds.value === null) {
-return '--:--';
-}
+        return '--:--';
+    }
 
     const minutes = Math.floor(clockDisplaySeconds.value / 60)
         .toString()
@@ -116,8 +193,8 @@ return '--:--';
 });
 const clockActionLabel = computed(() => {
     if (clockState.value === 'running') {
-return 'Pausar';
-}
+        return 'Pausar';
+    }
 
     if (
         clockDurationSeconds.value !== null &&
@@ -130,6 +207,11 @@ return 'Pausar';
 
     return 'Iniciar';
 });
+const scoreboardContextLabel = computed(() =>
+    isAbandonedReview.value
+        ? (payload.value?.game.review.session_date ?? 'Jornada histórica')
+        : streakLabel.value,
+);
 let scoreFeedbackNonce = 0;
 let scoreFlashTimer: ReturnType<typeof setTimeout> | null = null;
 let scoreBumpTimer: ReturnType<typeof setTimeout> | null = null;
@@ -200,8 +282,8 @@ watch(
         const requestId = ++draftPreviewRequestId;
         const preview = await buildDraftPreview({
             entries: draftEntries.value,
-            sessionId: payload.value.session.id,
-            currentGameNumber: payload.value.session.current_game_number,
+            sessionId: payload.value.session.id ?? 0,
+            currentGameNumber: payload.value.session.current_game_number ?? 0,
             mode: draftMode.value,
             captainMode: captainMode.value,
             assignments: { ...manualAssignments },
@@ -233,12 +315,6 @@ watch(
 watch(
     () => payload.value?.game.clock,
     (clock) => {
-        const durationSeconds = clock?.duration_seconds ?? 1200;
-        clockForm.minutes = String(Math.floor(durationSeconds / 60)).padStart(
-            2,
-            '0',
-        );
-        clockForm.seconds = String(durationSeconds % 60).padStart(2, '0');
         clockDisplaySeconds.value = clock?.remaining_seconds ?? null;
 
         if (clockTicker !== null) {
@@ -271,16 +347,16 @@ watch(
 
 onBeforeUnmount(() => {
     if (scoreFlashTimer !== null) {
-clearTimeout(scoreFlashTimer);
-}
+        clearTimeout(scoreFlashTimer);
+    }
 
     if (scoreBumpTimer !== null) {
-clearTimeout(scoreBumpTimer);
-}
+        clearTimeout(scoreBumpTimer);
+    }
 
     if (clockTicker !== null) {
-clearInterval(clockTicker);
-}
+        clearInterval(clockTicker);
+    }
 });
 
 function teamSideForPlayer(entryId: number): TeamSide | null {
@@ -289,16 +365,16 @@ function teamSideForPlayer(entryId: number): TeamSide | null {
             (player) => player.id === entryId,
         )
     ) {
-return 'A';
-}
+        return 'A';
+    }
 
     if (
         payload.value?.game.current?.team_b.some(
             (player) => player.id === entryId,
         )
     ) {
-return 'B';
-}
+        return 'B';
+    }
 
     return null;
 }
@@ -313,12 +389,12 @@ function triggerScoreFeedback(teamSide: TeamSide, points: number): void {
     scoreBumpSide.value = teamSide;
 
     if (scoreFlashTimer !== null) {
-clearTimeout(scoreFlashTimer);
-}
+        clearTimeout(scoreFlashTimer);
+    }
 
     if (scoreBumpTimer !== null) {
-clearTimeout(scoreBumpTimer);
-}
+        clearTimeout(scoreBumpTimer);
+    }
 
     scoreFlashTimer = setTimeout(() => {
         scoreFlash.value = null;
@@ -329,25 +405,53 @@ clearTimeout(scoreBumpTimer);
     }, 180);
 }
 
-async function loadPage(): Promise<void> {
+async function loadPage(abandonedGameId?: number): Promise<void> {
     isLoading.value = true;
+    actionError.value = '';
 
     try {
-        payload.value = await fetchLeagueGame();
+        payload.value = await fetchLeagueGame(abandonedGameId);
+    } catch (error) {
+        const fieldErrors = extractApiFieldErrors(error);
+
+        if (
+            abandonedGameId !== undefined &&
+            Object.prototype.hasOwnProperty.call(fieldErrors, 'abandoned_game_id')
+        ) {
+            abandonedGamesOpen.value = false;
+            payload.value = await fetchLeagueGame();
+
+            return;
+        }
+
+        throw error;
     } finally {
         isLoading.value = false;
     }
 }
 
-async function handleRefresh(event: CustomEvent): Promise<void> {
-    try {
-        await loadPage();
-    } finally {
-        await (event.target as HTMLIonRefresherElement).complete();
-    }
+function syncClockEditor(totalSeconds: number | null): void {
+    const safeTotalSeconds = Math.min(
+        7200,
+        Math.max(
+            60,
+            Math.floor(totalSeconds ?? DEFAULT_CLOCK_DURATION_SECONDS),
+        ),
+    );
+    const minutes = Math.floor(safeTotalSeconds / 60);
+    const seconds = safeTotalSeconds % 60;
+
+    clockMinutes.value = minutes.toString();
+    clockSeconds.value = seconds.toString();
 }
 
-onIonViewWillEnter(loadPage);
+async function handleRefresh(event: CustomEvent): Promise<void> {
+    await handleMobileRefresher(event, () =>
+        loadPage(selectedAbandonedGameId.value),
+    );
+}
+
+onIonViewWillEnter(() => loadPage(selectedAbandonedGameId.value));
 
 function setAssignment(entryId: number, team: 'A' | 'B'): void {
     const currentTeam = manualAssignments[entryId];
@@ -373,7 +477,7 @@ function setAssignment(entryId: number, team: 'A' | 'B'): void {
             title: `Equipo ${team} completo`,
             body: [
                 `El Equipo ${team} ya tiene 5 integrantes asignados.`,
-                'Mueve a otro jugador antes de intentar agregar uno mÃ¡s.',
+                'Mueve a otro jugador antes de intentar agregar uno más.',
             ],
         };
 
@@ -447,8 +551,8 @@ async function submitDraft(): Promise<void> {
         draftAlert.value = {
             title: 'Capitanes pendientes',
             body: [
-                'Para usar capitÃ¡n manual debes tener ambos equipos completos y seleccionar un capitÃ¡n por lado.',
-                `Equipo A: ${manualCaptains.A ? 'listo' : 'falta capitÃ¡n'}. Equipo B: ${manualCaptains.B ? 'listo' : 'falta capitÃ¡n'}.`,
+                'Para usar capitán manual debes tener ambos equipos completos y seleccionar un capitán por lado.',
+                `Equipo A: ${manualCaptains.A ? 'listo' : 'falta capitán'}. Equipo B: ${manualCaptains.B ? 'listo' : 'falta capitán'}.`,
             ],
         };
 
@@ -484,9 +588,9 @@ async function submitDraft(): Promise<void> {
 }
 
 async function addTeamPoint(teamSide: TeamSide): Promise<void> {
-    if (!canManage.value) {
-return;
-}
+    if (!canManageLiveGame.value) {
+        return;
+    }
 
     actionError.value = '';
 
@@ -499,9 +603,9 @@ return;
 }
 
 async function addPlayerPoint(points: 1 | 2 | 3): Promise<void> {
-    if (!selectedPlayer.value || !canManage.value) {
-return;
-}
+    if (!selectedPlayer.value || !canManageLiveGame.value) {
+        return;
+    }
 
     const teamSide = teamSideForPlayer(selectedPlayer.value.id);
     actionError.value = '';
@@ -513,8 +617,8 @@ return;
         );
 
         if (teamSide !== null) {
-triggerScoreFeedback(teamSide, points);
-}
+            triggerScoreFeedback(teamSide, points);
+        }
 
         selectedPlayer.value = null;
     } catch (error) {
@@ -523,9 +627,9 @@ triggerScoreFeedback(teamSide, points);
 }
 
 async function revertPlayerPoint(points: 1 | 2 | 3): Promise<void> {
-    if (!revertPlayer.value || !canManage.value) {
-return;
-}
+    if (!revertPlayer.value || !canManageLiveGame.value) {
+        return;
+    }
 
     actionError.value = '';
 
@@ -541,17 +645,17 @@ return;
 }
 
 function openRemovePlayerModal(player: LeagueTeamPlayer): void {
-    if (!canManage.value) {
-return;
-}
+    if (!canManageLiveGame.value) {
+        return;
+    }
 
     playerToRemove.value = player;
 }
 
 async function confirmRemovePlayer(): Promise<void> {
-    if (!canManage.value || !playerToRemove.value) {
-return;
-}
+    if (!canManageLiveGame.value || !playerToRemove.value) {
+        return;
+    }
 
     actionError.value = '';
 
@@ -564,9 +668,9 @@ return;
 }
 
 async function undoAction(): Promise<void> {
-    if (!canManage.value) {
-return;
-}
+    if (!canManageLiveGame.value) {
+        return;
+    }
 
     actionError.value = '';
 
@@ -578,9 +682,9 @@ return;
 }
 
 async function finishGame(): Promise<void> {
-    if (!canManage.value) {
-return;
-}
+    if (!canManageLiveGame.value) {
+        return;
+    }
 
     actionError.value = '';
 
@@ -592,9 +696,12 @@ return;
 }
 
 async function endSession(): Promise<void> {
-    if (!canManage.value || !window.confirm('Â¿Cerrar la jornada del dÃ­a?')) {
-return;
-}
+    if (
+        !canManageLiveGame.value ||
+        !window.confirm('¿Cerrar la jornada del día?')
+    ) {
+        return;
+    }
 
     actionError.value = '';
 
@@ -607,11 +714,11 @@ return;
 
 async function resetGame(): Promise<void> {
     if (
-        !canManage.value ||
-        !window.confirm('Â¿Limpiar por completo el juego actual?')
+        !canManageLiveGame.value ||
+        !window.confirm('¿Limpiar por completo el juego actual?')
     ) {
-return;
-}
+        return;
+    }
 
     actionError.value = '';
 
@@ -622,30 +729,13 @@ return;
     }
 }
 
-function parsedClockDuration(): number | null {
-    const minutes = Number(clockForm.minutes || 0);
-    const seconds = Number(clockForm.seconds || 0);
-
-    if (!Number.isFinite(minutes) || !Number.isFinite(seconds)) {
-return null;
-}
-
-    const total =
-        Math.max(0, Math.floor(minutes)) * 60 +
-        Math.max(0, Math.floor(seconds));
-
-    return total > 0 ? total : null;
-}
-
-async function saveClockDuration(): Promise<void> {
-    if (!canManage.value) {
-return;
-}
-
-    const total = parsedClockDuration();
+async function configureClockDuration(total: number | null): Promise<void> {
+    if (!canEditClock.value) {
+        return;
+    }
 
     if (total === null) {
-        actionError.value = 'Configura un tiempo vÃ¡lido para el cronÃ³metro.';
+        actionError.value = 'Configura un tiempo válido para el cronómetro.';
 
         return;
     }
@@ -659,10 +749,44 @@ return;
     }
 }
 
-async function toggleClock(): Promise<void> {
-    if (!canManage.value) {
-return;
+function openClockPicker(): void {
+    if (!canEditClock.value) {
+        return;
+    }
+
+    syncClockEditor(clockDurationSeconds.value ?? clockDisplaySeconds.value);
+    clockEditorOpen.value = true;
 }
+
+async function saveClockEditor(): Promise<void> {
+    if (!canEditClock.value) {
+        return;
+    }
+
+    const minutes = Number(clockMinutes.value);
+    const seconds = Number(clockSeconds.value);
+
+    if (
+        !Number.isInteger(minutes) ||
+        !Number.isInteger(seconds) ||
+        minutes < 1 ||
+        minutes > 120 ||
+        seconds < 0 ||
+        seconds > 59
+    ) {
+        actionError.value = 'Configura un tiempo válido para el cronómetro.';
+
+        return;
+    }
+
+    await configureClockDuration(minutes * 60 + seconds);
+    clockEditorOpen.value = false;
+}
+
+async function toggleClock(): Promise<void> {
+    if (!canManageLiveGame.value) {
+        return;
+    }
 
     actionError.value = '';
 
@@ -677,9 +801,9 @@ return;
 }
 
 async function resetClock(): Promise<void> {
-    if (!canManage.value) {
-return;
-}
+    if (!canManageLiveGame.value) {
+        return;
+    }
 
     actionError.value = '';
 
@@ -692,43 +816,89 @@ return;
 
 function rotationNoticeIcon(icon: string) {
     if (icon === 'trophy') {
-return Trophy;
-}
+        return Trophy;
+    }
 
     if (icon === 'flame') {
-return Flame;
-}
+        return Flame;
+    }
 
     return RotateCcw;
+}
+
+function openAbandonedGames(): void {
+    if (!showAbandonedGamesButton.value) {
+        return;
+    }
+
+    abandonedGamesOpen.value = true;
+}
+
+async function selectAbandonedGame(gameId: number): Promise<void> {
+    abandonedGamesOpen.value = false;
+    await loadPage(gameId);
+}
+
+async function clearAbandonedReview(): Promise<void> {
+    if (!isAbandonedReview.value) {
+        return;
+    }
+
+    await loadPage();
+}
+
+async function resolveAbandonedGame(winnerSide: 'A' | 'B'): Promise<void> {
+    const currentGame = payload.value?.game.current;
+
+    if (
+        !canResolveAbandonedGame.value ||
+        currentGame === null ||
+        currentGame === undefined
+    ) {
+        return;
+    }
+
+    actionError.value = '';
+
+    try {
+        payload.value = await resolveLeagueAbandonedGame(
+            currentGame.id,
+            winnerSide,
+        );
+    } catch (error) {
+        actionError.value = extractApiError(error);
+    }
 }
 </script>
 
 <template>
     <IonPage>
         <IonContent :fullscreen="true">
-            <template #fixed>
-<IonRefresher @ionRefresh="handleRefresh">
-                <IonRefresherContent
-                    pulling-text="Desliza para refrescar"
-                    refreshing-spinner="crescent"
-                />
-            </IonRefresher>
-</template>
+            <template v-slot:fixed>
+                <IonRefresher @ionRefresh="handleRefresh">
+                    <IonRefresherContent
+                        pulling-icon="refresh-circle"
+                        pulling-text="Desliza para refrescar"
+                        refreshing-spinner="crescent"
+                        refreshing-text="Actualizando..."
+                    />
+                </IonRefresher>
+            </template>
 
             <div class="mobile-shell">
                 <div class="mobile-stack">
                     <MobileAppTopbar
                         :title="payload?.league.name ?? 'Juego'"
-                        description="Draft, marcador, historial y cierre de la jornada."
+                        :description="pageDescription"
                     />
 
                     <section class="app-surface section-stack">
                         <div class="section-head">
                             <div>
                                 <p class="app-kicker section-kicker">
-                                    Juego actual
+                                    {{ pageKicker }}
                                 </p>
-                                <p class="section-title">Jornada en cancha</p>
+                                <p class="section-title">{{ pageTitle }}</p>
                             </div>
                             <div class="summary-pills">
                                 <span class="member-chip member-chip--warning"
@@ -739,14 +909,34 @@ return Flame;
                                 >
                                 <span
                                     class="member-chip member-chip--positive"
-                                    >{{ streakLabel }}</span
+                                    >{{ scoreboardContextLabel }}</span
                                 >
                             </div>
                         </div>
-                        <p class="body-copy">
-                            Administra el draft inicial, la anotaciÃ³n, las
-                            salidas y el cierre de cada juego.
-                        </p>
+                        <p class="body-copy">{{ pageDescription }}</p>
+                        <div
+                            v-if="showAbandonedGamesButton || isAbandonedReview"
+                            class="summary-actions"
+                        >
+                            <button
+                                v-if="showAbandonedGamesButton"
+                                class="action-button action-button--secondary"
+                                type="button"
+                                @click="openAbandonedGames"
+                            >
+                                Abandonados ({{
+                                    payload?.game.abandoned_games.length ?? 0
+                                }})
+                            </button>
+                            <button
+                                v-if="isAbandonedReview"
+                                class="action-button action-button--warning"
+                                type="button"
+                                @click="clearAbandonedReview"
+                            >
+                                Volver a hoy
+                            </button>
+                        </div>
                     </section>
 
                     <section
@@ -827,11 +1017,11 @@ return Flame;
                             <section class="summary-card section-stack">
                                 <div>
                                     <p class="app-kicker section-kicker">
-                                        SelecciÃ³n de capitÃ¡n
+                                        Selección de capitán
                                     </p>
                                     <p class="body-copy">
-                                        El capitÃ¡n va primero y el resto se
-                                        ordena alfabÃ©ticamente.
+                                        El capitán va primero y el resto se
+                                        ordena alfabéticamente.
                                     </p>
                                 </div>
                                 <div class="action-grid action-grid--three">
@@ -888,7 +1078,7 @@ return Flame;
                                         }}<span
                                             v-if="entry.jersey_number !== null"
                                         >
-                                            Â· #{{ entry.jersey_number }}</span
+                                            · #{{ entry.jersey_number }}</span
                                         >
                                     </p>
                                     <p
@@ -960,7 +1150,9 @@ return Flame;
                                     >
                                         Equipo {{ teamSide }}
                                     </p>
-                                    <span class="member-chip member-chip--neutral">
+                                    <span
+                                        class="member-chip member-chip--neutral"
+                                    >
                                         {{
                                             draftPreview?.teams[teamSide]
                                                 .length ?? 0
@@ -978,7 +1170,7 @@ return Flame;
                                         <div class="player-row__title">
                                             <Crown
                                                 v-if="player.is_captain"
-                                                class="size-4 team-b-copy"
+                                                class="team-b-copy size-4"
                                             />
                                             <p class="data-row__name">
                                                 {{ player.name }}
@@ -1006,19 +1198,22 @@ return Flame;
                                         {{
                                             manualCaptains[teamSide] ===
                                             player.id
-                                                ? 'CapitÃ¡n'
+                                                ? 'Capitán'
                                                 : 'Elegir'
                                         }}
                                     </button>
                                 </article>
                                 <p
-                                    v-if="(draftPreview?.teams[teamSide].length ?? 0) === 0"
+                                    v-if="
+                                        (draftPreview?.teams[teamSide].length ??
+                                            0) === 0
+                                    "
                                     class="body-copy"
                                 >
                                     {{
                                         draftMode === 'manual'
                                             ? 'Asigna jugadores para armar este equipo.'
-                                            : 'Esperando la previsualizaciÃ³n del reparto.'
+                                            : 'Esperando la previsualización del reparto.'
                                     }}
                                 </p>
                             </article>
@@ -1047,59 +1242,56 @@ return Flame;
                             </div>
 
                             <div class="clock-card">
-                                <div>
+                                <div v-if="!isAbandonedReview">
                                     <p class="app-kicker section-kicker">
-                                        CronÃ³metro
+                                        Cronómetro
                                     </p>
-                                    <p class="clock-card__value">
-                                        {{ formattedClock }}
-                                    </p>
+                                    <div
+                                        class="clock-card__picker"
+                                        :class="{
+                                            'is-editable': canEditClock,
+                                        }"
+                                        role="button"
+                                        tabindex="0"
+                                        @click="openClockPicker"
+                                        @keydown.enter.prevent="openClockPicker"
+                                        @keydown.space.prevent="openClockPicker"
+                                    >
+                                        <p
+                                            class="clock-card__value"
+                                            :class="{
+                                                'clock-card__value--editable':
+                                                    canEditClock,
+                                            }"
+                                        >
+                                            {{ formattedClock }}
+                                        </p>
+                                    </div>
                                     <p class="body-copy">
-                                        {{
-                                            clockState === 'running'
-                                                ? 'Corriendo'
-                                                : clockState === 'finished'
-                                                  ? 'Tiempo agotado'
-                                                  : clockState ===
-                                                      'unconfigured'
-                                                    ? 'Sin configurar'
-                                                    : 'Listo'
-                                        }}
+                                        {{ clockStatusLabel }}
                                     </p>
                                 </div>
-                                <div class="clock-card__controls">
-                                    <label class="clock-field"
-                                        ><span class="clock-field__label"
-                                            >Minutos</span
-                                        ><input
-                                            v-model="clockForm.minutes"
-                                            type="number"
-                                            min="0"
-                                            max="120"
-                                            class="sheet-input"
-                                            placeholder="20"
-                                    /></label>
-                                    <label class="clock-field"
-                                        ><span class="clock-field__label"
-                                            >Segundos</span
-                                        ><input
-                                            v-model="clockForm.seconds"
-                                            type="number"
-                                            min="0"
-                                            max="59"
-                                            class="sheet-input"
-                                            placeholder="00"
-                                    /></label>
-                                    <button
-                                        v-if="canManage"
-                                        class="action-button action-button--secondary"
-                                        type="button"
-                                        @click="saveClockDuration"
+                                <div v-else>
+                                    <p class="app-kicker section-kicker">
+                                        Juego abandonado
+                                    </p>
+                                    <p
+                                        class="section-title section-title--compact"
                                     >
-                                        Cargar
-                                    </button>
+                                        {{ payload.game.review.session_date }} ·
+                                        Juego #{{
+                                            payload.game.current.game_number
+                                        }}
+                                    </p>
+                                    <p class="body-copy">
+                                        {{ payload.game.review.description }}
+                                    </p>
+                                </div>
+                                <div
+                                    v-if="canManageLiveGame"
+                                    class="clock-card__controls"
+                                >
                                     <button
-                                        v-if="canManage"
                                         class="action-button action-button--warning"
                                         type="button"
                                         @click="toggleClock"
@@ -1107,7 +1299,6 @@ return Flame;
                                         {{ clockActionLabel }}
                                     </button>
                                     <button
-                                        v-if="canManage"
                                         class="action-button action-button--secondary"
                                         type="button"
                                         @click="resetClock"
@@ -1138,7 +1329,7 @@ return Flame;
                                     >
                                     <div class="scoreboard__vs">Vs</div>
                                     <p class="scoreboard__streak">
-                                        {{ streakLabel }}
+                                        {{ scoreboardContextLabel }}
                                     </p>
                                 </div>
                                 <div class="scoreboard__team">
@@ -1180,7 +1371,7 @@ return Flame;
                                     <p class="body-copy">Jugadores en cancha</p>
                                 </div>
                                 <button
-                                    v-if="canManage"
+                                    v-if="canManageLiveGame"
                                     class="member-chip member-chip--positive"
                                     type="button"
                                     @click="addTeamPoint('A')"
@@ -1197,16 +1388,16 @@ return Flame;
                                     <div class="player-row__title">
                                         <Crown
                                             v-if="player.is_captain"
-                                            class="size-4 team-b-copy"
+                                            class="team-b-copy size-4"
                                         />
                                         <p class="data-row__name">
                                             {{ player.name }}
                                         </p>
                                     </div>
                                     <p class="body-copy">
-                                        {{ player.points }} pts Â· 1P
-                                        {{ player.shots[1] }} Â· 2P
-                                        {{ player.shots[2] }} Â· 3P
+                                        {{ player.points }} pts · 1P
+                                        {{ player.shots[1] }} · 2P
+                                        {{ player.shots[2] }} · 3P
                                         {{ player.shots[3] }}
                                     </p>
                                     <p
@@ -1218,7 +1409,7 @@ return Flame;
                                 </div>
                                 <div class="player-actions">
                                     <button
-                                        v-if="canManage"
+                                        v-if="canManageLiveGame"
                                         class="member-chip member-chip--positive"
                                         type="button"
                                         @click="selectedPlayer = player"
@@ -1226,7 +1417,10 @@ return Flame;
                                         +
                                     </button>
                                     <button
-                                        v-if="canManage && player.points > 0"
+                                        v-if="
+                                            canManageLiveGame &&
+                                            player.points > 0
+                                        "
                                         class="member-chip member-chip--warning"
                                         type="button"
                                         @click="revertPlayer = player"
@@ -1234,7 +1428,7 @@ return Flame;
                                         Revertir
                                     </button>
                                     <button
-                                        v-if="canManage"
+                                        v-if="canManageLiveGame"
                                         class="member-chip member-chip--negative"
                                         type="button"
                                         @click="openRemovePlayerModal(player)"
@@ -1256,7 +1450,7 @@ return Flame;
                                     <p class="body-copy">Jugadores en cancha</p>
                                 </div>
                                 <button
-                                    v-if="canManage"
+                                    v-if="canManageLiveGame"
                                     class="member-chip member-chip--warning"
                                     type="button"
                                     @click="addTeamPoint('B')"
@@ -1273,16 +1467,16 @@ return Flame;
                                     <div class="player-row__title">
                                         <Crown
                                             v-if="player.is_captain"
-                                            class="size-4 team-b-copy"
+                                            class="team-b-copy size-4"
                                         />
                                         <p class="data-row__name">
                                             {{ player.name }}
                                         </p>
                                     </div>
                                     <p class="body-copy">
-                                        {{ player.points }} pts Â· 1P
-                                        {{ player.shots[1] }} Â· 2P
-                                        {{ player.shots[2] }} Â· 3P
+                                        {{ player.points }} pts · 1P
+                                        {{ player.shots[1] }} · 2P
+                                        {{ player.shots[2] }} · 3P
                                         {{ player.shots[3] }}
                                     </p>
                                     <p
@@ -1294,7 +1488,7 @@ return Flame;
                                 </div>
                                 <div class="player-actions">
                                     <button
-                                        v-if="canManage"
+                                        v-if="canManageLiveGame"
                                         class="member-chip member-chip--warning"
                                         type="button"
                                         @click="selectedPlayer = player"
@@ -1302,7 +1496,10 @@ return Flame;
                                         +
                                     </button>
                                     <button
-                                        v-if="canManage && player.points > 0"
+                                        v-if="
+                                            canManageLiveGame &&
+                                            player.points > 0
+                                        "
                                         class="member-chip member-chip--warning"
                                         type="button"
                                         @click="revertPlayer = player"
@@ -1310,7 +1507,7 @@ return Flame;
                                         Revertir
                                     </button>
                                     <button
-                                        v-if="canManage"
+                                        v-if="canManageLiveGame"
                                         class="member-chip member-chip--negative"
                                         type="button"
                                         @click="openRemovePlayerModal(player)"
@@ -1323,9 +1520,35 @@ return Flame;
 
                         <section class="app-surface section-stack">
                             <p class="app-kicker section-kicker">Acciones</p>
-                            <div class="action-grid">
+                            <template v-if="isAbandonedReview">
+                                <div class="review-banner">
+                                    Si este juego no debe contar, déjalo
+                                    abandonado. Solo resuélvelo cuando la liga
+                                    defina un ganador oficial.
+                                </div>
+                                <div
+                                    v-if="canResolveAbandonedGame"
+                                    class="action-grid"
+                                >
+                                    <button
+                                        class="action-button action-button--primary"
+                                        type="button"
+                                        @click="resolveAbandonedGame('A')"
+                                    >
+                                        Dar victoria al Equipo A
+                                    </button>
+                                    <button
+                                        class="action-button action-button--warning"
+                                        type="button"
+                                        @click="resolveAbandonedGame('B')"
+                                    >
+                                        Dar victoria al Equipo B
+                                    </button>
+                                </div>
+                            </template>
+                            <div v-else class="action-grid">
                                 <button
-                                    v-if="canManage"
+                                    v-if="canManageLiveGame"
                                     class="action-button action-button--warning"
                                     type="button"
                                     @click="finishGame"
@@ -1333,15 +1556,15 @@ return Flame;
                                     Marcar fin de juego
                                 </button>
                                 <button
-                                    v-if="canManage"
+                                    v-if="canManageLiveGame"
                                     class="action-button action-button--secondary"
                                     type="button"
                                     @click="undoAction"
                                 >
-                                    Deshacer Ãºltima acciÃ³n
+                                    Deshacer última acción
                                 </button>
                                 <button
-                                    v-if="canManage"
+                                    v-if="canManageLiveGame"
                                     class="action-button action-button--danger"
                                     type="button"
                                     @click="resetGame"
@@ -1349,7 +1572,7 @@ return Flame;
                                     Limpiar juego actual
                                 </button>
                                 <button
-                                    v-if="canManage"
+                                    v-if="canManageLiveGame"
                                     class="action-button action-button--primary"
                                     type="button"
                                     @click="endSession"
@@ -1365,7 +1588,11 @@ return Flame;
                                 v-if="payload.game.history.length === 0"
                                 class="body-copy"
                             >
-                                Sin juegos finalizados todavÃ­a.
+                                {{
+                                    isAbandonedReview
+                                        ? 'No había juegos cerrados antes de este juego.'
+                                        : 'Sin juegos finalizados todavía.'
+                                }}
                             </p>
                             <article
                                 v-for="row in payload.game.history"
@@ -1391,11 +1618,66 @@ return Flame;
                             Sin juego activo
                         </p>
                         <p class="body-copy">
-                            Prepara la jornada desde Llegada o confirma el draft
-                            pendiente para abrir el primer juego.
+                            {{
+                                showAbandonedGamesButton
+                                    ? 'No hay juego activo hoy. Puedes revisar juegos abandonados o preparar una nueva jornada desde Llegada.'
+                                    : 'Prepara la jornada desde Llegada o confirma el draft pendiente para abrir el primer juego.'
+                            }}
                         </p>
                     </section>
                 </div>
+            </div>
+
+            <div
+                v-if="abandonedGamesOpen"
+                class="overlay"
+                @click.self="abandonedGamesOpen = false"
+            >
+                <section class="overlay__panel">
+                    <p class="app-kicker overlay__kicker">Juegos abandonados</p>
+                    <p class="body-copy">
+                        Selecciona un juego para revisarlo en modo de solo
+                        lectura y, si aplica, definir su ganador.
+                    </p>
+                    <div class="abandoned-games-list">
+                        <button
+                            v-for="game in payload?.game.abandoned_games ?? []"
+                            :key="game.id"
+                            type="button"
+                            class="abandoned-game-row"
+                            :class="{
+                                'abandoned-game-row--active': game.selected,
+                            }"
+                            @click="selectAbandonedGame(game.id)"
+                        >
+                            <div class="abandoned-game-row__head">
+                                <span class="member-chip member-chip--neutral">
+                                    {{ game.session_date }} · Juego #{{
+                                        game.game_number
+                                    }}
+                                </span>
+                                <span class="member-chip member-chip--warning">
+                                    {{ game.score }}
+                                </span>
+                            </div>
+                            <p class="abandoned-game-row__teams">
+                                {{ game.team_a_label }}
+                            </p>
+                            <p class="abandoned-game-row__teams">
+                                {{ game.team_b_label }}
+                            </p>
+                        </button>
+                    </div>
+                    <div class="overlay__actions">
+                        <button
+                            class="action-button action-button--secondary"
+                            type="button"
+                            @click="abandonedGamesOpen = false"
+                        >
+                            Cerrar
+                        </button>
+                    </div>
+                </section>
             </div>
 
             <div
@@ -1408,7 +1690,7 @@ return Flame;
                         {{ selectedPlayer?.name }}
                     </p>
                     <p class="body-copy">
-                        Selecciona cuÃ¡ntos puntos quieres agregarle a este
+                        Selecciona cuántos puntos quieres agregarle a este
                         jugador.
                     </p>
                     <div class="action-grid action-grid--three">
@@ -1432,6 +1714,71 @@ return Flame;
                             @click="addPlayerPoint(3)"
                         >
                             +3
+                        </button>
+                    </div>
+                </section>
+            </div>
+
+            <div
+                v-if="clockEditorOpen"
+                class="overlay"
+                @click.self="clockEditorOpen = false"
+            >
+                <section class="overlay__panel">
+                    <p class="app-kicker overlay__kicker">Cronómetro</p>
+                    <p class="body-copy">
+                        Configura una duración en minutos y segundos.
+                    </p>
+                    <div class="clock-editor-grid">
+                        <label class="clock-editor-field">
+                            <span class="clock-editor-field__label"
+                                >Minutos</span
+                            >
+                            <select
+                                v-model="clockMinutes"
+                                class="clock-editor-select"
+                            >
+                                <option
+                                    v-for="option in clockMinuteOptions"
+                                    :key="`clock-minute-${option.value}`"
+                                    :value="option.value"
+                                >
+                                    {{ option.label }}
+                                </option>
+                            </select>
+                        </label>
+                        <label class="clock-editor-field">
+                            <span class="clock-editor-field__label"
+                                >Segundos</span
+                            >
+                            <select
+                                v-model="clockSeconds"
+                                class="clock-editor-select"
+                            >
+                                <option
+                                    v-for="option in clockSecondOptions"
+                                    :key="`clock-second-${option.value}`"
+                                    :value="option.value"
+                                >
+                                    {{ option.label }}
+                                </option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="overlay__actions">
+                        <button
+                            class="action-button action-button--secondary"
+                            type="button"
+                            @click="clockEditorOpen = false"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            class="action-button action-button--warning"
+                            type="button"
+                            @click="saveClockEditor"
+                        >
+                            Guardar
                         </button>
                     </div>
                 </section>
@@ -1497,7 +1844,7 @@ return Flame;
                     </p>
                     <p class="body-copy">
                         Confirma la salida de {{ playerToRemove?.name }}. Si hay
-                        cola activa, el siguiente jugador entrarÃ¡ segÃºn la
+                        cola activa, el siguiente jugador entrará según la
                         prioridad de la jornada.
                     </p>
                     <div class="action-grid action-grid--two">
@@ -1506,7 +1853,7 @@ return Flame;
                             type="button"
                             @click="confirmRemovePlayer"
                         >
-                            SÃ­, se fue
+                            Sí, se fue
                         </button>
                         <button
                             class="action-button action-button--secondary"
@@ -1644,6 +1991,10 @@ return Flame;
     font-weight: 700;
     color: #f8fafc;
 }
+.section-title--compact {
+    font-size: 14px;
+    line-height: 1.4;
+}
 .body-copy {
     font-size: 13px;
     line-height: 1.6;
@@ -1659,6 +2010,10 @@ return Flame;
 }
 .summary-pills {
     align-items: flex-end;
+}
+.summary-actions {
+    display: grid;
+    gap: 12px;
 }
 .summary-grid {
     display: grid;
@@ -1690,10 +2045,26 @@ return Flame;
 .clock-card__controls {
     gap: 10px;
 }
+.clock-card__picker {
+    position: relative;
+}
+.clock-card__picker.is-editable {
+    cursor: pointer;
+}
 .clock-field {
     display: flex;
     flex-direction: column;
     gap: 6px;
+}
+.clock-card__picker-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    opacity: 0;
+    pointer-events: none;
+}
+.clock-card__picker-input:disabled {
+    pointer-events: none;
 }
 .clock-field__label {
     font-size: 11px;
@@ -1710,12 +2081,50 @@ return Flame;
     color: #f8fafc;
     text-align: center;
 }
+.clock-card__value--editable {
+    text-decoration: underline;
+    text-decoration-color: rgba(229, 184, 73, 0.42);
+    text-underline-offset: 6px;
+}
+.clock-editor-grid,
+.clock-editor-field {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.clock-editor-grid {
+    gap: 12px;
+}
+.clock-editor-field__label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #94a3b8;
+}
+.clock-editor-select {
+    min-height: 48px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #0e1628;
+    padding: 0 14px;
+    color: #f8fafc;
+}
 .error-banner {
     border-color: rgba(248, 113, 113, 0.28);
     background: rgba(248, 113, 113, 0.12);
     font-size: 13px;
     line-height: 1.6;
     color: #fca5a5;
+}
+.review-banner {
+    border: 1px solid rgba(229, 184, 73, 0.24);
+    border-radius: 16px;
+    background: rgba(229, 184, 73, 0.08);
+    padding: 14px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #cbd5e1;
 }
 .summary-card,
 .data-row,
@@ -1943,6 +2352,60 @@ return Flame;
     background: #0e1628;
     padding: 12px 14px;
 }
+.abandoned-games-list {
+    display: grid;
+    gap: 12px;
+    max-height: 420px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+.abandoned-games-list::-webkit-scrollbar {
+    width: 8px;
+}
+.abandoned-games-list::-webkit-scrollbar-track {
+    background: rgba(148, 163, 184, 0.08);
+    border-radius: 999px;
+}
+.abandoned-games-list::-webkit-scrollbar-thumb {
+    background: rgba(229, 184, 73, 0.34);
+    border-radius: 999px;
+}
+.abandoned-game-row {
+    display: grid;
+    gap: 10px;
+    width: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    background: #0e1628;
+    padding: 14px;
+    text-align: left;
+}
+.abandoned-game-row--active {
+    border-color: rgba(229, 184, 73, 0.28);
+    background: rgba(229, 184, 73, 0.08);
+}
+.abandoned-game-row__head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px;
+}
+.abandoned-game-row__teams {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #f8fafc;
+}
+@media (min-width: 540px) {
+    .clock-editor-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .summary-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
 @keyframes score-flash {
     0% {
         opacity: 0.9;
@@ -1963,4 +2426,3 @@ return Flame;
     }
 }
 </style>
-

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { IonContent, IonPage, onIonViewWillEnter } from '@ionic/vue'
+import { IonContent, IonPage, IonRefresher, IonRefresherContent, onIonViewWillEnter } from '@ionic/vue'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import MobileAppTopbar from '@/components/MobileAppTopbar.vue'
+import { handleMobileRefresher } from '@/services/app-refresh'
 import type { LeagueOperationalContext } from '@/services/league'
 import { updateActiveLeague } from '@/services/tenancy'
 import { sessionState } from '@/state/session'
@@ -60,6 +61,10 @@ onIonViewWillEnter(async () => {
   }
 })
 
+async function handleRefresh(event: CustomEvent): Promise<void> {
+  await handleMobileRefresher(event)
+}
+
 async function enterLeague(leagueId: number): Promise<void> {
   if (isSubmittingLeagueId.value) {
     return
@@ -79,6 +84,12 @@ async function enterLeague(leagueId: number): Promise<void> {
 <template>
   <IonPage>
     <IonContent :fullscreen="true">
+      <template #fixed>
+        <IonRefresher @ionRefresh="handleRefresh">
+          <IonRefresherContent pulling-text="Desliza para refrescar" refreshing-spinner="crescent" />
+        </IonRefresher>
+      </template>
+
       <div class="mobile-shell">
         <div class="mobile-stack">
           <MobileAppTopbar :title="heroTitle" :description="heroDescription" />

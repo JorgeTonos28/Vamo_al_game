@@ -18,7 +18,7 @@ const props = defineProps<{
     league: { id: number; name: string; emoji: string | null; slug: string };
     role: { value: string; label: string; can_manage: boolean };
     session_selector: {
-        selected_session_id: number;
+        selected_session_id: number | null;
         sessions: Array<{
             id: number;
             session_date: string | null;
@@ -67,10 +67,17 @@ watch(
 
 function changeSession(event: Event): void {
     const target = event.target as HTMLSelectElement;
+    const sessionId = Number(target.value);
+
+    if (!Number.isFinite(sessionId) || sessionId <= 0) {
+        router.get('/liga/modulos/cola', {}, { preserveScroll: true, preserveState: true });
+
+        return;
+    }
 
     router.get(
         '/liga/modulos/cola',
-        { session_id: Number(target.value) },
+        { session_id: sessionId },
         { preserveScroll: true, preserveState: true },
     );
 }
@@ -83,12 +90,12 @@ function sessionLabel(session: {
 }): string {
     const base = session.session_date ?? 'Sin fecha';
     const suffix = session.is_current
-        ? 'Â· actual'
+        ? '· actual'
         : session.status === 'completed'
-          ? 'Â· cerrada'
-          : 'Â· abierta';
+          ? '· cerrada'
+          : '· abierta';
 
-    return `${base} ${suffix} Â· ${session.completed_games_count} juegos`;
+    return `${base} ${suffix} · ${session.completed_games_count} juegos`;
 }
 </script>
 
@@ -115,10 +122,13 @@ function sessionLabel(session: {
                     </p>
                 </div>
                 <select
-                    :value="props.session_selector.selected_session_id"
+                    :value="props.session_selector.selected_session_id ?? ''"
                     class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none"
                     @change="changeSession"
                 >
+                    <option value="">
+                        Sin jornada activa · vista vacía de hoy
+                    </option>
                     <option
                         v-for="session in props.session_selector.sessions"
                         :key="session.id"
@@ -202,7 +212,7 @@ function sessionLabel(session: {
                                     {{ player.name }}
                                 </p>
                                 <p class="mt-1 text-[12px] text-[#94A3B8]">
-                                    {{ player.games_played }} juegos Â·
+                                    {{ player.games_played }} juegos ·
                                     {{ player.points_scored }} puntos
                                 </p>
                                 <p
@@ -234,15 +244,15 @@ function sessionLabel(session: {
                         <p class="app-kicker text-[#E5B849]">Cola</p>
                     </div>
                     <p class="text-[13px] leading-6 text-[#94A3B8]">
-                        DespuÃ©s del primer juego, todos respetan su posiciÃ³n
-                        normal en la cola. Este mÃ³dulo solo refleja el orden
+                        Después del primer juego, todos respetan su posición
+                        normal en la cola. Este módulo solo refleja el orden
                         operativo actual.
                     </p>
                     <div
                         v-if="waitingEntries.length === 0"
                         class="rounded-[14px] border border-dashed border-white/8 bg-[#0E1628] p-4 text-sm text-[#94A3B8]"
                     >
-                        Cola vacÃ­a.
+                        Cola vacía.
                     </div>
                     <div v-else class="grid gap-3">
                         <div
@@ -258,7 +268,7 @@ function sessionLabel(session: {
                                         {{ player.name }}
                                     </p>
                                     <p class="mt-1 text-[12px] text-[#94A3B8]">
-                                        {{ player.games_played }} juegos Â·
+                                        {{ player.games_played }} juegos ·
                                         {{ player.points_scored }} puntos
                                     </p>
                                     <p
@@ -284,16 +294,16 @@ function sessionLabel(session: {
                         <p class="app-kicker text-[#E5B849]">Resumen</p>
                     </div>
                     <p class="text-[13px] leading-6 text-[#94A3B8]">
-                        El mÃ³dulo Juego sigue controlando el cierre de jornada.
-                        AquÃ­ solo ves el estado vivo de cancha, espera y cobros
-                        del dÃ­a.
+                        El módulo Juego sigue controlando el cierre de jornada.
+                        Aquí solo ves el estado vivo de cancha, espera y cobros
+                        del día.
                     </p>
                     <p
                         v-if="props.queue.live_game"
                         class="text-[12px] text-[#94A3B8]"
                     >
                         Juego actual:
-                        #{{ props.queue.live_game.game_number }} Â·
+                        #{{ props.queue.live_game.game_number }} ·
                         {{ props.queue.live_game.score }}
                     </p>
                 </article>
@@ -301,4 +311,3 @@ function sessionLabel(session: {
         </section>
     </LeagueShellLayout>
 </template>
-
