@@ -18,7 +18,7 @@ const props = defineProps<{
     league: { id: number; name: string; emoji: string | null; slug: string };
     role: { value: string; label: string; can_manage: boolean };
     session_selector: {
-        selected_session_id: number;
+        selected_session_id: number | null;
         sessions: Array<{
             id: number;
             session_date: string | null;
@@ -67,10 +67,17 @@ watch(
 
 function changeSession(event: Event): void {
     const target = event.target as HTMLSelectElement;
+    const sessionId = Number(target.value);
+
+    if (!Number.isFinite(sessionId) || sessionId <= 0) {
+        router.get('/liga/modulos/cola', {}, { preserveScroll: true, preserveState: true });
+
+        return;
+    }
 
     router.get(
         '/liga/modulos/cola',
-        { session_id: Number(target.value) },
+        { session_id: sessionId },
         { preserveScroll: true, preserveState: true },
     );
 }
@@ -115,10 +122,13 @@ function sessionLabel(session: {
                     </p>
                 </div>
                 <select
-                    :value="props.session_selector.selected_session_id"
+                    :value="props.session_selector.selected_session_id ?? ''"
                     class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none"
                     @change="changeSession"
                 >
+                    <option value="">
+                        Sin jornada activa · vista vacía de hoy
+                    </option>
                     <option
                         v-for="session in props.session_selector.sessions"
                         :key="session.id"

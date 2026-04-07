@@ -53,6 +53,8 @@ async function changeSession(event: Event): Promise<void> {
     const sessionId = Number(target.value);
 
     if (!Number.isFinite(sessionId) || sessionId <= 0) {
+        await loadPage();
+
         return;
     }
 
@@ -102,9 +104,15 @@ function sessionLabel(
                         </p>
                         <select
                             class="sheet-input"
-                            :value="payload?.session_selector.selected_session_id"
+                            :value="
+                                payload?.session_selector.selected_session_id ??
+                                ''
+                            "
                             @change="changeSession"
                         >
+                            <option value="">
+                                Sin jornada activa · vista vacía de hoy
+                            </option>
                             <option
                                 v-for="session in payload?.session_selector
                                     .sessions ?? []"
