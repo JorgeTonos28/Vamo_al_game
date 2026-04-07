@@ -37,6 +37,8 @@ async function changeSession(event: Event): Promise<void> {
   const sessionId = Number(target.value)
 
   if (!Number.isFinite(sessionId) || sessionId <= 0) {
+    await loadPage()
+
     return
   }
 
@@ -75,7 +77,7 @@ onIonViewWillEnter(() => loadPage())
 
       <div class="mobile-shell">
         <div class="mobile-stack">
-          <MobileAppTopbar :title="payload?.league.name ?? 'Tabla'" description="Lideres de la jornada por victorias, puntos y volumen de juego." />
+          <MobileAppTopbar :title="payload?.league.name ?? 'Tabla'" description="Líderes de la jornada por victorias, puntos y volumen de juego." />
 
           <section class="app-surface section-stack">
             <p class="app-kicker section-kicker">Jornada visible</p>
@@ -86,6 +88,15 @@ onIonViewWillEnter(() => loadPage())
               :disabled="(payload?.session_selector.sessions.length ?? 0) === 0"
               @change="changeSession"
             >
+              <option
+                v-if="
+                  (payload?.session_selector.selected_session_id ?? null) === null &&
+                  (payload?.session_selector.sessions.length ?? 0) > 0
+                "
+                value=""
+              >
+                Sin jornada activa · vista vacía de hoy
+              </option>
               <option
                 v-if="(payload?.session_selector.sessions.length ?? 0) === 0"
                 value=""
@@ -120,7 +131,7 @@ onIonViewWillEnter(() => loadPage())
           <section class="app-surface section-stack">
             <p class="app-kicker section-kicker">Tabla general</p>
             <p v-if="isLoading && !payload" class="body-copy">Cargando tabla...</p>
-            <p v-else-if="(payload?.table.standings.length ?? 0) === 0" class="body-copy">Sin juegos terminados todavia.</p>
+            <p v-else-if="(payload?.table.standings.length ?? 0) === 0" class="body-copy">Sin juegos terminados todavía.</p>
             <article v-for="(row, index) in payload?.table.standings ?? []" :key="`${row.identity.name}-${index}`" class="data-row">
               <div>
                 <p class="data-row__name">#{{ index + 1 }} · {{ row.identity.name }}</p>
@@ -142,7 +153,7 @@ onIonViewWillEnter(() => loadPage())
           </section>
 
           <section class="app-surface section-stack">
-            <p class="app-kicker section-kicker">Mas usados</p>
+            <p class="app-kicker section-kicker">Más usados</p>
             <article v-for="(row, index) in payload?.table.top_games ?? []" :key="`${row.identity.name}-${index}`" class="data-row">
               <div>
                 <p class="data-row__name">{{ row.identity.name }}</p>

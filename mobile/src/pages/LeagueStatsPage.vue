@@ -53,6 +53,8 @@ async function changeSession(event: Event): Promise<void> {
     const sessionId = Number(target.value);
 
     if (!Number.isFinite(sessionId) || sessionId <= 0) {
+        await loadPage();
+
         return;
     }
 
@@ -116,11 +118,11 @@ function sessionLabel(
                             </div>
                             <div>
                                 <p class="app-kicker section-kicker">
-                                    Estadisticas de jornada
+                                    Estadísticas de jornada
                                 </p>
                                 <p class="body-copy">
                                     Puedes revisar la jornada actual o consultar
-                                    dias anteriores sin salir del modulo.
+                                    días anteriores sin salir del modulo.
                                 </p>
                             </div>
                         </div>
@@ -138,6 +140,17 @@ function sessionLabel(
                                 "
                                 @change="changeSession"
                             >
+                                <option
+                                    v-if="
+                                        (payload?.session_selector
+                                            .selected_session_id ?? null) === null &&
+                                        (payload?.session_selector.sessions.length ??
+                                            0) > 0
+                                    "
+                                    value=""
+                                >
+                                    Sin jornada activa · vista vacía de hoy
+                                </option>
                                 <option
                                     v-if="
                                         (payload?.session_selector.sessions.length ??
@@ -197,7 +210,7 @@ function sessionLabel(
                             v-else-if="(payload?.stats.points_leaders.length ?? 0) === 0"
                             class="body-copy empty-state"
                         >
-                            Sin datos todavia.
+                            Sin datos todavía.
                         </p>
                         <article
                             v-for="(row, index) in payload?.stats
@@ -235,7 +248,7 @@ function sessionLabel(
                                     </p>
                                 </div>
                                 <p class="body-copy">
-                                    Lideres de participacion y balance de
+                                    Líderes de participacion y balance de
                                     victorias en la jornada seleccionada.
                                 </p>
                             </div>
@@ -247,7 +260,7 @@ function sessionLabel(
                             v-if="(payload?.stats.games_leaders.length ?? 0) === 0"
                             class="body-copy empty-state"
                         >
-                            Sin datos todavia.
+                            Sin datos todavía.
                         </p>
                         <article
                             v-for="(row, index) in payload?.stats

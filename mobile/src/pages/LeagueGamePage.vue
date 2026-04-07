@@ -737,7 +737,7 @@ async function configureClockDuration(total: number | null): Promise<void> {
     }
 
     if (total === null) {
-        actionError.value = 'Configura un tiempo vÃ¡lido para el cronÃ³metro.';
+        actionError.value = 'Configura un tiempo válido para el cronómetro.';
 
         return;
     }

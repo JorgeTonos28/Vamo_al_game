@@ -62,6 +62,8 @@ function changeSession(event: Event): void {
     const sessionId = Number(target.value);
 
     if (!Number.isFinite(sessionId) || sessionId <= 0) {
+        router.get('/liga/modulos/stats', {}, { preserveScroll: true, preserveState: true });
+
         return;
     }
 
@@ -132,6 +134,15 @@ function confirmDeleteSession(): void {
                         class="min-h-12 rounded-[12px] border border-white/8 bg-[#0E1628] px-4 text-sm text-[#F8FAFC] outline-none disabled:cursor-not-allowed disabled:opacity-60"
                         @change="changeSession"
                     >
+                        <option
+                            v-if="
+                                props.session_selector.selected_session_id === null &&
+                                props.session_selector.sessions.length > 0
+                            "
+                            value=""
+                        >
+                            Sin jornada activa · vista vacía de hoy
+                        </option>
                         <option
                             v-if="props.session_selector.sessions.length === 0"
                             value=""
