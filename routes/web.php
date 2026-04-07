@@ -164,6 +164,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     ->name('modules.game.end-session');
                 Route::post('modulos/juego/reset', [LeagueGameController::class, 'reset'])
                     ->name('modules.game.reset');
+                Route::post('modulos/juego/abandoned/{game}/resolve', [LeagueGameController::class, 'resolveAbandoned'])
+                    ->name('modules.game.abandoned.resolve');
                 Route::post('modulos/cola/reorder', [LeagueQueueController::class, 'reorder'])
                     ->name('modules.queue.reorder');
                 Route::delete('modulos/stats/sessions/{session}', [LeagueSessionController::class, 'destroy'])

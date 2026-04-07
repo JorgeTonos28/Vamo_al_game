@@ -245,7 +245,9 @@ class LeagueOperationsService
             ->with('cut')
             ->withCount([
                 'entries',
-                'games as completed_games_count' => fn (Builder $query) => $query->where('status', 'completed'),
+                'games as completed_games_count' => fn (Builder $query) => $query
+                    ->where('status', 'completed')
+                    ->whereIn('winner_side', ['A', 'B']),
             ])
             ->orderByDesc('session_date')
             ->orderByDesc('id')
@@ -280,9 +282,11 @@ class LeagueOperationsService
                 foreach ($session->games as $game) {
                     if ($game->status !== 'completed') {
                         if ($this->staleGameHasRecordedState($game)) {
+                            $resolvedWinner = $this->staleGameWinnerSide($game);
+
                             $game->forceFill([
-                                'status' => 'completed',
-                                'winner_side' => $this->staleGameWinnerSide($game),
+                                'status' => $resolvedWinner === null ? 'abandoned' : 'completed',
+                                'winner_side' => $resolvedWinner,
                                 'ended_at' => $endedAt,
                             ])->save();
 

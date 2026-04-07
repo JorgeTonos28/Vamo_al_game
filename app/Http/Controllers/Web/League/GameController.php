@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web\League;
 
 use App\Http\Controllers\Controller;
 use App\Models\LeagueSessionEntry;
+use App\Models\LeagueSessionGame;
 use App\Services\LeagueOperations\LeagueCompetitionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -138,5 +139,20 @@ class GameController extends Controller
         $this->competition->resetCurrentGame($request->user());
 
         return back();
+    }
+
+    public function resolveAbandoned(Request $request, LeagueSessionGame $game): RedirectResponse
+    {
+        $validated = $request->validate([
+            'winner_side' => ['required', 'string', 'in:A,B'],
+        ]);
+
+        $this->competition->resolveAbandonedGame(
+            $request->user(),
+            $game->id,
+            $validated['winner_side'],
+        );
+
+        return to_route('league.modules.show', ['module' => 'juego']);
     }
 }

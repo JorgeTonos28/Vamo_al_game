@@ -469,6 +469,241 @@ class LeagueCompetitionModulesTest extends TestCase
         }
     }
 
+    public function test_previous_day_tied_open_game_is_auto_closed_without_affecting_standings(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-05 10:00:00'));
+
+        try {
+            [$league, $admin, $players] = $this->makeLeagueContext();
+            $this->prepareLeagueSession($league, $admin, $players->take(10));
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/draft', [
+                    'mode' => 'arrival',
+                ])
+                ->assertOk();
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/team-point', [
+                    'team_side' => 'A',
+                ])
+                ->assertOk();
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/team-point', [
+                    'team_side' => 'B',
+                ])
+                ->assertOk();
+
+            $session = $league->sessions()->with('games')->latest('id')->firstOrFail();
+
+            CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-06 09:00:00'));
+
+            $this->actingAs($admin, 'sanctum')
+                ->getJson('/api/v1/league/modules/game')
+                ->assertOk()
+                ->assertJsonPath('data.session.id', null)
+                ->assertJsonPath('data.game.state', 'idle');
+
+            $session->refresh();
+            $game = $session->games()->firstOrFail();
+
+            $this->assertSame('completed', $session->status);
+            $this->assertSame('abandoned', $game->status);
+            $this->assertNull($game->winner_side);
+            $this->assertSame(1, $game->team_a_score);
+            $this->assertSame(1, $game->team_b_score);
+
+            $response = $this->actingAs($admin, 'sanctum')
+                ->getJson("/api/v1/league/modules/table?session_id={$session->id}")
+                ->assertOk()
+                ->assertJsonPath('data.session_selector.selected_session_id', $session->id)
+                ->assertJsonPath('data.table.banner.games', 0)
+                ->assertJsonCount(0, 'data.table.standings');
+
+            $selectedSession = collect($response->json('data.session_selector.sessions'))
+                ->firstWhere('id', $session->id);
+
+            $this->assertNotNull($selectedSession);
+            $this->assertSame(0, $selectedSession['completed_games_count']);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    public function test_game_module_can_switch_into_abandoned_review_mode(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-05 10:00:00'));
+
+        try {
+            [$league, $admin, $players] = $this->makeLeagueContext();
+            $this->prepareLeagueSession($league, $admin, $players->take(10));
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/draft', [
+                    'mode' => 'arrival',
+                ])
+                ->assertOk();
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/team-point', [
+                    'team_side' => 'A',
+                ])
+                ->assertOk();
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/team-point', [
+                    'team_side' => 'B',
+                ])
+                ->assertOk();
+
+            $session = $league->sessions()->with('games')->latest('id')->firstOrFail();
+
+            CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-06 09:00:00'));
+
+            $overview = $this->actingAs($admin, 'sanctum')
+                ->getJson('/api/v1/league/modules/game')
+                ->assertOk()
+                ->assertJsonPath('data.game.state', 'idle')
+                ->assertJsonCount(1, 'data.game.abandoned_games');
+
+            $gameId = (int) $overview->json('data.game.abandoned_games.0.id');
+
+            $this->actingAs($admin, 'sanctum')
+                ->getJson("/api/v1/league/modules/game?abandoned_game_id={$gameId}")
+                ->assertOk()
+                ->assertJsonPath('data.session.id', $session->id)
+                ->assertJsonPath('data.game.state', 'review')
+                ->assertJsonPath('data.game.review.is_active', true)
+                ->assertJsonPath('data.game.review.selected_abandoned_game_id', $gameId)
+                ->assertJsonPath('data.game.current.id', $gameId)
+                ->assertJsonPath('data.game.current.score.team_a', 1)
+                ->assertJsonPath('data.game.current.score.team_b', 1)
+                ->assertJsonCount(5, 'data.game.current.team_a')
+                ->assertJsonCount(5, 'data.game.current.team_b')
+                ->assertJsonCount(0, 'data.game.history');
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    public function test_admin_can_resolve_an_abandoned_game_from_game_module(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-05 10:00:00'));
+
+        try {
+            [$league, $admin, $players] = $this->makeLeagueContext();
+            $this->prepareLeagueSession($league, $admin, $players->take(10));
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/draft', [
+                    'mode' => 'arrival',
+                ])
+                ->assertOk();
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/team-point', [
+                    'team_side' => 'A',
+                ])
+                ->assertOk();
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/team-point', [
+                    'team_side' => 'B',
+                ])
+                ->assertOk();
+
+            $session = $league->sessions()->with('games')->latest('id')->firstOrFail();
+
+            CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-06 09:00:00'));
+
+            $this->actingAs($admin, 'sanctum')
+                ->getJson('/api/v1/league/modules/game')
+                ->assertOk();
+
+            $game = $session->fresh('games')->games->firstOrFail();
+
+            $this->assertSame('abandoned', $game->status);
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson("/api/v1/league/modules/game/abandoned/{$game->id}/resolve", [
+                    'winner_side' => 'A',
+                ])
+                ->assertOk()
+                ->assertJsonPath('message', 'Juego abandonado resuelto.')
+                ->assertJsonPath('data.game.review.is_active', false)
+                ->assertJsonCount(0, 'data.game.abandoned_games');
+
+            $game->refresh();
+
+            $this->assertSame('completed', $game->status);
+            $this->assertSame('A', $game->winner_side);
+            $this->assertSame($admin->id, $game->finished_by_user_id);
+
+            $this->actingAs($admin, 'sanctum')
+                ->getJson("/api/v1/league/modules/table?session_id={$session->id}")
+                ->assertOk()
+                ->assertJsonPath('data.table.banner.games', 1);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    public function test_member_cannot_resolve_an_abandoned_game(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-05 10:00:00'));
+
+        try {
+            [$league, $admin, $players] = $this->makeLeagueContext();
+            $member = User::factory()->memberRole()->create([
+                'active_league_id' => $league->id,
+            ]);
+
+            LeagueMembershipFactory::new()->member()->create([
+                'league_id' => $league->id,
+                'user_id' => $member->id,
+            ]);
+
+            $this->prepareLeagueSession($league, $admin, $players->take(10));
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/draft', [
+                    'mode' => 'arrival',
+                ])
+                ->assertOk();
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/team-point', [
+                    'team_side' => 'A',
+                ])
+                ->assertOk();
+
+            $this->actingAs($admin, 'sanctum')
+                ->postJson('/api/v1/league/modules/game/team-point', [
+                    'team_side' => 'B',
+                ])
+                ->assertOk();
+
+            $session = $league->sessions()->with('games')->latest('id')->firstOrFail();
+
+            CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-06 09:00:00'));
+
+            $this->actingAs($admin, 'sanctum')
+                ->getJson('/api/v1/league/modules/game')
+                ->assertOk();
+
+            $game = $session->fresh('games')->games->firstOrFail();
+
+            $this->actingAs($member, 'sanctum')
+                ->postJson("/api/v1/league/modules/game/abandoned/{$game->id}/resolve", [
+                    'winner_side' => 'A',
+                ])
+                ->assertForbidden();
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
     public function test_season_and_scout_keep_historical_context_when_today_has_no_session(): void
     {
         CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-05 10:00:00'));

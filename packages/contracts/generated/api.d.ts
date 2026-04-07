@@ -1067,6 +1067,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/league/modules/game/abandoned/{game}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resuelve un juego abandonado con ganador manual */
+        post: operations["resolveLeagueAbandonedGame"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/league/modules/scout/players/{player}": {
         parameters: {
             query?: never;
@@ -1812,10 +1829,12 @@ export interface components {
         };
         LeagueGameModule: {
             /** @enum {string} */
-            state: "idle" | "draft" | "live" | "completed";
+            state: "idle" | "draft" | "live" | "completed" | "review";
             draft: components["schemas"]["LeagueGameDraft"];
             clock: components["schemas"]["LeagueGameClock"];
             rotation_notice: components["schemas"]["LeagueGameRotationNotice"] | null;
+            review: components["schemas"]["LeagueGameReview"];
+            abandoned_games: components["schemas"]["LeagueGameAbandonedGame"][];
             current: components["schemas"]["LeagueGameCurrent"] | null;
             history: components["schemas"]["LeagueGameHistoryItem"][];
             summary: components["schemas"]["LeagueCompetitionSummary"];
@@ -1841,6 +1860,23 @@ export interface components {
             body: string[];
             tone: string;
             icon: string;
+        };
+        LeagueGameReview: {
+            is_active: boolean;
+            selected_abandoned_game_id: number | null;
+            session_date: string | null;
+            title: string | null;
+            description: string | null;
+        };
+        LeagueGameAbandonedGame: {
+            id: number;
+            session_id: number;
+            session_date: string | null;
+            game_number: number;
+            score: string;
+            team_a_label: string;
+            team_b_label: string;
+            selected: boolean;
         };
         LeagueGameCurrent: {
             id: number;
@@ -2103,6 +2139,10 @@ export interface components {
         };
         LeagueGameFinishRequest: {
             winner_side?: ("A" | "B") | null;
+        };
+        LeagueGameResolveAbandonedRequest: {
+            /** @enum {string} */
+            winner_side: "A" | "B";
         };
         LeagueScoutUpdateRequest: {
             position?: string | null;
@@ -2485,7 +2525,9 @@ export interface operations {
     };
     logout: {
         parameters: {
-            query?: never;
+            query?: {
+                abandoned_game_id?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5445,6 +5487,59 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Solicitud completada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeagueGameResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validacion fallida */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    resolveLeagueAbandonedGame: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                game: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeagueGameResolveAbandonedRequest"];
+            };
+        };
         responses: {
             /** @description Solicitud completada */
             200: {

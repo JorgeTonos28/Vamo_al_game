@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\V1\Settings\TwoFactorController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Middleware\EnsureGeneralAdmin;
 use App\Http\Middleware\ForceJsonResponse;
+use App\Services\LeagueOperations\LeagueCompetitionService;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -118,12 +119,15 @@ Route::middleware([ForceJsonResponse::class])
 
                     Route::get('modules/game', fn (Request $request) => ApiResponse::success(
                         $request,
-                        app(\App\Services\LeagueOperations\LeagueCompetitionService::class)->gamePageData($request->user()),
+                        app(LeagueCompetitionService::class)->gamePageData(
+                            $request->user(),
+                            $request->integer('abandoned_game_id') ?: null,
+                        ),
                         'Modulo Juego cargado.',
                     ))->name('modules.game.show');
                     Route::get('modules/queue', fn (Request $request) => ApiResponse::success(
                         $request,
-                        app(\App\Services\LeagueOperations\LeagueCompetitionService::class)->queuePageData(
+                        app(LeagueCompetitionService::class)->queuePageData(
                             $request->user(),
                             $request->integer('session_id') ?: null,
                         ),
@@ -131,7 +135,7 @@ Route::middleware([ForceJsonResponse::class])
                     ))->name('modules.queue.show');
                     Route::get('modules/stats', fn (Request $request) => ApiResponse::success(
                         $request,
-                        app(\App\Services\LeagueOperations\LeagueCompetitionService::class)->statsPageData(
+                        app(LeagueCompetitionService::class)->statsPageData(
                             $request->user(),
                             $request->integer('session_id') ?: null,
                         ),
@@ -139,7 +143,7 @@ Route::middleware([ForceJsonResponse::class])
                     ))->name('modules.stats.show');
                     Route::get('modules/table', fn (Request $request) => ApiResponse::success(
                         $request,
-                        app(\App\Services\LeagueOperations\LeagueCompetitionService::class)->tablePageData(
+                        app(LeagueCompetitionService::class)->tablePageData(
                             $request->user(),
                             $request->integer('session_id') ?: null,
                         ),
@@ -147,12 +151,12 @@ Route::middleware([ForceJsonResponse::class])
                     ))->name('modules.table.show');
                     Route::get('modules/season', fn (Request $request) => ApiResponse::success(
                         $request,
-                        app(\App\Services\LeagueOperations\LeagueCompetitionService::class)->seasonPageData($request->user()),
+                        app(LeagueCompetitionService::class)->seasonPageData($request->user()),
                         'Modulo Temporada cargado.',
                     ))->name('modules.season.show');
                     Route::get('modules/scout', fn (Request $request) => ApiResponse::success(
                         $request,
-                        app(\App\Services\LeagueOperations\LeagueCompetitionService::class)->scoutPageData($request->user()),
+                        app(LeagueCompetitionService::class)->scoutPageData($request->user()),
                         'Modulo Scout cargado.',
                     ))->name('modules.scout.show');
                     Route::post('modules/game/draft', [LeagueGameController::class, 'draft'])
@@ -181,6 +185,8 @@ Route::middleware([ForceJsonResponse::class])
                         ->name('modules.game.end-session');
                     Route::post('modules/game/reset', [LeagueGameController::class, 'reset'])
                         ->name('modules.game.reset');
+                    Route::post('modules/game/abandoned/{game}/resolve', [LeagueGameController::class, 'resolveAbandoned'])
+                        ->name('modules.game.abandoned.resolve');
                     Route::post('modules/queue/reorder', [LeagueQueueController::class, 'reorder'])
                         ->name('modules.queue.reorder');
                     Route::delete('modules/stats/sessions/{session}', [LeagueSessionController::class, 'destroy'])

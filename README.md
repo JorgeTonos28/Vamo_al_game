@@ -191,7 +191,7 @@ php artisan db:seed
 
 La app usa `APP_TIMEZONE` para definir el dia operativo de cortes y jornadas. El `.env.example` ya viene con `America/Santo_Domingo`; mantenlo asi en Republica Dominicana para evitar cierres automaticos antes del fin del dia local.
 
-Las jornadas operativas ya no se crean por solo abrir `Panel`, `Llegada`, `Stats` o `Tabla`. Una jornada se registra cuando un administrador realiza actividad operativa real en la liga. Si una jornada queda abierta y cambia el dia operativo, el backend la cierra automaticamente, preserva cualquier juego que ya tenga marcador o detalle estadistico, limpia solo juegos vacios sin iniciar y evita que `Juego` o `Cola` sigan mostrando datos vivos del dia anterior. Aunque ese nuevo dia no tenga jornada creada todavia, `Temporada` y `Scout` conservan el contexto historico de la temporada activa o de la ultima jornada conocida. `Stats` y `Tabla` permiten navegar jornadas anteriores con `session_id`, y `Stats` expone tambien eliminacion explicita de jornadas para web y movil.
+Las jornadas operativas ya no se crean por solo abrir `Panel`, `Llegada`, `Stats` o `Tabla`. Una jornada se registra cuando un administrador realiza actividad operativa real en la liga. Si una jornada queda abierta y cambia el dia operativo, el backend la cierra automaticamente, preserva cualquier juego que ya tenga marcador o detalle estadistico, limpia solo juegos vacios sin iniciar y evita que `Juego` o `Cola` sigan mostrando datos vivos del dia anterior. Si ese juego abandonado quedo empatado, se conserva como `abandoned` y no alimenta standings ni rankings hasta que exista una resolucion explicita en negocio; si el marcador define ganador, entonces si pasa a `completed`. Aunque ese nuevo dia no tenga jornada creada todavia, `Temporada` y `Scout` conservan el contexto historico de la temporada activa o de la ultima jornada conocida. `Stats`, `Tabla` y `Cola` muestran una opcion explicita de `Sin jornada activa` cuando hoy no existe sesion, pero si hay historial seleccionable. `Stats` y `Tabla` permiten navegar jornadas anteriores con `session_id`, y `Stats` expone tambien eliminacion explicita de jornadas para web y movil.
 
 9. Inicia backend + web:
 
@@ -212,7 +212,7 @@ Para probar el shell movil en navegador web local usa `VITE_API_BASE_URL=http://
 ### Icono Android del shell mobile
 
 - Coloca la imagen fuente en [`mobile/resources/icon.png`](./mobile/resources/icon.png) siguiendo la guia de [`mobile/resources/README.md`](./mobile/resources/README.md).
-- Genera los assets nativos con `npx @capacitor/assets generate --android --assetPath mobile/resources`.
+- Entra a `mobile/` y genera los assets nativos con `npx @capacitor/assets generate --android --assetPath resources`.
 - Sincroniza la plataforma con `npm run mobile:sync`.
 - Los iconos finales para el launcher de Android quedan en `mobile/android/app/src/main/res/mipmap-*`.
 
@@ -332,6 +332,8 @@ Ups! Lo sentimos, ha ocurrido un problema accediendo a la app. Comuniquese con l
 - Durante el juego se pueden registrar puntos por equipo, puntos por jugador, reversar puntos de jugador, marcar salida de jugador, deshacer la ultima accion, cerrar el juego, cerrar la jornada y limpiar el juego actual.
 - El ganador por defecto se determina automaticamente por el marcador al cerrar el juego.
 - El marcador incluye cronometro configurable desde el mismo display grande en web y mobile: al tocar o hacer clic en el marcador se abre un editor de duracion `MM:SS` y el tiempo queda guardado al confirmar. Solo puede editarse cuando el cronometro esta reiniciado; durante corrida, pausa parcial o tiempo agotado hay que reiniciarlo antes de cambiarlo.
+- Si existen juegos `abandoned`, el modulo muestra un boton `Abandonados` en web y mobile. Ese listado abre una revision historica de solo lectura: se carga el juego empatado o abandonado dentro del contexto real de su jornada, el historial solo muestra juegos cerrados previos y todas las acciones operativas quedan bloqueadas salvo la resolucion manual del ganador por administradores.
+- Si la liga decide que un juego abandonado no debe contar, simplemente se deja en ese estado. Mientras siga `abandoned`, no alimenta `Stats`, `Tabla`, `Temporada`, `Scout` ni rankings.
 - La rotacion posterior usa la cola activa, la racha del equipo ganador y la regla de doble rotacion cuando hay 20 o mas participantes.
 - Los miembros solo ven el marcador, las alineaciones y el historial; los montos cobrados del juego quedan reservados a administradores.
 

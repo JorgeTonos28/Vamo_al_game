@@ -521,7 +521,7 @@ export type LeagueTeamPlayer = LeagueEntryCard & {
 
 export type LeagueGamePayload = LeagueCompetitionBase & {
     game: {
-        state: 'idle' | 'draft' | 'live' | 'completed';
+        state: 'idle' | 'draft' | 'live' | 'completed' | 'review';
         draft: {
             entries: Array<
                 LeagueEntryCard & {
@@ -544,6 +544,23 @@ export type LeagueGamePayload = LeagueCompetitionBase & {
             tone: string;
             icon: string;
         };
+        review: {
+            is_active: boolean;
+            selected_abandoned_game_id: number | null;
+            session_date: string | null;
+            title: string | null;
+            description: string | null;
+        };
+        abandoned_games: Array<{
+            id: number;
+            session_id: number;
+            session_date: string | null;
+            game_number: number;
+            score: string;
+            team_a_label: string;
+            team_b_label: string;
+            selected: boolean;
+        }>;
         current: null | {
             id: number;
             game_number: number;
@@ -782,9 +799,17 @@ export type LeagueScoutPayload = LeagueCompetitionBase & {
     };
 };
 
-export async function fetchLeagueGame(): Promise<LeagueGamePayload> {
+export async function fetchLeagueGame(
+    abandonedGameId?: number,
+): Promise<LeagueGamePayload> {
     const { data } = await api.get<ApiSuccess<LeagueGamePayload>>(
         '/league/modules/game',
+        {
+            params:
+                abandonedGameId === undefined
+                    ? undefined
+                    : { abandoned_game_id: abandonedGameId },
+        },
     );
 
     return data.data;
@@ -1006,6 +1031,20 @@ export async function endLeagueSession(): Promise<LeagueGamePayload> {
 export async function resetLeagueGame(): Promise<LeagueGamePayload> {
     const { data } = await api.post<ApiSuccess<LeagueGamePayload>>(
         '/league/modules/game/reset',
+    );
+
+    return data.data;
+}
+
+export async function resolveLeagueAbandonedGame(
+    gameId: number,
+    winnerSide: 'A' | 'B',
+): Promise<LeagueGamePayload> {
+    const { data } = await api.post<ApiSuccess<LeagueGamePayload>>(
+        `/league/modules/game/abandoned/${gameId}/resolve`,
+        {
+            winner_side: winnerSide,
+        },
     );
 
     return data.data;
