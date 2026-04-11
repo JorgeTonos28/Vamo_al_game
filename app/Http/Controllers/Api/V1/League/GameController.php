@@ -73,9 +73,27 @@ class GameController extends Controller
 
     public function removePlayer(Request $request, LeagueSessionEntry $entry): JsonResponse
     {
-        $this->competition->removePlayer($request->user(), $entry);
+        $validated = $request->validate([
+            'action' => ['required', 'string', 'in:remove,yield'],
+            'replacement_entry_id' => ['nullable', 'integer', 'exists:league_session_entries,id'],
+        ]);
 
-        return ApiResponse::success($request, $this->competition->gamePageData($request->user()), 'Jugador retirado del juego actual.');
+        $replacement = $validated['replacement_entry_id'] ?? null;
+
+        $this->competition->removePlayer(
+            $request->user(),
+            $entry,
+            $validated['action'],
+            $replacement === null ? null : LeagueSessionEntry::query()->findOrFail($replacement),
+        );
+
+        return ApiResponse::success(
+            $request,
+            $this->competition->gamePageData($request->user()),
+            $validated['action'] === 'yield'
+                ? 'Turno cedido al jugador seleccionado.'
+                : 'Jugador retirado del juego actual.',
+        );
     }
 
     public function undo(Request $request): JsonResponse

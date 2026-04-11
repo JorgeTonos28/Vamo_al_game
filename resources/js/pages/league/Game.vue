@@ -45,10 +45,16 @@ type DraftEntry = PlayerCard & {
     auto_draft_rating: number;
 };
 
+type WaitingQueueEntry = PlayerCard & {
+    position: number | null;
+};
+
 type TeamPlayer = PlayerCard & {
     is_captain: boolean;
     points: number;
     shots: { 1: number; 2: number; 3: number };
+    can_yield_turn: boolean;
+    yield_candidate_ids: number[];
 };
 
 type DraftPreviewTeamPlayer = DraftPreviewPlayer<DraftEntry>;
@@ -73,6 +79,12 @@ type DraftAlert = {
     title: string;
     body: string[];
 };
+
+type PlayerExitStep =
+    | 'choose'
+    | 'remove-confirm'
+    | 'yield-select'
+    | 'yield-confirm';
 const DEFAULT_CLOCK_DURATION_SECONDS = 20 * 60;
 
 const props = defineProps<{
@@ -126,6 +138,7 @@ const props = defineProps<{
                 double_rotation_mode: boolean;
                 waiting_champion_team: 'A' | 'B' | null;
             };
+            waiting_queue: WaitingQueueEntry[];
             team_a: TeamPlayer[];
             team_b: TeamPlayer[];
         };
@@ -165,6 +178,8 @@ const draftPreview = ref<{
 const selectedPlayer = ref<TeamPlayer | null>(null);
 const revertPlayer = ref<TeamPlayer | null>(null);
 const playerToRemove = ref<TeamPlayer | null>(null);
+const playerExitStep = ref<PlayerExitStep>('choose');
+const playerYieldTargetId = ref<number | null>(null);
 const scoreFlash = ref<ScoreFlashState | null>(null);
 const scoreBumpSide = ref<TeamSide | null>(null);
 const gameActionError = ref('');
@@ -213,6 +228,9 @@ const draftUnassignedCount = computed(
     () => draftPreview.value?.counts.unassigned ?? 0,
 );
 const draftReadyEntries = computed(() => props.game.draft.entries);
+const currentWaitingQueue = computed(
+    () => props.game.current?.waiting_queue ?? [],
+);
 const streakLabel = computed(() =>
     props.game.current?.streak.team
         ? `EQ.${props.game.current.streak.team} - ${props.game.current.streak.count}`
@@ -305,10 +323,45 @@ const scoreboardContextLabel = computed(() =>
         ? (props.game.review.session_date ?? 'Jornada histórica')
         : streakLabel.value,
 );
+const playerExitCandidates = computed<WaitingQueueEntry[]>(() => {
+    if (!playerToRemove.value) {
+        return [];
+    }
+
+    const allowedIds = new Set(playerToRemove.value.yield_candidate_ids);
+
+    return currentWaitingQueue.value.filter((entry) =>
+        allowedIds.has(entry.id),
+    );
+});
+const selectedYieldCandidate = computed<WaitingQueueEntry | null>(() => {
+    if (playerYieldTargetId.value === null) {
+        return null;
+    }
+
+    return (
+        playerExitCandidates.value.find(
+            (entry) => entry.id === playerYieldTargetId.value,
+        ) ?? null
+    );
+});
 let scoreFeedbackNonce = 0;
 let scoreFlashTimer: ReturnType<typeof setTimeout> | null = null;
 let scoreBumpTimer: ReturnType<typeof setTimeout> | null = null;
 let clockTicker: ReturnType<typeof setInterval> | null = null;
+
+watch(
+    () => playerExitCandidates.value.map((entry) => entry.id),
+    (candidateIds) => {
+        if (
+            playerYieldTargetId.value !== null &&
+            !candidateIds.includes(playerYieldTargetId.value)
+        ) {
+            playerYieldTargetId.value = candidateIds[0] ?? null;
+        }
+    },
+    { immediate: true },
+);
 
 watch(
     () => props.game.rotation_notice,
@@ -732,7 +785,57 @@ function openRemovePlayerModal(player: TeamPlayer) {
         return;
     }
 
+    gameActionError.value = '';
     playerToRemove.value = player;
+    playerExitStep.value = 'choose';
+    playerYieldTargetId.value = null;
+}
+
+function closePlayerExitModal() {
+    playerToRemove.value = null;
+    playerExitStep.value = 'choose';
+    playerYieldTargetId.value = null;
+}
+
+function handlePlayerExitDialogChange(isOpen: boolean) {
+    if (!isOpen) {
+        closePlayerExitModal();
+    }
+}
+
+function choosePlayerExitAction(action: 'remove' | 'yield') {
+    if (!playerToRemove.value) {
+        return;
+    }
+
+    gameActionError.value = '';
+
+    if (action === 'yield') {
+        if (playerExitCandidates.value.length === 0) {
+            return;
+        }
+
+        playerYieldTargetId.value =
+            playerYieldTargetId.value ??
+            playerExitCandidates.value[0]?.id ??
+            null;
+        playerExitStep.value = 'yield-select';
+
+        return;
+    }
+
+    playerExitStep.value = 'remove-confirm';
+}
+
+function advanceYieldConfirmation() {
+    if (!selectedYieldCandidate.value) {
+        gameActionError.value =
+            'Selecciona un jugador elegible de la cola para ceder el turno.';
+
+        return;
+    }
+
+    playerExitStep.value = 'yield-confirm';
 }
 
 function confirmRemovePlayer() {
@@ -744,16 +847,49 @@ function confirmRemovePlayer() {
 
     router.post(
         `/liga/modulos/juego/players/${playerToRemove.value.id}/remove`,
-        {},
+        { action: 'remove' },
         {
             preserveScroll: true,
             onSuccess: () => {
-                playerToRemove.value = null;
+                closePlayerExitModal();
             },
             onError: (errors) => {
                 gameActionError.value = String(
                     errors.session ??
                         'No se pudo registrar la salida del jugador.',
+                );
+            },
+        },
+    );
+}
+
+function confirmYieldTurn() {
+    if (
+        !playerToRemove.value ||
+        !selectedYieldCandidate.value ||
+        !canManageLiveGame.value
+    ) {
+        return;
+    }
+
+    gameActionError.value = '';
+
+    router.post(
+        `/liga/modulos/juego/players/${playerToRemove.value.id}/remove`,
+        {
+            action: 'yield',
+            replacement_entry_id: selectedYieldCandidate.value.id,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                closePlayerExitModal();
+            },
+            onError: (errors) => {
+                gameActionError.value = String(
+                    errors.replacement_entry_id ??
+                        errors.session ??
+                        'No se pudo ceder el turno.',
                 );
             },
         },
@@ -1626,7 +1762,7 @@ function resolveAbandonedGame(winnerSide: 'A' | 'B'): void {
                                 class="rounded-[14px] border border-white/6 bg-[#131B2F] p-4"
                             >
                                 <div
-                                    class="flex items-center justify-between gap-3"
+                                    class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3"
                                 >
                                     <div class="min-w-0">
                                         <div class="flex items-center gap-2">
@@ -1655,7 +1791,9 @@ function resolveAbandonedGame(winnerSide: 'A' | 'B'): void {
                                             {{ player.preferred_position }}
                                         </p>
                                     </div>
-                                    <div class="flex gap-2">
+                                    <div
+                                        class="flex shrink-0 flex-wrap justify-end gap-2 sm:flex-nowrap"
+                                    >
                                         <button
                                             v-if="canManageLiveGame"
                                             type="button"
@@ -1712,7 +1850,7 @@ function resolveAbandonedGame(winnerSide: 'A' | 'B'): void {
                                 class="rounded-[14px] border border-white/6 bg-[#131B2F] p-4"
                             >
                                 <div
-                                    class="flex items-center justify-between gap-3"
+                                    class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3"
                                 >
                                     <div class="min-w-0">
                                         <div class="flex items-center gap-2">
@@ -1741,7 +1879,9 @@ function resolveAbandonedGame(winnerSide: 'A' | 'B'): void {
                                             {{ player.preferred_position }}
                                         </p>
                                     </div>
-                                    <div class="flex gap-2">
+                                    <div
+                                        class="flex shrink-0 flex-wrap justify-end gap-2 sm:flex-nowrap"
+                                    >
                                         <button
                                             v-if="canManageLiveGame"
                                             type="button"
@@ -2162,7 +2302,7 @@ function resolveAbandonedGame(winnerSide: 'A' | 'B'): void {
 
         <Dialog
             :open="playerToRemove !== null"
-            @update:open="playerToRemove = null"
+            @update:open="handlePlayerExitDialogChange"
         >
             <DialogContent class="border-white/8 bg-[#1A243A] text-[#F8FAFC]">
                 <DialogHeader>
@@ -2170,17 +2310,162 @@ function resolveAbandonedGame(winnerSide: 'A' | 'B'): void {
                         class="app-display flex items-center gap-3 text-[30px]"
                     >
                         <UserMinus class="size-5 text-[#F87171]" />
-                        <span>Jugador se va</span>
+                        <span v-if="playerExitStep === 'yield-select'"
+                            >Ceder turno</span
+                        >
+                        <span v-else-if="playerExitStep === 'yield-confirm'"
+                            >Confirmar cesion</span
+                        >
+                        <span v-else-if="playerExitStep === 'remove-confirm'"
+                            >Jugador se va</span
+                        >
+                        <span v-else>Salida del jugador</span>
                     </DialogTitle>
                     <DialogDescription
                         class="text-[13px] leading-6 text-[#94A3B8]"
                     >
-                        Confirma la salida de {{ playerToRemove?.name }}. Si hay
-                        cola activa, el siguiente jugador entrara segun la
-                        prioridad de la jornada.
+                        <template v-if="playerExitStep === 'choose'">
+                            Elige si {{ playerToRemove?.name }} sale del juego o
+                            cede su turno a alguien elegible de la cola.
+                        </template>
+                        <template v-else-if="playerExitStep === 'yield-select'">
+                            Selecciona a quien recibira el turno de
+                            {{ playerToRemove?.name }}.
+                        </template>
+                        <template
+                            v-else-if="
+                                playerExitStep === 'yield-confirm' &&
+                                selectedYieldCandidate
+                            "
+                        >
+                            Confirma que {{ playerToRemove?.name }} cede su
+                            turno a {{ selectedYieldCandidate.name }}.
+                        </template>
+                        <template v-else>
+                            Confirma la salida de {{ playerToRemove?.name }}. Si
+                            hay cola activa, el siguiente jugador entrara segun
+                            la prioridad de la jornada.
+                        </template>
                     </DialogDescription>
                 </DialogHeader>
-                <DialogFooter class="grid gap-2 sm:grid-cols-2">
+                <div v-if="playerExitStep === 'choose'" class="grid gap-3">
+                    <Button
+                        type="button"
+                        class="min-h-12 rounded-[12px] bg-[#E5B849] text-[#0A0F1D] hover:bg-[#e8c25d]"
+                        :disabled="playerExitCandidates.length === 0"
+                        @click="choosePlayerExitAction('yield')"
+                    >
+                        Ceder turno
+                    </Button>
+                    <Button
+                        type="button"
+                        class="min-h-12 rounded-[12px] bg-[#F87171] text-[#0A0F1D] hover:bg-[#fb8b8b]"
+                        @click="choosePlayerExitAction('remove')"
+                    >
+                        Se va
+                    </Button>
+                    <div
+                        v-if="playerExitCandidates.length === 0"
+                        class="rounded-[14px] border border-white/6 bg-[#0E1628] px-4 py-3 text-[13px] leading-6 text-[#94A3B8]"
+                    >
+                        No hay jugadores elegibles en cola para ceder el turno
+                        ahora mismo.
+                    </div>
+                </div>
+                <div
+                    v-else-if="playerExitStep === 'yield-select'"
+                    class="grid gap-3"
+                >
+                    <div class="grid max-h-[320px] gap-3 overflow-y-auto pr-1">
+                        <button
+                            v-for="candidate in playerExitCandidates"
+                            :key="candidate.id"
+                            type="button"
+                            class="w-full rounded-[16px] border p-4 text-left transition"
+                            :class="
+                                candidate.id === playerYieldTargetId
+                                    ? 'border-[rgba(229,184,73,0.32)] bg-[rgba(229,184,73,0.12)]'
+                                    : 'border-white/6 bg-[#0E1628] hover:border-[rgba(229,184,73,0.24)]'
+                            "
+                            @click="playerYieldTargetId = candidate.id"
+                        >
+                            <div
+                                class="flex items-center justify-between gap-3"
+                            >
+                                <div class="min-w-0">
+                                    <p
+                                        class="text-sm font-semibold text-[#F8FAFC]"
+                                    >
+                                        {{ candidate.name }}
+                                    </p>
+                                    <p
+                                        class="mt-1 text-[12px] leading-6 text-[#94A3B8]"
+                                    >
+                                        Cola #{{ candidate.position }}
+                                        <span
+                                            v-if="candidate.preferred_position"
+                                        >
+                                            · {{ candidate.preferred_position }}
+                                        </span>
+                                    </p>
+                                </div>
+                                <span
+                                    class="rounded-full border border-white/6 bg-[#131B2F] px-3 py-1 text-[11px] tracking-[0.18em] text-[#E5B849] uppercase"
+                                >
+                                    Espera
+                                </span>
+                            </div>
+                        </button>
+                    </div>
+                    <DialogFooter class="grid gap-2 sm:grid-cols-2">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F]"
+                            @click="closePlayerExitModal"
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            type="button"
+                            class="min-h-12 rounded-[12px] bg-[#E5B849] text-[#0A0F1D] hover:bg-[#e8c25d]"
+                            :disabled="!selectedYieldCandidate"
+                            @click="advanceYieldConfirmation"
+                        >
+                            Ceder
+                        </Button>
+                    </DialogFooter>
+                </div>
+                <div
+                    v-else-if="playerExitStep === 'yield-confirm'"
+                    class="grid gap-3"
+                >
+                    <div
+                        class="rounded-[14px] border border-[rgba(229,184,73,0.18)] bg-[rgba(229,184,73,0.08)] px-4 py-3 text-[13px] leading-6 text-[#CBD5E1]"
+                    >
+                        {{ playerToRemove?.name }} pasara a la posicion de cola
+                        de {{ selectedYieldCandidate?.name }} y
+                        {{ selectedYieldCandidate?.name }} entrara a la cancha.
+                    </div>
+                    <DialogFooter class="grid gap-2 sm:grid-cols-2">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F]"
+                            @click="closePlayerExitModal"
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            type="button"
+                            class="min-h-12 rounded-[12px] bg-[#E5B849] text-[#0A0F1D] hover:bg-[#e8c25d]"
+                            @click="confirmYieldTurn"
+                        >
+                            Ok
+                        </Button>
+                    </DialogFooter>
+                </div>
+                <DialogFooter v-else class="grid gap-2 sm:grid-cols-2">
                     <Button
                         type="button"
                         class="min-h-12 rounded-[12px] bg-[#F87171] text-[#0A0F1D] hover:bg-[#fb8b8b]"
@@ -2191,7 +2476,7 @@ function resolveAbandonedGame(winnerSide: 'A' | 'B'): void {
                         type="button"
                         variant="secondary"
                         class="min-h-12 rounded-[12px] border border-white/8 bg-[#131B2F]"
-                        @click="playerToRemove = null"
+                        @click="closePlayerExitModal"
                         >Cancelar</Button
                     >
                 </DialogFooter>

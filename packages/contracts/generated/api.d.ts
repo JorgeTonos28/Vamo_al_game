@@ -923,7 +923,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Marca salida de un jugador del juego actual */
+        /** Marca salida o cesion de turno de un jugador del juego actual */
         post: operations["removeLeagueGamePlayer"];
         delete?: never;
         options?: never;
@@ -1886,6 +1886,7 @@ export interface components {
                 team_b: number;
             };
             streak: components["schemas"]["LeagueCompetitionStreak"];
+            waiting_queue: components["schemas"]["LeagueGameWaitingQueueEntry"][];
             team_a: components["schemas"]["LeagueGameTeamPlayer"][];
             team_b: components["schemas"]["LeagueGameTeamPlayer"][];
         };
@@ -1893,6 +1894,8 @@ export interface components {
             is_captain: boolean;
             points: number;
             shots: components["schemas"]["LeagueCompetitionShots"];
+            can_yield_turn: boolean;
+            yield_candidate_ids: number[];
         };
         LeagueGameHistoryItem: {
             id: number;
@@ -2314,6 +2317,9 @@ export interface components {
         };
         LeagueGameClockRequest: {
             duration_seconds: number;
+        };
+        LeagueGameWaitingQueueEntry: components["schemas"]["LeagueCompetitionEntryCard"] & {
+            position: number | null;
         };
     };
     responses: never;
@@ -5102,7 +5108,15 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    action: "remove" | "yield";
+                    replacement_entry_id?: number | null;
+                };
+            };
+        };
         responses: {
             /** @description Solicitud completada */
             200: {

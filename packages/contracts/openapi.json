@@ -3429,7 +3429,7 @@
         "/league/modules/game/players/{entry}/remove": {
             "post": {
                 "operationId": "removeLeagueGamePlayer",
-                "summary": "Marca salida de un jugador del juego actual",
+                "summary": "Marca salida o cesion de turno de un jugador del juego actual",
                 "security": [
                     {
                         "sanctumBearer": []
@@ -3482,6 +3482,34 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "action"
+                                ],
+                                "properties": {
+                                    "action": {
+                                        "type": "string",
+                                        "enum": [
+                                            "remove",
+                                            "yield"
+                                        ]
+                                    },
+                                    "replacement_entry_id": {
+                                        "type": [
+                                            "integer",
+                                            "null"
+                                        ]
+                                    }
                                 }
                             }
                         }
@@ -4154,7 +4182,10 @@
         "schemas": {
             "LoginRequest": {
                 "type": "object",
-                "required": ["email", "password"],
+                "required": [
+                    "email",
+                    "password"
+                ],
                 "properties": {
                     "email": {
                         "type": "string",
@@ -4196,7 +4227,11 @@
             },
             "CommandCenterInviteUserRequest": {
                 "type": "object",
-                "required": ["first_name", "last_name", "email"],
+                "required": [
+                    "first_name",
+                    "last_name",
+                    "email"
+                ],
                 "properties": {
                     "first_name": {
                         "type": "string",
@@ -4207,15 +4242,24 @@
                         "maxLength": 255
                     },
                     "document_id": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "maxLength": 50
                     },
                     "phone": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "maxLength": 50
                     },
                     "address": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "maxLength": 255
                     },
                     "email": {
@@ -4234,20 +4278,28 @@
                         ]
                     },
                     "league_id": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     }
                 }
             },
             "CommandCenterCreateLeagueRequest": {
                 "type": "object",
-                "required": ["name"],
+                "required": [
+                    "name"
+                ],
                 "properties": {
                     "name": {
                         "type": "string",
                         "maxLength": 120
                     },
                     "emoji": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "maxLength": 16
                     }
                 }
@@ -4260,27 +4312,38 @@
                         "maxLength": 120
                     },
                     "emoji": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "maxLength": 16
                     }
                 }
             },
             "CommandCenterAssignLeagueMembershipRequest": {
                 "type": "object",
-                "required": ["league_id", "role"],
+                "required": [
+                    "league_id",
+                    "role"
+                ],
                 "properties": {
                     "league_id": {
                         "type": "integer"
                     },
                     "role": {
                         "type": "string",
-                        "enum": ["league_admin", "member"]
+                        "enum": [
+                            "league_admin",
+                            "member"
+                        ]
                     }
                 }
             },
             "ActiveLeagueUpdateRequest": {
                 "type": "object",
-                "required": ["league_id"],
+                "required": [
+                    "league_id"
+                ],
                 "properties": {
                     "league_id": {
                         "type": "integer"
@@ -4291,18 +4354,26 @@
                 "type": "object",
                 "properties": {
                     "logo": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "binary"
                     },
                     "favicon": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "binary"
                     }
                 }
             },
             "GoogleExchangeRequest": {
                 "type": "object",
-                "required": ["handoff"],
+                "required": [
+                    "handoff"
+                ],
                 "properties": {
                     "handoff": {
                         "type": "string",
@@ -4313,7 +4384,10 @@
             },
             "ProfileUpdateRequest": {
                 "type": "object",
-                "required": ["name", "email"],
+                "required": [
+                    "name",
+                    "email"
+                ],
                 "properties": {
                     "name": {
                         "type": "string",
@@ -4347,7 +4421,9 @@
             },
             "ProfileDeleteRequest": {
                 "type": "object",
-                "required": ["password"],
+                "required": [
+                    "password"
+                ],
                 "properties": {
                     "password": {
                         "type": "string"
@@ -4356,7 +4432,9 @@
             },
             "ConfirmTwoFactorRequest": {
                 "type": "object",
-                "required": ["code"],
+                "required": [
+                    "code"
+                ],
                 "properties": {
                     "code": {
                         "type": "string"
@@ -4365,22 +4443,33 @@
             },
             "TwoFactorChallengeRequest": {
                 "type": "object",
-                "required": ["challenge_token"],
+                "required": [
+                    "challenge_token"
+                ],
                 "properties": {
                     "challenge_token": {
                         "type": "string"
                     },
                     "code": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "recovery_code": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 }
             },
             "TwoFactorChallenge": {
                 "type": "object",
-                "required": ["challenge_token", "recovery_code_allowed"],
+                "required": [
+                    "challenge_token",
+                    "recovery_code_allowed"
+                ],
                 "properties": {
                     "challenge_token": {
                         "type": "string"
@@ -4462,7 +4551,9 @@
             },
             "RecoveryCodes": {
                 "type": "object",
-                "required": ["codes"],
+                "required": [
+                    "codes"
+                ],
                 "properties": {
                     "codes": {
                         "type": "array",
@@ -4474,11 +4565,20 @@
             },
             "AccountRole": {
                 "type": "string",
-                "enum": ["general_admin", "league_admin", "member", "guest"]
+                "enum": [
+                    "general_admin",
+                    "league_admin",
+                    "member",
+                    "guest"
+                ]
             },
             "LeagueMembershipRole": {
                 "type": "string",
-                "enum": ["admin", "member", "guest"]
+                "enum": [
+                    "admin",
+                    "member",
+                    "guest"
+                ]
             },
             "LeagueContextLeague": {
                 "type": "object",
@@ -4499,7 +4599,10 @@
                         "type": "string"
                     },
                     "emoji": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "slug": {
                         "type": "string"
@@ -4527,13 +4630,22 @@
                 ],
                 "properties": {
                     "logo_url": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "favicon_url": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "favicon_type": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "has_custom_logo": {
                         "type": "boolean"
@@ -4542,7 +4654,10 @@
                         "type": "boolean"
                     },
                     "updated_at": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "date-time"
                     }
                 }
@@ -4602,7 +4717,9 @@
             },
             "TenancyMeta": {
                 "type": "object",
-                "required": ["tenancy"],
+                "required": [
+                    "tenancy"
+                ],
                 "properties": {
                     "tenancy": {
                         "$ref": "#/components/schemas/TenancyContext"
@@ -4646,7 +4763,10 @@
             },
             "RoleOption": {
                 "type": "object",
-                "required": ["value", "label"],
+                "required": [
+                    "value",
+                    "label"
+                ],
                 "properties": {
                     "value": {
                         "type": "string"
@@ -4658,7 +4778,12 @@
             },
             "LeagueOption": {
                 "type": "object",
-                "required": ["id", "name", "emoji", "slug"],
+                "required": [
+                    "id",
+                    "name",
+                    "emoji",
+                    "slug"
+                ],
                 "properties": {
                     "id": {
                         "type": "integer"
@@ -4667,7 +4792,10 @@
                         "type": "string"
                     },
                     "emoji": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "slug": {
                         "type": "string"
@@ -4747,13 +4875,19 @@
                         ]
                     },
                     "account_role_label": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "league_memberships_count": {
                         "type": "integer"
                     },
                     "active_league_id": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "memberships": {
                         "type": "array",
@@ -4768,24 +4902,39 @@
                         "type": "boolean"
                     },
                     "invited_at": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "date-time"
                     },
                     "created_at": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "date-time"
                     }
                 }
             },
             "CommandCenterLeagueAdmin": {
                 "type": "object",
-                "required": ["id", "name"],
+                "required": [
+                    "id",
+                    "name"
+                ],
                 "properties": {
                     "id": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "name": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 }
             },
@@ -4809,7 +4958,10 @@
                         "type": "string"
                     },
                     "emoji": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "slug": {
                         "type": "string"
@@ -4827,14 +4979,19 @@
                         "type": "integer"
                     },
                     "created_at": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "date-time"
                     }
                 }
             },
             "CommandCenterDashboardPayload": {
                 "type": "object",
-                "required": ["metrics"],
+                "required": [
+                    "metrics"
+                ],
                 "properties": {
                     "metrics": {
                         "$ref": "#/components/schemas/CommandCenterMetrics"
@@ -4878,7 +5035,9 @@
             },
             "CommandCenterInviteUserPayload": {
                 "type": "object",
-                "required": ["user"],
+                "required": [
+                    "user"
+                ],
                 "properties": {
                     "user": {
                         "$ref": "#/components/schemas/CommandCenterUser"
@@ -4887,7 +5046,9 @@
             },
             "CommandCenterAssignLeagueMembershipPayload": {
                 "type": "object",
-                "required": ["user"],
+                "required": [
+                    "user"
+                ],
                 "properties": {
                     "user": {
                         "$ref": "#/components/schemas/CommandCenterUser"
@@ -4896,7 +5057,9 @@
             },
             "CommandCenterLeaguesPayload": {
                 "type": "object",
-                "required": ["leagues"],
+                "required": [
+                    "leagues"
+                ],
                 "properties": {
                     "leagues": {
                         "type": "array",
@@ -4908,7 +5071,9 @@
             },
             "CommandCenterLeaguePayload": {
                 "type": "object",
-                "required": ["league"],
+                "required": [
+                    "league"
+                ],
                 "properties": {
                     "league": {
                         "$ref": "#/components/schemas/CommandCenterLeague"
@@ -4917,7 +5082,9 @@
             },
             "CommandCenterSettingsPayload": {
                 "type": "object",
-                "required": ["branding"],
+                "required": [
+                    "branding"
+                ],
                 "properties": {
                     "branding": {
                         "$ref": "#/components/schemas/Branding"
@@ -4951,29 +5118,47 @@
                         "type": "integer"
                     },
                     "first_name": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "last_name": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "name": {
                         "type": "string"
                     },
                     "document_id": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "phone": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "address": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "email": {
                         "type": "string",
                         "format": "email"
                     },
                     "avatar": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "account_role": {
                         "anyOf": [
@@ -4986,39 +5171,65 @@
                         ]
                     },
                     "account_role_label": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "is_general_admin": {
                         "type": "boolean"
                     },
                     "active_league_id": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "email_verified_at": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "date-time"
                     },
                     "invited_at": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "date-time"
                     },
                     "onboarded_at": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "date-time"
                     },
                     "created_at": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "date-time"
                     },
                     "updated_at": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "date-time"
                     }
                 }
             },
             "Health": {
                 "type": "object",
-                "required": ["status", "app", "api_version", "timestamp"],
+                "required": [
+                    "status",
+                    "app",
+                    "api_version",
+                    "timestamp"
+                ],
                 "properties": {
                     "status": {
                         "type": "string"
@@ -5037,7 +5248,12 @@
             },
             "AuthToken": {
                 "type": "object",
-                "required": ["token", "token_type", "expires_at", "user"],
+                "required": [
+                    "token",
+                    "token_type",
+                    "expires_at",
+                    "user"
+                ],
                 "properties": {
                     "token": {
                         "type": "string"
@@ -5046,7 +5262,10 @@
                         "type": "string"
                     },
                     "expires_at": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "date-time"
                     },
                     "user": {
@@ -5065,7 +5284,13 @@
             },
             "HealthResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -5089,7 +5314,13 @@
             },
             "BrandingResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -5113,7 +5344,13 @@
             },
             "UserResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -5137,7 +5374,13 @@
             },
             "CommandCenterDashboardResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -5161,7 +5404,13 @@
             },
             "CommandCenterUsersResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -5185,7 +5434,13 @@
             },
             "CommandCenterInviteUserResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -5209,7 +5464,13 @@
             },
             "CommandCenterAssignLeagueMembershipResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -5233,7 +5494,13 @@
             },
             "CommandCenterLeaguesResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -5257,7 +5524,13 @@
             },
             "CommandCenterLeagueResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -5281,7 +5554,13 @@
             },
             "CommandCenterSettingsResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -5305,7 +5584,13 @@
             },
             "CurrentUserResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -5328,7 +5613,13 @@
             },
             "AuthTokenResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -5352,7 +5643,13 @@
             },
             "TwoFactorChallengeResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -5376,7 +5673,13 @@
             },
             "TwoFactorStatusResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -5400,7 +5703,13 @@
             },
             "TwoFactorSetupResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -5424,7 +5733,13 @@
             },
             "RecoveryCodesResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -5448,7 +5763,13 @@
             },
             "EmptySuccessResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -5472,7 +5793,13 @@
             },
             "ErrorResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -5505,7 +5832,11 @@
                 "properties": {
                     "mode": {
                         "type": "string",
-                        "enum": ["operational", "guest", "no_league"]
+                        "enum": [
+                            "operational",
+                            "guest",
+                            "no_league"
+                        ]
                     },
                     "league": {
                         "anyOf": [
@@ -5544,7 +5875,12 @@
             },
             "LeagueHomeLeague": {
                 "type": "object",
-                "required": ["id", "name", "emoji", "slug"],
+                "required": [
+                    "id",
+                    "name",
+                    "emoji",
+                    "slug"
+                ],
                 "properties": {
                     "id": {
                         "type": "integer"
@@ -5553,7 +5889,10 @@
                         "type": "string"
                     },
                     "emoji": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "slug": {
                         "type": "string"
@@ -5562,7 +5901,11 @@
             },
             "LeagueHomeRole": {
                 "type": "object",
-                "required": ["value", "label", "can_manage"],
+                "required": [
+                    "value",
+                    "label",
+                    "can_manage"
+                ],
                 "properties": {
                     "value": {
                         "$ref": "#/components/schemas/LeagueMembershipRole"
@@ -5652,7 +5995,11 @@
             },
             "LeagueRosterPlayer": {
                 "type": "object",
-                "required": ["id", "name", "jersey_number"],
+                "required": [
+                    "id",
+                    "name",
+                    "jersey_number"
+                ],
                 "properties": {
                     "id": {
                         "type": "integer"
@@ -5661,13 +6008,19 @@
                         "type": "string"
                     },
                     "jersey_number": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     }
                 }
             },
             "LeagueReferralOption": {
                 "type": "object",
-                "required": ["id", "name"],
+                "required": [
+                    "id",
+                    "name"
+                ],
                 "properties": {
                     "id": {
                         "type": "integer"
@@ -5775,19 +6128,31 @@
                 ],
                 "properties": {
                     "id": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "status": {
                         "type": "string"
                     },
                     "session_date": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "started_at": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "prepared_at": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "counts": {
                         "$ref": "#/components/schemas/LeagueArrivalCounts"
@@ -5839,7 +6204,11 @@
             },
             "LeagueQueueEntry": {
                 "type": "object",
-                "required": ["id", "name", "entry_type"],
+                "required": [
+                    "id",
+                    "name",
+                    "entry_type"
+                ],
                 "properties": {
                     "id": {
                         "type": "integer"
@@ -5854,7 +6223,10 @@
             },
             "LeagueArrivalQueuePreview": {
                 "type": "object",
-                "required": ["can_reorder", "entries"],
+                "required": [
+                    "can_reorder",
+                    "entries"
+                ],
                 "properties": {
                     "can_reorder": {
                         "type": "boolean"
@@ -5874,7 +6246,9 @@
                     },
                     {
                         "type": "object",
-                        "required": ["position"],
+                        "required": [
+                            "position"
+                        ],
                         "properties": {
                             "position": {
                                 "type": "integer"
@@ -5904,13 +6278,19 @@
                         "type": "string"
                     },
                     "jersey_number": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "attendance_count": {
                         "type": "integer"
                     },
                     "arrival_order": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "has_arrived": {
                         "type": "boolean"
@@ -5928,7 +6308,12 @@
             },
             "LeagueArrivalGuest": {
                 "type": "object",
-                "required": ["id", "name", "arrival_order", "guest_fee_paid"],
+                "required": [
+                    "id",
+                    "name",
+                    "arrival_order",
+                    "guest_fee_paid"
+                ],
                 "properties": {
                     "id": {
                         "type": "integer"
@@ -5964,7 +6349,10 @@
                     },
                     "role": {
                         "type": "object",
-                        "required": ["value", "label"],
+                        "required": [
+                            "value",
+                            "label"
+                        ],
                         "properties": {
                             "value": {
                                 "$ref": "#/components/schemas/LeagueMembershipRole"
@@ -6011,7 +6399,10 @@
             },
             "LeagueManagementCutSelector": {
                 "type": "object",
-                "required": ["selected_cut_id", "cuts"],
+                "required": [
+                    "selected_cut_id",
+                    "cuts"
+                ],
                 "properties": {
                     "selected_cut_id": {
                         "type": "integer"
@@ -6068,7 +6459,9 @@
                     },
                     "expenses": {
                         "type": "object",
-                        "required": ["total_cents"],
+                        "required": [
+                            "total_cents"
+                        ],
                         "properties": {
                             "total_cents": {
                                 "type": "integer"
@@ -6132,7 +6525,10 @@
             },
             "LeagueManagementPaymentRow": {
                 "type": "object",
-                "required": ["player", "balance"],
+                "required": [
+                    "player",
+                    "balance"
+                ],
                 "properties": {
                     "player": {
                         "$ref": "#/components/schemas/LeagueRosterPlayer"
@@ -6226,7 +6622,10 @@
             },
             "LeagueManagementBoard": {
                 "type": "object",
-                "required": ["members", "share_cents"],
+                "required": [
+                    "members",
+                    "share_cents"
+                ],
                 "properties": {
                     "share_cents": {
                         "type": "integer"
@@ -6235,7 +6634,11 @@
                         "type": "array",
                         "items": {
                             "type": "object",
-                            "required": ["id", "name", "share_cents"],
+                            "required": [
+                                "id",
+                                "name",
+                                "share_cents"
+                            ],
                             "properties": {
                                 "id": {
                                     "type": "integer"
@@ -6291,7 +6694,11 @@
             },
             "LeagueManagementReferralGroup": {
                 "type": "object",
-                "required": ["referrer", "available_credit_cents", "members"],
+                "required": [
+                    "referrer",
+                    "available_credit_cents",
+                    "members"
+                ],
                 "properties": {
                     "referrer": {
                         "$ref": "#/components/schemas/LeagueReferralOption"
@@ -6309,7 +6716,12 @@
             },
             "LeagueCompetitionPayload": {
                 "type": "object",
-                "required": ["league", "role", "session_selector", "session"],
+                "required": [
+                    "league",
+                    "role",
+                    "session_selector",
+                    "session"
+                ],
                 "properties": {
                     "league": {
                         "$ref": "#/components/schemas/LeagueHomeLeague"
@@ -6339,16 +6751,25 @@
                 ],
                 "properties": {
                     "id": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "status": {
                         "type": "string"
                     },
                     "session_date": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "current_game_number": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "streak": {
                         "$ref": "#/components/schemas/LeagueCompetitionStreak"
@@ -6366,10 +6787,16 @@
             },
             "LeagueCompetitionSessionSelector": {
                 "type": "object",
-                "required": ["selected_session_id", "sessions"],
+                "required": [
+                    "selected_session_id",
+                    "sessions"
+                ],
                 "properties": {
                     "selected_session_id": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "sessions": {
                         "type": "array",
@@ -6394,7 +6821,10 @@
                         "type": "integer"
                     },
                     "session_date": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "status": {
                         "type": "string"
@@ -6423,7 +6853,10 @@
                         "anyOf": [
                             {
                                 "type": "string",
-                                "enum": ["A", "B"]
+                                "enum": [
+                                    "A",
+                                    "B"
+                                ]
                             },
                             {
                                 "type": "null"
@@ -6440,7 +6873,10 @@
                         "anyOf": [
                             {
                                 "type": "string",
-                                "enum": ["A", "B"]
+                                "enum": [
+                                    "A",
+                                    "B"
+                                ]
                             },
                             {
                                 "type": "null"
@@ -6470,19 +6906,32 @@
                         "type": "boolean"
                     },
                     "jersey_number": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "arrival_order": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "preferred_position": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 }
             },
             "LeagueCompetitionShots": {
                 "type": "object",
-                "required": ["1", "2", "3"],
+                "required": [
+                    "1",
+                    "2",
+                    "3"
+                ],
                 "properties": {
                     "1": {
                         "type": "integer"
@@ -6527,7 +6976,10 @@
                         "type": "integer"
                     },
                     "cash_collected_cents": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "unpaid_members_count": {
                         "type": "integer"
@@ -6536,10 +6988,18 @@
             },
             "LeagueCompetitionIdentity": {
                 "type": "object",
-                "required": ["player_id", "name", "is_guest", "jersey_number"],
+                "required": [
+                    "player_id",
+                    "name",
+                    "is_guest",
+                    "jersey_number"
+                ],
                 "properties": {
                     "player_id": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "name": {
                         "type": "string"
@@ -6548,7 +7008,10 @@
                         "type": "boolean"
                     },
                     "jersey_number": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     }
                 }
             },
@@ -6568,7 +7031,13 @@
                 "properties": {
                     "state": {
                         "type": "string",
-                        "enum": ["idle", "draft", "live", "completed", "review"]
+                        "enum": [
+                            "idle",
+                            "draft",
+                            "live",
+                            "completed",
+                            "review"
+                        ]
                     },
                     "draft": {
                         "$ref": "#/components/schemas/LeagueGameDraft"
@@ -6618,7 +7087,10 @@
             },
             "LeagueGameDraft": {
                 "type": "object",
-                "required": ["entries", "can_start"],
+                "required": [
+                    "entries",
+                    "can_start"
+                ],
                 "properties": {
                     "entries": {
                         "type": "array",
@@ -6638,10 +7110,16 @@
                     },
                     {
                         "type": "object",
-                        "required": ["scout_role", "auto_draft_rating"],
+                        "required": [
+                            "scout_role",
+                            "auto_draft_rating"
+                        ],
                         "properties": {
                             "scout_role": {
-                                "type": ["string", "null"]
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
                             },
                             "auto_draft_rating": {
                                 "type": "number"
@@ -6660,10 +7138,16 @@
                 ],
                 "properties": {
                     "duration_seconds": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "remaining_seconds": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "state": {
                         "type": "string",
@@ -6675,13 +7159,22 @@
                         ]
                     },
                     "started_at": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 }
             },
             "LeagueGameRotationNotice": {
                 "type": "object",
-                "required": ["key", "title", "body", "tone", "icon"],
+                "required": [
+                    "key",
+                    "title",
+                    "body",
+                    "tone",
+                    "icon"
+                ],
                 "properties": {
                     "key": {
                         "type": "string"
@@ -6717,16 +7210,28 @@
                         "type": "boolean"
                     },
                     "selected_abandoned_game_id": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "session_date": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "title": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "description": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     }
                 }
             },
@@ -6750,7 +7255,10 @@
                         "type": "integer"
                     },
                     "session_date": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "game_number": {
                         "type": "integer"
@@ -6776,6 +7284,7 @@
                     "game_number",
                     "score",
                     "streak",
+                    "waiting_queue",
                     "team_a",
                     "team_b"
                 ],
@@ -6788,7 +7297,10 @@
                     },
                     "score": {
                         "type": "object",
-                        "required": ["team_a", "team_b"],
+                        "required": [
+                            "team_a",
+                            "team_b"
+                        ],
                         "properties": {
                             "team_a": {
                                 "type": "integer"
@@ -6800,6 +7312,12 @@
                     },
                     "streak": {
                         "$ref": "#/components/schemas/LeagueCompetitionStreak"
+                    },
+                    "waiting_queue": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/LeagueGameWaitingQueueEntry"
+                        }
                     },
                     "team_a": {
                         "type": "array",
@@ -6822,7 +7340,13 @@
                     },
                     {
                         "type": "object",
-                        "required": ["is_captain", "points", "shots"],
+                        "required": [
+                            "is_captain",
+                            "points",
+                            "shots",
+                            "can_yield_turn",
+                            "yield_candidate_ids"
+                        ],
                         "properties": {
                             "is_captain": {
                                 "type": "boolean"
@@ -6832,6 +7356,15 @@
                             },
                             "shots": {
                                 "$ref": "#/components/schemas/LeagueCompetitionShots"
+                            },
+                            "can_yield_turn": {
+                                "type": "boolean"
+                            },
+                            "yield_candidate_ids": {
+                                "type": "array",
+                                "items": {
+                                    "type": "integer"
+                                }
                             }
                         }
                     }
@@ -6860,7 +7393,10 @@
                         "anyOf": [
                             {
                                 "type": "string",
-                                "enum": ["A", "B"]
+                                "enum": [
+                                    "A",
+                                    "B"
+                                ]
                             },
                             {
                                 "type": "null"
@@ -6879,7 +7415,9 @@
                     },
                     {
                         "type": "object",
-                        "required": ["game"],
+                        "required": [
+                            "game"
+                        ],
                         "properties": {
                             "game": {
                                 "$ref": "#/components/schemas/LeagueGameModule"
@@ -6945,7 +7483,10 @@
                                 "anyOf": [
                                     {
                                         "type": "string",
-                                        "enum": ["A", "B"]
+                                        "enum": [
+                                            "A",
+                                            "B"
+                                        ]
                                     },
                                     {
                                         "type": "null"
@@ -6976,7 +7517,10 @@
                         ],
                         "properties": {
                             "position": {
-                                "type": ["integer", "null"]
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
                             },
                             "games_played": {
                                 "type": "integer"
@@ -6990,7 +7534,10 @@
             },
             "LeagueQueueLiveGame": {
                 "type": "object",
-                "required": ["game_number", "score"],
+                "required": [
+                    "game_number",
+                    "score"
+                ],
                 "properties": {
                     "game_number": {
                         "type": "integer"
@@ -7007,7 +7554,9 @@
                     },
                     {
                         "type": "object",
-                        "required": ["queue"],
+                        "required": [
+                            "queue"
+                        ],
                         "properties": {
                             "queue": {
                                 "$ref": "#/components/schemas/LeagueQueueModule"
@@ -7018,7 +7567,11 @@
             },
             "LeagueStatsModule": {
                 "type": "object",
-                "required": ["games_count", "points_leaders", "games_leaders"],
+                "required": [
+                    "games_count",
+                    "points_leaders",
+                    "games_leaders"
+                ],
                 "properties": {
                     "games_count": {
                         "type": "integer"
@@ -7039,7 +7592,12 @@
             },
             "LeagueStatsPointsLeader": {
                 "type": "object",
-                "required": ["identity", "points", "games", "shots"],
+                "required": [
+                    "identity",
+                    "points",
+                    "games",
+                    "shots"
+                ],
                 "properties": {
                     "identity": {
                         "$ref": "#/components/schemas/LeagueCompetitionIdentity"
@@ -7057,7 +7615,12 @@
             },
             "LeagueStatsGamesLeader": {
                 "type": "object",
-                "required": ["identity", "games", "wins", "losses"],
+                "required": [
+                    "identity",
+                    "games",
+                    "wins",
+                    "losses"
+                ],
                 "properties": {
                     "identity": {
                         "$ref": "#/components/schemas/LeagueCompetitionIdentity"
@@ -7080,7 +7643,9 @@
                     },
                     {
                         "type": "object",
-                        "required": ["stats"],
+                        "required": [
+                            "stats"
+                        ],
                         "properties": {
                             "stats": {
                                 "$ref": "#/components/schemas/LeagueStatsModule"
@@ -7091,7 +7656,12 @@
             },
             "LeagueTableModule": {
                 "type": "object",
-                "required": ["banner", "standings", "top_scorers", "top_games"],
+                "required": [
+                    "banner",
+                    "standings",
+                    "top_scorers",
+                    "top_games"
+                ],
                 "properties": {
                     "banner": {
                         "$ref": "#/components/schemas/LeagueTableBanner"
@@ -7118,7 +7688,11 @@
             },
             "LeagueTableBanner": {
                 "type": "object",
-                "required": ["games", "points", "players"],
+                "required": [
+                    "games",
+                    "points",
+                    "players"
+                ],
                 "properties": {
                     "games": {
                         "type": "integer"
@@ -7133,7 +7707,13 @@
             },
             "LeagueTableStandingRow": {
                 "type": "object",
-                "required": ["identity", "games", "wins", "losses", "win_rate"],
+                "required": [
+                    "identity",
+                    "games",
+                    "wins",
+                    "losses",
+                    "win_rate"
+                ],
                 "properties": {
                     "identity": {
                         "$ref": "#/components/schemas/LeagueCompetitionIdentity"
@@ -7154,7 +7734,11 @@
             },
             "LeagueTableTopScorer": {
                 "type": "object",
-                "required": ["identity", "points", "points_per_game"],
+                "required": [
+                    "identity",
+                    "points",
+                    "points_per_game"
+                ],
                 "properties": {
                     "identity": {
                         "$ref": "#/components/schemas/LeagueCompetitionIdentity"
@@ -7169,7 +7753,12 @@
             },
             "LeagueTableTopGames": {
                 "type": "object",
-                "required": ["identity", "games", "wins", "losses"],
+                "required": [
+                    "identity",
+                    "games",
+                    "wins",
+                    "losses"
+                ],
                 "properties": {
                     "identity": {
                         "$ref": "#/components/schemas/LeagueCompetitionIdentity"
@@ -7192,7 +7781,9 @@
                     },
                     {
                         "type": "object",
-                        "required": ["table"],
+                        "required": [
+                            "table"
+                        ],
                         "properties": {
                             "table": {
                                 "$ref": "#/components/schemas/LeagueTableModule"
@@ -7203,7 +7794,12 @@
             },
             "LeagueSeasonModule": {
                 "type": "object",
-                "required": ["season", "leaders", "sessions", "profiles"],
+                "required": [
+                    "season",
+                    "leaders",
+                    "sessions",
+                    "profiles"
+                ],
                 "properties": {
                     "season": {
                         "$ref": "#/components/schemas/LeagueSeasonMeta"
@@ -7236,13 +7832,19 @@
                 ],
                 "properties": {
                     "id": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "label": {
                         "type": "string"
                     },
                     "starts_on": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "sessions_count": {
                         "type": "integer"
@@ -7277,7 +7879,11 @@
             },
             "LeagueSeasonLeaders": {
                 "type": "object",
-                "required": ["points", "wins", "games"],
+                "required": [
+                    "points",
+                    "wins",
+                    "games"
+                ],
                 "properties": {
                     "points": {
                         "type": "array",
@@ -7314,7 +7920,10 @@
                         "type": "integer"
                     },
                     "date": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "total_games": {
                         "type": "integer"
@@ -7339,7 +7948,10 @@
             },
             "LeagueSeasonTopScorer": {
                 "type": "object",
-                "required": ["name", "points"],
+                "required": [
+                    "name",
+                    "points"
+                ],
                 "properties": {
                     "name": {
                         "type": "string"
@@ -7404,7 +8016,10 @@
                         "type": "integer"
                     },
                     "points_allowed_per_game": {
-                        "type": ["number", "null"]
+                        "type": [
+                            "number",
+                            "null"
+                        ]
                     }
                 }
             },
@@ -7415,7 +8030,9 @@
                     },
                     {
                         "type": "object",
-                        "required": ["season"],
+                        "required": [
+                            "season"
+                        ],
                         "properties": {
                             "season": {
                                 "$ref": "#/components/schemas/LeagueSeasonModule"
@@ -7440,13 +8057,22 @@
                 ],
                 "properties": {
                     "position": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "role": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "offensive_consistency": {
-                        "type": ["string", "null"]
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "speed_rating": {
                         "type": "integer"
@@ -7473,7 +8099,11 @@
             },
             "LeagueScoutMeta": {
                 "type": "object",
-                "required": ["positions", "roles", "consistencies"],
+                "required": [
+                    "positions",
+                    "roles",
+                    "consistencies"
+                ],
                 "properties": {
                     "positions": {
                         "type": "array",
@@ -7535,7 +8165,10 @@
                         "type": "integer"
                     },
                     "points_allowed_per_game": {
-                        "type": ["number", "null"]
+                        "type": [
+                            "number",
+                            "null"
+                        ]
                     },
                     "triple_rate": {
                         "type": "integer"
@@ -7671,13 +8304,22 @@
                                 "type": "number"
                             },
                             "role": {
-                                "type": ["string", "null"]
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
                             },
                             "position": {
-                                "type": ["string", "null"]
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
                             },
                             "offensive_consistency": {
-                                "type": ["string", "null"]
+                                "type": [
+                                    "string",
+                                    "null"
+                                ]
                             },
                             "has_stats": {
                                 "type": "boolean"
@@ -7770,7 +8412,9 @@
                     },
                     {
                         "type": "object",
-                        "required": ["scout"],
+                        "required": [
+                            "scout"
+                        ],
                         "properties": {
                             "scout": {
                                 "$ref": "#/components/schemas/LeagueScoutModule"
@@ -7781,31 +8425,51 @@
             },
             "LeagueGameDraftRequest": {
                 "type": "object",
-                "required": ["mode"],
+                "required": [
+                    "mode"
+                ],
                 "properties": {
                     "mode": {
                         "type": "string",
-                        "enum": ["auto", "arrival", "manual", "random"]
+                        "enum": [
+                            "auto",
+                            "arrival",
+                            "manual",
+                            "random"
+                        ]
                     },
                     "captain_mode": {
                         "type": "string",
-                        "enum": ["arrival", "manual", "random"]
+                        "enum": [
+                            "arrival",
+                            "manual",
+                            "random"
+                        ]
                     },
                     "assignments": {
                         "type": "object",
                         "additionalProperties": {
                             "type": "string",
-                            "enum": ["A", "B"]
+                            "enum": [
+                                "A",
+                                "B"
+                            ]
                         }
                     },
                     "captains": {
                         "type": "object",
                         "properties": {
                             "A": {
-                                "type": ["integer", "null"]
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
                             },
                             "B": {
-                                "type": ["integer", "null"]
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
                             }
                         },
                         "additionalProperties": false
@@ -7814,7 +8478,9 @@
             },
             "LeagueQueueReorderRequest": {
                 "type": "object",
-                "required": ["entry_ids"],
+                "required": [
+                    "entry_ids"
+                ],
                 "properties": {
                     "entry_ids": {
                         "type": "array",
@@ -7827,21 +8493,32 @@
             },
             "LeagueGameTeamPointRequest": {
                 "type": "object",
-                "required": ["team_side"],
+                "required": [
+                    "team_side"
+                ],
                 "properties": {
                     "team_side": {
                         "type": "string",
-                        "enum": ["A", "B"]
+                        "enum": [
+                            "A",
+                            "B"
+                        ]
                     }
                 }
             },
             "LeagueGamePlayerPointRequest": {
                 "type": "object",
-                "required": ["points"],
+                "required": [
+                    "points"
+                ],
                 "properties": {
                     "points": {
                         "type": "integer",
-                        "enum": [1, 2, 3]
+                        "enum": [
+                            1,
+                            2,
+                            3
+                        ]
                     }
                 }
             },
@@ -7852,7 +8529,10 @@
                         "anyOf": [
                             {
                                 "type": "string",
-                                "enum": ["A", "B"]
+                                "enum": [
+                                    "A",
+                                    "B"
+                                ]
                             },
                             {
                                 "type": "null"
@@ -7863,11 +8543,16 @@
             },
             "LeagueGameResolveAbandonedRequest": {
                 "type": "object",
-                "required": ["winner_side"],
+                "required": [
+                    "winner_side"
+                ],
                 "properties": {
                     "winner_side": {
                         "type": "string",
-                        "enum": ["A", "B"]
+                        "enum": [
+                            "A",
+                            "B"
+                        ]
                     }
                 }
             },
@@ -7884,15 +8569,24 @@
                 ],
                 "properties": {
                     "position": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "maxLength": 50
                     },
                     "role": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "maxLength": 50
                     },
                     "offensive_consistency": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "maxLength": 50
                     },
                     "speed_rating": {
@@ -7934,7 +8628,13 @@
             },
             "LeagueGameResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -7958,7 +8658,13 @@
             },
             "LeagueQueueResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -7982,7 +8688,13 @@
             },
             "LeagueStatsResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -8006,7 +8718,13 @@
             },
             "LeagueTableResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -8030,7 +8748,13 @@
             },
             "LeagueSeasonResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -8054,7 +8778,13 @@
             },
             "LeagueScoutResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -8078,7 +8808,13 @@
             },
             "LeagueHomeResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -8102,7 +8838,13 @@
             },
             "LeagueArrivalResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -8126,7 +8868,13 @@
             },
             "LeagueManagementResponse": {
                 "type": "object",
-                "required": ["success", "message", "data", "errors", "meta"],
+                "required": [
+                    "success",
+                    "message",
+                    "data",
+                    "errors",
+                    "meta"
+                ],
                 "properties": {
                     "success": {
                         "type": "boolean",
@@ -8152,13 +8900,18 @@
                 "type": "object",
                 "properties": {
                     "paid": {
-                        "type": ["boolean", "null"]
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
                     }
                 }
             },
             "LeagueArrivalGuestStoreRequest": {
                 "type": "object",
-                "required": ["guest_name"],
+                "required": [
+                    "guest_name"
+                ],
                 "properties": {
                     "guest_name": {
                         "type": "string"
@@ -8167,7 +8920,9 @@
             },
             "LeagueArrivalGuestUpdateRequest": {
                 "type": "object",
-                "required": ["guest_fee_paid"],
+                "required": [
+                    "guest_fee_paid"
+                ],
                 "properties": {
                     "guest_fee_paid": {
                         "type": "boolean"
@@ -8181,7 +8936,10 @@
                         "type": "array",
                         "items": {
                             "type": "object",
-                            "required": ["id", "paid"],
+                            "required": [
+                                "id",
+                                "paid"
+                            ],
                             "properties": {
                                 "id": {
                                     "type": "integer"
@@ -8196,10 +8954,15 @@
             },
             "LeagueManagementPaymentRequest": {
                 "type": "object",
-                "required": ["amount_cents"],
+                "required": [
+                    "amount_cents"
+                ],
                 "properties": {
                     "cut_id": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "amount_cents": {
                         "type": "integer"
@@ -8211,10 +8974,16 @@
             },
             "LeagueManagementExpenseRequest": {
                 "type": "object",
-                "required": ["name", "amount_cents"],
+                "required": [
+                    "name",
+                    "amount_cents"
+                ],
                 "properties": {
                     "cut_id": {
-                        "type": ["integer", "null"]
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
                     },
                     "name": {
                         "type": "string"
@@ -8267,7 +9036,10 @@
             },
             "LeagueManagementReferralRequest": {
                 "type": "object",
-                "required": ["referrer_player_id", "referred_player_id"],
+                "required": [
+                    "referrer_player_id",
+                    "referred_player_id"
+                ],
                 "properties": {
                     "referrer_player_id": {
                         "type": "integer"
@@ -8299,26 +9071,41 @@
                         "maxLength": 50
                     },
                     "phone": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "maxLength": 50
                     },
                     "address": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "maxLength": 255
                     },
                     "email": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "email",
                         "maxLength": 255
                     },
                     "jersey_number": {
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
                         "minimum": 0,
                         "maximum": 99
                     },
                     "account_role": {
                         "type": "string",
-                        "enum": ["league_admin", "member"]
+                        "enum": [
+                            "league_admin",
+                            "member"
+                        ]
                     }
                 }
             },
@@ -8344,32 +9131,49 @@
                         "maxLength": 50
                     },
                     "phone": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "maxLength": 50
                     },
                     "address": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "maxLength": 255
                     },
                     "email": {
-                        "type": ["string", "null"],
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "format": "email",
                         "maxLength": 255
                     },
                     "jersey_number": {
-                        "type": ["integer", "null"],
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
                         "minimum": 0,
                         "maximum": 99
                     },
                     "account_role": {
                         "type": "string",
-                        "enum": ["league_admin", "member"]
+                        "enum": [
+                            "league_admin",
+                            "member"
+                        ]
                     }
                 }
             },
             "LeagueManagementPlayerStatusRequest": {
                 "type": "object",
-                "required": ["active"],
+                "required": [
+                    "active"
+                ],
                 "properties": {
                     "active": {
                         "type": "boolean"
@@ -8378,13 +9182,36 @@
             },
             "LeagueGameClockRequest": {
                 "type": "object",
-                "required": ["duration_seconds"],
+                "required": [
+                    "duration_seconds"
+                ],
                 "properties": {
                     "duration_seconds": {
                         "type": "integer",
                         "minimum": 1
                     }
                 }
+            },
+            "LeagueGameWaitingQueueEntry": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/LeagueCompetitionEntryCard"
+                    },
+                    {
+                        "type": "object",
+                        "required": [
+                            "position"
+                        ],
+                        "properties": {
+                            "position": {
+                                "type": [
+                                    "integer",
+                                    "null"
+                                ]
+                            }
+                        }
+                    }
+                ]
             }
         }
     }
