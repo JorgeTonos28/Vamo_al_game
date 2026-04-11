@@ -513,10 +513,16 @@ export type LeagueEntryCard = {
     preferred_position: string | null;
 };
 
+export type LeagueWaitingQueueEntry = LeagueEntryCard & {
+    position: number | null;
+};
+
 export type LeagueTeamPlayer = LeagueEntryCard & {
     is_captain: boolean;
     points: number;
     shots: { 1: number; 2: number; 3: number };
+    can_yield_turn: boolean;
+    yield_candidate_ids: number[];
 };
 
 export type LeagueGamePayload = LeagueCompetitionBase & {
@@ -566,6 +572,7 @@ export type LeagueGamePayload = LeagueCompetitionBase & {
             game_number: number;
             score: { team_a: number; team_b: number };
             streak: LeagueCompetitionSession['streak'];
+            waiting_queue: LeagueWaitingQueueEntry[];
             team_a: LeagueTeamPlayer[];
             team_b: LeagueTeamPlayer[];
         };
@@ -954,9 +961,17 @@ export async function revertLeaguePlayerPoint(
 
 export async function removeLeagueGamePlayer(
     entryId: number,
+    payload: {
+        action: 'remove' | 'yield';
+        replacementEntryId?: number;
+    },
 ): Promise<LeagueGamePayload> {
     const { data } = await api.post<ApiSuccess<LeagueGamePayload>>(
         `/league/modules/game/players/${entryId}/remove`,
+        {
+            action: payload.action,
+            replacement_entry_id: payload.replacementEntryId,
+        },
     );
 
     return data.data;

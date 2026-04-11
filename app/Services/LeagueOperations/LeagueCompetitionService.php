@@ -126,6 +126,14 @@ class LeagueCompetitionService
                         'team_b' => $displayGame->team_b_score,
                     ],
                     'streak' => $this->streakPayload($session),
+                    'waiting_queue' => $isReviewingAbandoned
+                        ? []
+                        : $this->queueEntries($session)
+                            ->map(fn (LeagueSessionEntry $entry): array => [
+                                ...$this->entryCard($entry),
+                                'position' => $entry->queue_position,
+                            ])
+                            ->all(),
                     'team_a' => $isReviewingAbandoned
                         ? $this->teamPayloadFromSnapshot($displayGame, 'A')
                         : $this->currentTeamPayload($session, $displayGame, 'A'),
@@ -641,37 +649,71 @@ class LeagueCompetitionService
         ])->save();
     }
 
-    public function removePlayer(User $user, LeagueSessionEntry $entry): void
+    public function removePlayer(
+        User $user,
+        LeagueSessionEntry $entry,
+        string $action = 'remove',
+        ?LeagueSessionEntry $replacement = null,
+    ): void
     {
         $context = $this->adminContext($user);
         $session = $context['session'];
         $game = $this->requireOpenGame($session);
         $this->guardEntryBelongsToSession($session, $entry);
         $this->guardEntryOnCourt($entry);
-        $this->storeBeforeState($session, $game, 'player_removed', $user);
+        $teamSide = (string) $entry->team_side;
+        $selectedAction = $action === 'yield' ? 'yield' : 'remove';
+        $this->storeBeforeState(
+            $session,
+            $game,
+            $selectedAction === 'yield' ? 'player_yielded' : 'player_removed',
+            $user,
+        );
 
-        $replacement = $this->nextQueueReplacement($session, (string) $entry->team_side);
+        $resolvedReplacement = $selectedAction === 'yield'
+            ? $this->guardYieldReplacement($session, $game, $entry, $replacement)
+            : $this->nextQueueReplacement($session, $game, $entry);
 
-        DB::transaction(function () use ($entry, $replacement, $session, $game): void {
-            $teamSide = $entry->team_side;
+        DB::transaction(function () use (
+            $entry,
+            $resolvedReplacement,
+            $session,
+            $game,
+            $teamSide,
+            $selectedAction
+        ): void {
+            if ($selectedAction === 'yield') {
+                $queuePosition = $resolvedReplacement?->queue_position;
 
-            $entry->forceFill([
-                'session_state' => 'removed',
-                'team_side' => null,
-                'queue_position' => null,
-            ])->save();
+                $entry->forceFill([
+                    'session_state' => 'queued',
+                    'team_side' => null,
+                    'queue_position' => $queuePosition,
+                ])->save();
+            } else {
+                $entry->forceFill([
+                    'session_state' => 'removed',
+                    'team_side' => null,
+                    'queue_position' => null,
+                ])->save();
+            }
 
-            if ($replacement !== null) {
-                $replacement->forceFill([
+            if ($resolvedReplacement !== null) {
+                $resolvedReplacement->forceFill([
                     'session_state' => 'on_court',
                     'team_side' => $teamSide,
                     'queue_position' => null,
                 ])->save();
-
-                $this->resequenceQueue($session->fresh('entries'));
             }
 
-            $this->syncGameSnapshots($game->fresh(), $session->fresh(['entries.player']));
+            $this->resequenceQueue($session->fresh('entries'));
+            $this->syncTeamSnapshotAfterTransition(
+                $game->fresh(),
+                $session->fresh(['entries.player.scoutProfile']),
+                $teamSide,
+                $entry,
+                $resolvedReplacement,
+            );
         });
     }
 
@@ -1568,6 +1610,7 @@ class LeagueCompetitionService
     {
         $points = $game->player_points ?? [];
         $shots = $game->player_shots ?? [];
+        $waitingQueue = $this->queueEntries($session);
         $snapshotMeta = collect($teamSide === 'A' ? ($game->team_a_snapshot ?? []) : ($game->team_b_snapshot ?? []))
             ->values()
             ->mapWithKeys(fn (array $row, int $index): array => [
@@ -1590,17 +1633,24 @@ class LeagueCompetitionService
                 return ($left->arrival_order ?? PHP_INT_MAX) <=> ($right->arrival_order ?? PHP_INT_MAX);
             })
             ->values()
-            ->map(function (LeagueSessionEntry $entry) use ($points, $shots, $snapshotMeta): array {
+            ->map(function (LeagueSessionEntry $entry) use ($points, $shots, $snapshotMeta, $session, $game, $waitingQueue): array {
                 $entryKey = (string) $entry->id;
                 $meta = $snapshotMeta->get($entry->id, [
                     'is_captain' => false,
                 ]);
+                $yieldCandidateIds = $this->yieldReplacementCandidates($session, $game, $entry, $waitingQueue)
+                    ->pluck('id')
+                    ->map(fn ($id): int => (int) $id)
+                    ->values()
+                    ->all();
 
                 return [
                     ...$this->entryCard($entry),
                     'is_captain' => (bool) ($meta['is_captain'] ?? false),
                     'points' => (int) ($points[$entryKey] ?? 0),
                     'shots' => $shots[$entryKey] ?? ['1' => 0, '2' => 0, '3' => 0],
+                    'can_yield_turn' => count($yieldCandidateIds) > 0,
+                    'yield_candidate_ids' => $yieldCandidateIds,
                 ];
             })
             ->all();
@@ -1629,6 +1679,8 @@ class LeagueCompetitionService
                     'is_captain' => (bool) ($participant['is_captain'] ?? false),
                     'points' => (int) ($points[$entryKey] ?? 0),
                     'shots' => $shots[$entryKey] ?? ['1' => 0, '2' => 0, '3' => 0],
+                    'can_yield_turn' => false,
+                    'yield_candidate_ids' => [],
                 ];
             })
             ->all();
@@ -2047,9 +2099,9 @@ class LeagueCompetitionService
     /**
      * @return array<string, mixed>
      */
-    private function entrySnapshot(LeagueSessionEntry $entry, bool $isCaptain = false): array
+    private function entrySnapshot(LeagueSessionEntry $entry, bool $isCaptain = false, array $overrides = []): array
     {
-        return [
+        return array_replace([
             'entry_id' => $entry->id,
             'player_id' => $entry->player?->id,
             'name' => $entry->entry_type === 'guest' ? $entry->guest_name : $entry->player?->display_name,
@@ -2058,7 +2110,9 @@ class LeagueCompetitionService
             'jersey_number' => $entry->player?->jersey_number,
             'arrival_order' => $entry->arrival_order,
             'preferred_position' => $entry->player?->scoutProfile?->position,
-        ];
+            'lineup_status' => 'active',
+            'result_counts' => true,
+        ], $overrides);
     }
 
     private function syncGameSnapshots(LeagueSessionGame $game, LeagueSession $session): void
@@ -2071,31 +2125,124 @@ class LeagueCompetitionService
             'B' => $previousTeamB
                 ->first(fn (array $participant): bool => (bool) ($participant['is_captain'] ?? false))['entry_id'] ?? null,
         ];
-        $orderMaps = [
-            'A' => $previousTeamA
-                ->values()
-                ->mapWithKeys(fn (array $participant, int $index): array => [(int) ($participant['entry_id'] ?? 0) => $index]),
-            'B' => $previousTeamB
-                ->values()
-                ->mapWithKeys(fn (array $participant, int $index): array => [(int) ($participant['entry_id'] ?? 0) => $index]),
-        ];
-        $teamA = $this->orderedOnCourtTeamForSnapshot($session, 'A', $orderMaps['A'], $captainIds['A']);
-        $teamB = $this->orderedOnCourtTeamForSnapshot($session, 'B', $orderMaps['B'], $captainIds['B']);
+        $game->forceFill([
+            'team_a_snapshot' => $this->mergedTeamSnapshot(
+                $session,
+                'A',
+                $previousTeamA,
+                $captainIds['A'],
+            ),
+            'team_b_snapshot' => $this->mergedTeamSnapshot(
+                $session,
+                'B',
+                $previousTeamB,
+                $captainIds['B'],
+            ),
+        ])->save();
+    }
+
+    private function syncTeamSnapshotAfterTransition(
+        LeagueSessionGame $game,
+        LeagueSession $session,
+        string $teamSide,
+        LeagueSessionEntry $outgoing,
+        ?LeagueSessionEntry $incoming,
+    ): void {
+        $previousTeam = collect($teamSide === 'A' ? ($game->team_a_snapshot ?? []) : ($game->team_b_snapshot ?? []));
+        $captainId = $previousTeam
+            ->first(fn (array $participant): bool => (bool) ($participant['is_captain'] ?? false))['entry_id'] ?? null;
+        $preferredOrder = [];
+        $outgoingIndex = $previousTeam
+            ->search(fn (array $participant): bool => (int) ($participant['entry_id'] ?? 0) === $outgoing->id);
+
+        if ($incoming !== null && $outgoingIndex !== false) {
+            $preferredOrder[$incoming->id] = (int) $outgoingIndex;
+        }
+
+        $snapshot = $this->mergedTeamSnapshot(
+            $session,
+            $teamSide,
+            $previousTeam,
+            $captainId,
+            $preferredOrder,
+        );
 
         $game->forceFill([
-            'team_a_snapshot' => $teamA->map(
-                fn (LeagueSessionEntry $entry): array => $this->entrySnapshot(
-                    $entry,
-                    $captainIds['A'] === $entry->id,
-                )
-            )->all(),
-            'team_b_snapshot' => $teamB->map(
-                fn (LeagueSessionEntry $entry): array => $this->entrySnapshot(
-                    $entry,
-                    $captainIds['B'] === $entry->id,
-                )
-            )->all(),
+            $teamSide === 'A' ? 'team_a_snapshot' : 'team_b_snapshot' => $snapshot,
         ])->save();
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $previousTeam
+     * @param  array<int, int>  $preferredOrder
+     * @return array<int, array<string, mixed>>
+     */
+    private function mergedTeamSnapshot(
+        LeagueSession $session,
+        string $teamSide,
+        Collection $previousTeam,
+        ?int $captainId,
+        array $preferredOrder = [],
+    ): array {
+        $previousMeta = $previousTeam
+            ->values()
+            ->mapWithKeys(fn (array $participant, int $index): array => [
+                (int) ($participant['entry_id'] ?? 0) => [
+                    'participant' => $participant,
+                    'order' => $preferredOrder[(int) ($participant['entry_id'] ?? 0)] ?? $index,
+                ],
+            ]);
+        $currentTeam = $this->onCourtEntries($session)
+            ->where('team_side', $teamSide)
+            ->sort(function (LeagueSessionEntry $left, LeagueSessionEntry $right) use ($previousMeta, $preferredOrder): int {
+                $leftMeta = $previousMeta->get($left->id);
+                $rightMeta = $previousMeta->get($right->id);
+                $leftOrder = $preferredOrder[$left->id] ?? ($leftMeta['order'] ?? null);
+                $rightOrder = $preferredOrder[$right->id] ?? ($rightMeta['order'] ?? null);
+
+                if ($leftOrder !== null && $rightOrder !== null && $leftOrder !== $rightOrder) {
+                    return $leftOrder <=> $rightOrder;
+                }
+
+                if ($leftOrder !== null) {
+                    return -1;
+                }
+
+                if ($rightOrder !== null) {
+                    return 1;
+                }
+
+                return ($left->arrival_order ?? PHP_INT_MAX) <=> ($right->arrival_order ?? PHP_INT_MAX);
+            })
+            ->values();
+        $activeEntryIds = $currentTeam->pluck('id')->all();
+
+        $activeRows = $currentTeam
+            ->map(function (LeagueSessionEntry $entry) use ($captainId): array {
+                return $this->entrySnapshot(
+                    $entry,
+                    $captainId !== null && $captainId === $entry->id,
+                    [
+                        'lineup_status' => 'active',
+                        'result_counts' => true,
+                    ],
+                );
+            });
+
+        $inactiveRows = $previousTeam
+            ->values()
+            ->filter(fn (array $participant): bool => ! in_array((int) ($participant['entry_id'] ?? 0), $activeEntryIds, true))
+            ->map(function (array $participant): array {
+                $participant['lineup_status'] = 'exited';
+                $participant['result_counts'] = false;
+
+                return $participant;
+            });
+
+        return $activeRows
+            ->concat($inactiveRows)
+            ->values()
+            ->all();
     }
 
     /**
@@ -2218,6 +2365,15 @@ class LeagueCompetitionService
         }
     }
 
+    private function guardEntryQueued(LeagueSessionEntry $entry): void
+    {
+        if ($entry->session_state !== 'queued' || $entry->queue_position === null) {
+            throw ValidationException::withMessages([
+                'replacement_entry_id' => 'Solo puedes ceder el turno a jugadores que esten en cola.',
+            ]);
+        }
+    }
+
     private function guardPointsValue(int $points): void
     {
         if (! in_array($points, [1, 2, 3], true)) {
@@ -2306,19 +2462,95 @@ class LeagueCompetitionService
         ])->save();
     }
 
-    private function nextQueueReplacement(LeagueSession $session, string $teamSide): ?LeagueSessionEntry
+    private function guardYieldReplacement(
+        LeagueSession $session,
+        LeagueSessionGame $game,
+        LeagueSessionEntry $outgoing,
+        ?LeagueSessionEntry $replacement,
+    ): LeagueSessionEntry
     {
-        $currentGuestCount = $this->onCourtEntries($session)
-            ->where('team_side', $teamSide)
-            ->where('entry_type', 'guest')
-            ->count();
+        if ($replacement === null) {
+            throw ValidationException::withMessages([
+                'replacement_entry_id' => 'Debes seleccionar un jugador de la cola para ceder el turno.',
+            ]);
+        }
 
+        $this->guardEntryBelongsToSession($session, $replacement);
+        $this->guardEntryQueued($replacement);
+
+        $allowedIds = $this->yieldReplacementCandidates($session, $game, $outgoing)
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        if (! in_array($replacement->id, $allowedIds, true)) {
+            throw ValidationException::withMessages([
+                'replacement_entry_id' => 'Ese jugador no puede entrar ahora mismo desde la cola seleccionada.',
+            ]);
+        }
+
+        return $replacement;
+    }
+
+    /**
+     * @param  Collection<int, LeagueSessionEntry>|null  $queueEntries
+     * @return Collection<int, LeagueSessionEntry>
+     */
+    private function yieldReplacementCandidates(
+        LeagueSession $session,
+        LeagueSessionGame $game,
+        LeagueSessionEntry $outgoing,
+        ?Collection $queueEntries = null,
+    ): Collection {
+        $queueEntries ??= $this->queueEntries($session);
+        $playedEntryIds = $this->gameParticipantEntryIds($game);
+        $eligibleQueue = $queueEntries
+            ->filter(fn (LeagueSessionEntry $entry): bool => ! in_array($entry->id, $playedEntryIds, true))
+            ->values();
+        $memberCount = $eligibleQueue
+            ->where('entry_type', '!=', 'guest')
+            ->count();
+        $adjustedGuestCount = max(
+            0,
+            $this->onCourtEntries($session)
+                ->where('team_side', $outgoing->team_side)
+                ->where('entry_type', 'guest')
+                ->count() - ($outgoing->entry_type === 'guest' ? 1 : 0),
+        );
+        $guestSlots = max(0, $this->incomingTeamGuestLimit($session) - $adjustedGuestCount);
+
+        return $eligibleQueue
+            ->filter(function (LeagueSessionEntry $entry) use ($guestSlots, $memberCount): bool {
+                if ($entry->entry_type !== 'guest') {
+                    return true;
+                }
+
+                return $guestSlots > 0 || $memberCount === 0;
+            })
+            ->values();
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function gameParticipantEntryIds(LeagueSessionGame $game): array
+    {
+        return collect(array_merge($game->team_a_snapshot ?? [], $game->team_b_snapshot ?? []))
+            ->pluck('entry_id')
+            ->map(fn ($id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->values()
+            ->all();
+    }
+
+    private function nextQueueReplacement(
+        LeagueSession $session,
+        LeagueSessionGame $game,
+        LeagueSessionEntry $outgoing,
+    ): ?LeagueSessionEntry
+    {
         /** @var LeagueSessionEntry|null $entry */
-        $entry = $this->selectIncomingEntries(
-            $this->queueEntries($session),
-            1,
-            max(0, $this->incomingTeamGuestLimit($session) - $currentGuestCount),
-        )->first();
+        $entry = $this->yieldReplacementCandidates($session, $game, $outgoing)->first();
 
         return $entry;
     }
@@ -2731,11 +2963,25 @@ class LeagueCompetitionService
             $shots = $game->player_shots ?? [];
 
             foreach ($teamA as $participant) {
-                $this->accumulateGameStats($stats, $participant, $points, $shots, $game->winner_side === 'A', $game->team_b_score);
+                $this->accumulateGameStats(
+                    $stats,
+                    $participant,
+                    $points,
+                    $shots,
+                    $game->winner_side === 'A',
+                    $game->team_b_score,
+                );
             }
 
             foreach ($teamB as $participant) {
-                $this->accumulateGameStats($stats, $participant, $points, $shots, $game->winner_side === 'B', $game->team_a_score);
+                $this->accumulateGameStats(
+                    $stats,
+                    $participant,
+                    $points,
+                    $shots,
+                    $game->winner_side === 'B',
+                    $game->team_a_score,
+                );
             }
         }
 
@@ -2768,11 +3014,16 @@ class LeagueCompetitionService
         ]);
 
         $existing['points'] += (int) ($points[$entryKey] ?? 0);
-        $existing['games']++;
-        $existing['wins'] += $won ? 1 : 0;
-        $existing['losses'] += $won ? 0 : 1;
-        $existing['points_allowed'] += $pointsAllowed;
-        $existing['games_defended']++;
+        $countsResult = (bool) ($participant['result_counts'] ?? true);
+
+        if ($countsResult) {
+            $existing['games']++;
+            $existing['wins'] += $won ? 1 : 0;
+            $existing['losses'] += $won ? 0 : 1;
+            $existing['points_allowed'] += $pointsAllowed;
+            $existing['games_defended']++;
+        }
+
         foreach (['1', '2', '3'] as $shotType) {
             $existing['shots'][$shotType] += (int) ($shots[$entryKey][$shotType] ?? 0);
         }
@@ -3035,7 +3286,8 @@ class LeagueCompetitionService
         return $this->resolvedCompletedGames($session->games)
             ->sum(function (LeagueSessionGame $game) use ($entry): int {
                 return collect(array_merge($game->team_a_snapshot ?? [], $game->team_b_snapshot ?? []))
-                    ->contains(fn (array $participant): bool => (int) ($participant['entry_id'] ?? 0) === $entry->id)
+                    ->contains(fn (array $participant): bool => (int) ($participant['entry_id'] ?? 0) === $entry->id
+                        && (bool) ($participant['result_counts'] ?? true))
                     ? 1
                     : 0;
             });

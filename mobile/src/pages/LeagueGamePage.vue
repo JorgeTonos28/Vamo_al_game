@@ -28,7 +28,11 @@ import {
     startLeagueGameClock,
     undoLeagueGameAction,
 } from '@/services/league';
-import type { LeagueGamePayload, LeagueTeamPlayer } from '@/services/league';
+import type {
+    LeagueGamePayload,
+    LeagueTeamPlayer,
+    LeagueWaitingQueueEntry,
+} from '@/services/league';
 import { buildDraftPreview } from '../../../packages/shared/leagueDraftPreview';
 import type {
     CaptainMode,
@@ -48,6 +52,11 @@ type RotationNotice = NonNullable<LeagueGamePayload['game']['rotation_notice']>;
 type DraftAlert = { title: string; body: string[] };
 type DraftEntry = LeagueGamePayload['game']['draft']['entries'][number];
 type DraftPreviewTeamPlayer = DraftPreviewPlayer<DraftEntry>;
+type PlayerExitStep =
+    | 'choose'
+    | 'remove-confirm'
+    | 'yield-select'
+    | 'yield-confirm';
 const DEFAULT_CLOCK_DURATION_SECONDS = 20 * 60;
 
 const payload = ref<LeagueGamePayload | null>(null);
@@ -67,6 +76,8 @@ const draftPreview = ref<{
 const selectedPlayer = ref<LeagueTeamPlayer | null>(null);
 const revertPlayer = ref<LeagueTeamPlayer | null>(null);
 const playerToRemove = ref<LeagueTeamPlayer | null>(null);
+const playerExitStep = ref<PlayerExitStep>('choose');
+const playerYieldTargetId = ref<number | null>(null);
 const scoreFlash = ref<ScoreFlashState | null>(null);
 const scoreBumpSide = ref<TeamSide | null>(null);
 const actionError = ref('');
@@ -108,6 +119,9 @@ const pageDescription = computed(() =>
         : 'Draft, marcador, historial y cierre de la jornada.',
 );
 const draftEntries = computed(() => payload.value?.game.draft.entries ?? []);
+const currentWaitingQueue = computed(
+    () => payload.value?.game.current?.waiting_queue ?? [],
+);
 const teamACount = computed(
     () =>
         draftPreview.value?.counts.A ??
@@ -212,10 +226,45 @@ const scoreboardContextLabel = computed(() =>
         ? (payload.value?.game.review.session_date ?? 'Jornada histórica')
         : streakLabel.value,
 );
+const playerExitCandidates = computed<LeagueWaitingQueueEntry[]>(() => {
+    if (!playerToRemove.value) {
+        return [];
+    }
+
+    const allowedIds = new Set(playerToRemove.value.yield_candidate_ids);
+
+    return currentWaitingQueue.value.filter((entry) =>
+        allowedIds.has(entry.id),
+    );
+});
+const selectedYieldCandidate = computed<LeagueWaitingQueueEntry | null>(() => {
+    if (playerYieldTargetId.value === null) {
+        return null;
+    }
+
+    return (
+        playerExitCandidates.value.find(
+            (entry) => entry.id === playerYieldTargetId.value,
+        ) ?? null
+    );
+});
 let scoreFeedbackNonce = 0;
 let scoreFlashTimer: ReturnType<typeof setTimeout> | null = null;
 let scoreBumpTimer: ReturnType<typeof setTimeout> | null = null;
 let clockTicker: ReturnType<typeof setInterval> | null = null;
+
+watch(
+    () => playerExitCandidates.value.map((entry) => entry.id),
+    (candidateIds) => {
+        if (
+            playerYieldTargetId.value !== null &&
+            !candidateIds.includes(playerYieldTargetId.value)
+        ) {
+            playerYieldTargetId.value = candidateIds[0] ?? null;
+        }
+    },
+    { immediate: true },
+);
 
 watch(
     () => payload.value?.game.rotation_notice,
@@ -416,7 +465,10 @@ async function loadPage(abandonedGameId?: number): Promise<void> {
 
         if (
             abandonedGameId !== undefined &&
-            Object.prototype.hasOwnProperty.call(fieldErrors, 'abandoned_game_id')
+            Object.prototype.hasOwnProperty.call(
+                fieldErrors,
+                'abandoned_game_id',
+            )
         ) {
             abandonedGamesOpen.value = false;
             payload.value = await fetchLeagueGame();
@@ -649,7 +701,51 @@ function openRemovePlayerModal(player: LeagueTeamPlayer): void {
         return;
     }
 
+    actionError.value = '';
     playerToRemove.value = player;
+    playerExitStep.value = 'choose';
+    playerYieldTargetId.value = null;
+}
+
+function closePlayerExitModal(): void {
+    playerToRemove.value = null;
+    playerExitStep.value = 'choose';
+    playerYieldTargetId.value = null;
+}
+
+function choosePlayerExitAction(action: 'remove' | 'yield'): void {
+    if (!playerToRemove.value) {
+        return;
+    }
+
+    actionError.value = '';
+
+    if (action === 'yield') {
+        if (playerExitCandidates.value.length === 0) {
+            return;
+        }
+
+        playerYieldTargetId.value =
+            playerYieldTargetId.value ??
+            playerExitCandidates.value[0]?.id ??
+            null;
+        playerExitStep.value = 'yield-select';
+
+        return;
+    }
+
+    playerExitStep.value = 'remove-confirm';
+}
+
+function advanceYieldConfirmation(): void {
+    if (!selectedYieldCandidate.value) {
+        actionError.value =
+            'Selecciona un jugador elegible de la cola para ceder el turno.';
+
+        return;
+    }
+
+    playerExitStep.value = 'yield-confirm';
 }
 
 async function confirmRemovePlayer(): Promise<void> {
@@ -660,8 +756,32 @@ async function confirmRemovePlayer(): Promise<void> {
     actionError.value = '';
 
     try {
-        payload.value = await removeLeagueGamePlayer(playerToRemove.value.id);
-        playerToRemove.value = null;
+        payload.value = await removeLeagueGamePlayer(playerToRemove.value.id, {
+            action: 'remove',
+        });
+        closePlayerExitModal();
+    } catch (error) {
+        actionError.value = extractApiError(error);
+    }
+}
+
+async function confirmYieldTurn(): Promise<void> {
+    if (
+        !canManageLiveGame.value ||
+        !playerToRemove.value ||
+        !selectedYieldCandidate.value
+    ) {
+        return;
+    }
+
+    actionError.value = '';
+
+    try {
+        payload.value = await removeLeagueGamePlayer(playerToRemove.value.id, {
+            action: 'yield',
+            replacementEntryId: selectedYieldCandidate.value.id,
+        });
+        closePlayerExitModal();
     } catch (error) {
         actionError.value = extractApiError(error);
     }
@@ -1382,9 +1502,9 @@ async function resolveAbandonedGame(winnerSide: 'A' | 'B'): Promise<void> {
                             <article
                                 v-for="player in payload.game.current.team_a"
                                 :key="player.id"
-                                class="data-row"
+                                class="data-row data-row--player"
                             >
-                                <div>
+                                <div class="data-row__content">
                                     <div class="player-row__title">
                                         <Crown
                                             v-if="player.is_captain"
@@ -1461,9 +1581,9 @@ async function resolveAbandonedGame(winnerSide: 'A' | 'B'): Promise<void> {
                             <article
                                 v-for="player in payload.game.current.team_b"
                                 :key="player.id"
-                                class="data-row"
+                                class="data-row data-row--player"
                             >
-                                <div>
+                                <div class="data-row__content">
                                     <div class="player-row__title">
                                         <Crown
                                             v-if="player.is_captain"
@@ -1834,20 +1954,152 @@ async function resolveAbandonedGame(winnerSide: 'A' | 'B'): Promise<void> {
             <div
                 v-if="playerToRemove !== null"
                 class="overlay"
-                @click.self="playerToRemove = null"
+                @click.self="closePlayerExitModal"
             >
                 <section class="overlay__panel">
                     <p
                         class="app-kicker overlay__kicker overlay__kicker--danger"
                     >
-                        Jugador se va
+                        <span v-if="playerExitStep === 'yield-select'"
+                            >Ceder turno</span
+                        >
+                        <span v-else-if="playerExitStep === 'yield-confirm'"
+                            >Confirmar cesión</span
+                        >
+                        <span v-else-if="playerExitStep === 'remove-confirm'"
+                            >Jugador se va</span
+                        >
+                        <span v-else>Salida del jugador</span>
                     </p>
                     <p class="body-copy">
-                        Confirma la salida de {{ playerToRemove?.name }}. Si hay
-                        cola activa, el siguiente jugador entrará según la
-                        prioridad de la jornada.
+                        <template v-if="playerExitStep === 'choose'">
+                            Elige si {{ playerToRemove?.name }} sale del juego o
+                            cede su turno a alguien elegible de la cola.
+                        </template>
+                        <template v-else-if="playerExitStep === 'yield-select'">
+                            Selecciona a quien recibirá el turno de
+                            {{ playerToRemove?.name }}.
+                        </template>
+                        <template
+                            v-else-if="
+                                playerExitStep === 'yield-confirm' &&
+                                selectedYieldCandidate
+                            "
+                        >
+                            Confirma que {{ playerToRemove?.name }} cede su
+                            turno a {{ selectedYieldCandidate.name }}.
+                        </template>
+                        <template v-else>
+                            Confirma la salida de {{ playerToRemove?.name }}. Si
+                            hay cola activa, el siguiente jugador entrará según
+                            la prioridad de la jornada.
+                        </template>
                     </p>
-                    <div class="action-grid action-grid--two">
+                    <div v-if="playerExitStep === 'choose'" class="action-grid">
+                        <button
+                            class="action-button action-button--warning"
+                            type="button"
+                            :disabled="playerExitCandidates.length === 0"
+                            @click="choosePlayerExitAction('yield')"
+                        >
+                            Ceder turno
+                        </button>
+                        <button
+                            class="action-button action-button--danger"
+                            type="button"
+                            @click="choosePlayerExitAction('remove')"
+                        >
+                            Se va
+                        </button>
+                        <p
+                            v-if="playerExitCandidates.length === 0"
+                            class="body-copy card-note"
+                        >
+                            No hay jugadores elegibles en cola para ceder el
+                            turno ahora mismo.
+                        </p>
+                    </div>
+                    <div
+                        v-else-if="playerExitStep === 'yield-select'"
+                        class="section-stack"
+                    >
+                        <div class="yield-candidate-list">
+                            <button
+                                v-for="candidate in playerExitCandidates"
+                                :key="candidate.id"
+                                type="button"
+                                class="yield-candidate-row"
+                                :class="{
+                                    'yield-candidate-row--active':
+                                        candidate.id === playerYieldTargetId,
+                                }"
+                                @click="playerYieldTargetId = candidate.id"
+                            >
+                                <div>
+                                    <p class="data-row__name">
+                                        {{ candidate.name }}
+                                    </p>
+                                    <p class="body-copy">
+                                        Cola #{{ candidate.position }}
+                                        <span
+                                            v-if="candidate.preferred_position"
+                                        >
+                                            ·
+                                            {{ candidate.preferred_position }}
+                                        </span>
+                                    </p>
+                                </div>
+                                <span class="member-chip member-chip--warning">
+                                    Espera
+                                </span>
+                            </button>
+                        </div>
+                        <div class="action-grid action-grid--two">
+                            <button
+                                class="action-button action-button--secondary"
+                                type="button"
+                                @click="closePlayerExitModal"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                class="action-button action-button--warning"
+                                type="button"
+                                :disabled="!selectedYieldCandidate"
+                                @click="advanceYieldConfirmation"
+                            >
+                                Ceder
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        v-else-if="playerExitStep === 'yield-confirm'"
+                        class="section-stack"
+                    >
+                        <div class="card-note">
+                            {{ playerToRemove?.name }} pasará a la posición de
+                            cola de {{ selectedYieldCandidate?.name }} y
+                            {{ selectedYieldCandidate?.name }} entrará a la
+                            cancha.
+                        </div>
+                        <div class="action-grid action-grid--two">
+                            <button
+                                class="action-button action-button--secondary"
+                                type="button"
+                                @click="closePlayerExitModal"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                class="action-button action-button--warning"
+                                type="button"
+                                @click="confirmYieldTurn"
+                            >
+                                Ok
+                            </button>
+                        </div>
+                    </div>
+                    <div v-else class="action-grid action-grid--two">
                         <button
                             class="action-button action-button--danger"
                             type="button"
@@ -1858,7 +2110,7 @@ async function resolveAbandonedGame(winnerSide: 'A' | 'B'): Promise<void> {
                         <button
                             class="action-button action-button--secondary"
                             type="button"
-                            @click="playerToRemove = null"
+                            @click="closePlayerExitModal"
                         >
                             Cancelar
                         </button>
@@ -2000,8 +2252,19 @@ async function resolveAbandonedGame(winnerSide: 'A' | 'B'): Promise<void> {
     line-height: 1.6;
     color: #94a3b8;
 }
+.body-copy--muted {
+    color: #94a3b8;
+}
 .body-copy--accent {
     color: #cbd5e1;
+}
+.data-row--player {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+}
+.data-row__content {
+    min-width: 0;
 }
 .player-row__title {
     display: flex;
@@ -2030,12 +2293,14 @@ async function resolveAbandonedGame(winnerSide: 'A' | 'B'): Promise<void> {
 }
 .clock-card,
 .clock-card__controls,
-.error-banner {
+.error-banner,
+.card-note {
     display: flex;
     flex-direction: column;
 }
 .clock-card,
-.error-banner {
+.error-banner,
+.card-note {
     gap: 12px;
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 16px;
@@ -2116,6 +2381,13 @@ async function resolveAbandonedGame(winnerSide: 'A' | 'B'): Promise<void> {
     font-size: 13px;
     line-height: 1.6;
     color: #fca5a5;
+}
+.card-note {
+    border-color: rgba(229, 184, 73, 0.24);
+    background: rgba(229, 184, 73, 0.08);
+    font-size: 13px;
+    line-height: 1.6;
+    color: #cbd5e1;
 }
 .review-banner {
     border: 1px solid rgba(229, 184, 73, 0.24);
@@ -2238,6 +2510,27 @@ async function resolveAbandonedGame(winnerSide: 'A' | 'B'): Promise<void> {
 .action-grid--three {
     grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+.yield-candidate-list {
+    display: grid;
+    gap: 12px;
+    max-height: 280px;
+    overflow-y: auto;
+}
+.yield-candidate-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    background: #0e1628;
+    padding: 14px;
+    text-align: left;
+}
+.yield-candidate-row--active {
+    border-color: rgba(229, 184, 73, 0.32);
+    background: rgba(229, 184, 73, 0.12);
+}
 .draft-actions,
 .player-actions {
     flex-direction: row;
@@ -2258,6 +2551,9 @@ async function resolveAbandonedGame(winnerSide: 'A' | 'B'): Promise<void> {
 }
 .action-button {
     width: 100%;
+}
+.player-actions {
+    flex-shrink: 0;
 }
 .sheet-input {
     width: 100%;

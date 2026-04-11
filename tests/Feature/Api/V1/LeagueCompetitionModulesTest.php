@@ -531,6 +531,167 @@ class LeagueCompetitionModulesTest extends TestCase
         }
     }
 
+    public function test_admin_can_yield_a_live_turn_to_a_selected_player_from_queue(): void
+    {
+        [$league, $admin, $players] = $this->makeLeagueContext();
+        $this->prepareLeagueSession($league, $admin, $players->take(10));
+        $this->appendBenchPlayersToSession($league, $admin, 3);
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/league/modules/game/draft', [
+                'mode' => 'arrival',
+            ])
+            ->assertOk();
+
+        $session = $league->sessions()->with('entries.player', 'games')->latest('id')->firstOrFail();
+        $outgoing = $session->entries
+            ->where('session_state', 'on_court')
+            ->where('team_side', 'A')
+            ->sortBy('arrival_order')
+            ->firstOrFail();
+        $queuedEntries = $session->entries
+            ->where('session_state', 'queued')
+            ->sortBy('queue_position')
+            ->values();
+        $selectedReplacement = $queuedEntries->get(1);
+
+        $this->assertNotNull($selectedReplacement);
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/league/modules/game/players/{$outgoing->id}/point", [
+                'points' => 2,
+            ])
+            ->assertOk();
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/league/modules/game/players/{$outgoing->id}/remove", [
+                'action' => 'yield',
+                'replacement_entry_id' => $selectedReplacement->id,
+            ])
+            ->assertOk()
+            ->assertJsonPath('message', 'Turno cedido al jugador seleccionado.')
+            ->assertJsonPath('data.game.current.score.team_a', 2);
+
+        $session = $session->fresh('entries.player', 'games');
+        $outgoing = $session->entries->firstWhere('id', $outgoing->id);
+        $selectedReplacement = $session->entries->firstWhere('id', $selectedReplacement->id);
+        $openGame = $session->games->firstWhere('status', 'open');
+
+        $this->assertSame('queued', $outgoing->session_state);
+        $this->assertNull($outgoing->team_side);
+        $this->assertSame(2, $outgoing->queue_position);
+        $this->assertSame('on_court', $selectedReplacement->session_state);
+        $this->assertSame('A', $selectedReplacement->team_side);
+        $this->assertSame(2, $openGame->team_a_score);
+        $this->assertSame(2, (int) (($openGame->player_points ?? [])[(string) $outgoing->id] ?? 0));
+
+        $teamASnapshot = collect($openGame->team_a_snapshot ?? []);
+        $outgoingSnapshot = $teamASnapshot->firstWhere('entry_id', $outgoing->id);
+        $incomingSnapshot = $teamASnapshot->firstWhere('entry_id', $selectedReplacement->id);
+
+        $this->assertNotNull($outgoingSnapshot);
+        $this->assertNotNull($incomingSnapshot);
+        $this->assertFalse((bool) ($outgoingSnapshot['result_counts'] ?? true));
+        $this->assertTrue((bool) ($incomingSnapshot['result_counts'] ?? false));
+        $this->assertSame(
+            [$queuedEntries->first()->id, $outgoing->id, $queuedEntries->last()->id],
+            $session->entries
+                ->where('session_state', 'queued')
+                ->sortBy('queue_position')
+                ->pluck('id')
+                ->values()
+                ->all(),
+        );
+
+        $yieldedRow = collect($response->json('data.game.current.team_a'))
+            ->firstWhere('id', $selectedReplacement->id);
+        $waitingRow = collect($response->json('data.game.current.waiting_queue'))
+            ->firstWhere('id', $outgoing->id);
+
+        $this->assertNotNull($yieldedRow);
+        $this->assertTrue((bool) $yieldedRow['can_yield_turn']);
+        $this->assertNotNull($waitingRow);
+        $this->assertSame(2, $waitingRow['position']);
+    }
+
+    public function test_removed_player_keeps_points_but_the_game_does_not_count_for_wins_or_losses(): void
+    {
+        [$league, $admin, $players] = $this->makeLeagueContext();
+        $this->prepareLeagueSession($league, $admin, $players->take(10));
+        $benchPlayers = $this->appendBenchPlayersToSession($league, $admin, 2);
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/league/modules/game/draft', [
+                'mode' => 'arrival',
+            ])
+            ->assertOk();
+
+        $session = $league->sessions()->with('entries.player', 'games')->latest('id')->firstOrFail();
+        $outgoing = $session->entries
+            ->where('session_state', 'on_court')
+            ->where('team_side', 'A')
+            ->sortBy('arrival_order')
+            ->firstOrFail();
+        $replacement = $session->entries
+            ->where('session_state', 'queued')
+            ->sortBy('queue_position')
+            ->firstOrFail();
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/league/modules/game/players/{$outgoing->id}/point", [
+                'points' => 2,
+            ])
+            ->assertOk();
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/v1/league/modules/game/players/{$outgoing->id}/remove", [
+                'action' => 'remove',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.game.current.score.team_a', 2);
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/league/modules/game/team-point', [
+                'team_side' => 'A',
+            ])
+            ->assertOk();
+
+        $this->actingAs($admin, 'sanctum')
+            ->postJson('/api/v1/league/modules/game/finish')
+            ->assertOk();
+
+        $statsResponse = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/v1/league/modules/stats')
+            ->assertOk();
+
+        $pointsRow = collect($statsResponse->json('data.stats.points_leaders'))
+            ->firstWhere('identity.name', $outgoing->player?->display_name);
+        $gamesRow = collect($statsResponse->json('data.stats.games_leaders'))
+            ->firstWhere('identity.name', $outgoing->player?->display_name);
+        $replacementRow = collect($statsResponse->json('data.stats.games_leaders'))
+            ->firstWhere('identity.name', $benchPlayers->firstOrFail()->display_name);
+
+        $this->assertNotNull($pointsRow);
+        $this->assertSame(2, $pointsRow['points']);
+        $this->assertSame(0, $pointsRow['games']);
+        $this->assertNull($gamesRow);
+        $this->assertNotNull($replacementRow);
+        $this->assertSame(1, $replacementRow['games']);
+        $this->assertSame(1, $replacementRow['wins']);
+        $this->assertSame(0, $replacementRow['losses']);
+
+        $session = $session->fresh('entries.player', 'games');
+        $outgoing = $session->entries->firstWhere('id', $outgoing->id);
+        $replacement = $session->entries->firstWhere('id', $replacement->id);
+        $completedGame = $session->games->firstWhere('status', 'completed');
+
+        $this->assertSame('removed', $outgoing->session_state);
+        $this->assertSame('on_court', $replacement->session_state);
+        $this->assertSame(3, $completedGame->team_a_score);
+        $this->assertSame(2, (int) (($completedGame->player_points ?? [])[(string) $outgoing->id] ?? 0));
+        $this->assertFalse((bool) (collect($completedGame->team_a_snapshot ?? [])->firstWhere('entry_id', $outgoing->id)['result_counts'] ?? true));
+    }
+
     public function test_game_module_can_switch_into_abandoned_review_mode(): void
     {
         CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-04-05 10:00:00'));
@@ -1187,5 +1348,30 @@ class LeagueCompetitionModulesTest extends TestCase
             )
             ->pluck('id')
             ->all();
+    }
+
+    /**
+     * @return Collection<int, LeaguePlayer>
+     */
+    private function appendBenchPlayersToSession(League $league, User $admin, int $count): Collection
+    {
+        $operations = app(LeagueOperationsService::class);
+        $management = app(LeagueManagementService::class);
+        $arrival = app(LeagueArrivalService::class);
+        $cut = $operations->activeCutForLeague($league);
+        $benchPlayers = LeaguePlayer::factory()
+            ->count($count)
+            ->for($league)
+            ->create([
+                'created_by_user_id' => $admin->id,
+                'updated_by_user_id' => $admin->id,
+            ]);
+
+        foreach ($benchPlayers as $player) {
+            $management->recordPayment($admin, $player, 60000, false, $cut->id);
+            $arrival->togglePlayerArrival($admin, $player);
+        }
+
+        return $benchPlayers;
     }
 }
